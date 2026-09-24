@@ -1,4 +1,7 @@
 # Exact command/event strings; registration and availability not runtime-verified.
+album.add
+album.create
+bluetooth.scan
 calendar.events.create
 calendar.events.delete
 calendar.events.update
@@ -9,6 +12,10 @@ contacts.search
 contacts.update
 data_source.backfill
 data_source.refresh
+device.capture
+device.find
+geofence.list
+geofence.remove
 health.background_update
 health.samples
 home.accessories.list
@@ -31,6 +38,12 @@ media.favorite
 message.assistant
 message.draft
 message.shortcut_setup
+photo.badge.exclamationmark
+photo.jpg
+photo.on.rectangle
+photo.sync
+photo.sync_status
+photo.sync_stop
 reminders.complete
 reminders.create
 reminders.delete

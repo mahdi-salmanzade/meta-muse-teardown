@@ -1,0 +1,29 @@
+[
+  {
+    "bundle": "HatchNotificationServiceExtension.appex",
+    "extension": {
+      "NSExtensionPointIdentifier": "com.apple.usernotifications.service",
+      "NSExtensionPrincipalClass": "FBNotificationService"
+    },
+    "identifier": "com.facebook.hatch.NotificationServiceExtension"
+  },
+  {
+    "bundle": "HatchShareExtension.appex",
+    "extension": {
+      "NSExtensionAttributes": {
+        "NSExtensionActivationRule": "SUBQUERY(extensionItems, $item, SUBQUERY($item.attachments, $attachment, ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO \"public.url\" OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO \"public.image\" OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO \"public.file-url\" OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO \"public.data\").@count > 0).@count > 0"
+      },
+      "NSExtensionJavaScriptPreprocessingFile": "GetPageContent",
+      "NSExtensionPointIdentifier": "com.apple.share-services",
+      "NSExtensionPrincipalClass": "HatchShareExtensionLib.HCHShareViewController"
+    },
+    "identifier": "com.facebook.hatch.ShareExtension"
+  },
+  {
+    "bundle": "WidgetExtension.appex",
+    "extension": {
+      "NSExtensionPointIdentifier": "com.apple.widgetkit-extension"
+    },
+    "identifier": "com.facebook.hatch.WidgetExtension"
+  }
+]

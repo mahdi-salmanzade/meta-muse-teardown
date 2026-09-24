@@ -3,10 +3,13 @@
 Input: com.facebook.hatch_8.1_und3fined.ipa
 sha256 70c3cfe5bde49e31eecd087fdbb6749703d2dd74f124c7c464866884d72603b2 (re-verified)
 
-VERDICT: GENUINE META APP STORE BINARY, FAIRPLAY-DECRYPTED ("cracked" dump), NOT RE-SIGNED,
-NO EVIDENCE OF MODIFICATION / TROJANING. The only byte-level differences from Apple's signed
-original are (a) the decrypted __TEXT pages and (b) the 4-byte cryptid field set 1 -> 0 in each
-Mach-O. One extra 9-byte marker file sits OUTSIDE the .app bundle.
+REVIEW QUALIFICATION (2026-09-24): The observations below are consistent with a
+FairPlay-decrypted App Store package, but do NOT authenticate the decrypted code.
+`codesign --verify --deep --strict` fails. A matching header and matching pages outside
+the encrypted ranges cannot exclude changes within the decrypted ranges. "No evidence
+of modification" must not be read as "proved unmodified." The original page-hash
+inspection below is retained for completeness; its verifier was not preserved here.
+See 01-provenance.txt for independently reproduced signature/encryption output.
 
 1. Payload layout
    Payload/HatchApp.app/          the app

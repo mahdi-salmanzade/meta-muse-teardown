@@ -1,133 +1,119 @@
 # Muse for iOS (`com.facebook.hatch` 8.1.0)
 
-The iPhone build of Meta's Muse agent. iOS keeps apps out of SMS, call logs and other apps' notifications, so Muse uses what Apple does allow: **HealthKit (110 data types), always-on location, HomeKit control of your door locks and cameras, a camera-roll uploader, and Shortcuts automations that forward your iMessages and email to Meta.**
+**The supplied iOS sample contains HealthKit, HomeKit, background-location and photo-sync functionality, plus Shortcuts-based message forwarding.** These findings describe an unverified, decrypted-looking IPA. They are not proof that every feature is enabled or that any data was uploaded.
 
-← Back to the [main report](README.md) · Evidence: [`evidence-ios/`](evidence-ios/)
+[**iOS**](IOS.md) · [**macOS**](README.md) · [**Android**](ANDROID.md) · [**All evidence**](EVIDENCE.md)
 
----
+Reviewed **2026-09-24**. Nothing was installed or launched.
 
-## 1. Authenticity: a genuine Meta binary, decrypted, not modified
+## 1. Provenance: consistent with a decrypted App Store package, not fully authenticated
 
-The file (`com.facebook.hatch_8.1_und3fined.ipa`, sha256 `70c3cfe5bde49e31eecd087fdbb6749703d2dd74f124c7c464866884d72603b2`) is a **FairPlay-decrypted App Store dump**. "und3fined" is the dumper's tag. We checked it for tampering before trusting any of its contents ([`01-authenticity.txt`](evidence-ios/01-authenticity.txt)):
-
-| Check | Result |
+| Field | Observed value |
 |---|---|
-| Signer (all 5 Mach-O binaries) | Apple App Store chain (`Apple iPhone OS Application Signing` → `Apple iPhone Certification Authority` → `Apple Root CA`), **TeamIdentifier `V9WTTPBFK9`**, the same Meta team that signs the Mac app |
-| Bundle | `com.facebook.hatch`, version 8.1.0, build `1074192126`, executable `HatchApp` |
-| Encryption | `cryptid 0` in every binary (decrypted) |
-| Code pages vs Apple's signed CodeDirectory | Every 4 KiB page matches **except** the decrypted pages and the single page holding `cryptid`. Setting `cryptid` back to 1 makes that page match exactly. **Load commands are exactly as signed, and no dylib was injected.** |
-| Info.plist, entitlements, CodeResources | Hashes match the signature. 473 resource seals plus the nested bundles: 0 missing, 0 extra |
-| Linked libraries | Only system frameworks and `@rpath/MobileConfig.framework` (Meta). No `.dylib`, Substrate, ElleKit or tweak strings |
-| Foreign files | Only `Payload/decrypt.day` (9 bytes, text `und3fined`), outside the `.app` bundle and never referenced |
+| File | `com.facebook.hatch_8.1_und3fined.ipa` |
+| SHA-256 | `70c3cfe5bde49e31eecd087fdbb6749703d2dd74f124c7c464866884d72603b2` |
+| Bundle / version | `com.facebook.hatch`, 8.1.0, build `1074192126` |
+| Internal version / build date | `8.1.0.8.136` / `2026-09-22T07:00:13` |
+| Minimum OS | iOS 18.0 |
+| Displayed signature metadata | Apple iPhone OS Application Signing chain; TeamIdentifier `V9WTTPBFK9` |
+| Actual signature verification | **Fails:** `invalid signature (code or signature have been modified)` |
+| Main executable encryption command | `cryptid 0`, `cryptoff 16384`, `cryptsize 72089600` |
 
-**Verdict:** this is Meta's App Store code. The one thing a decrypted IPA can't prove cryptographically is the decrypted instruction bytes, but nothing else in the bundle differs from what Apple signed.
+[Reproducible signature/encryption output](evidence-ios/01-provenance.txt) · [Selected Info.plist](evidence-ios/02-info-plist.json).
 
-## 2. Agent commands
+The earlier [page-hash inspection](evidence-ios/01-authenticity.txt) reports mismatches confined to the encrypted regions and the changed `cryptid` field, with matching remaining pages/resources. That is **consistent with decryption**, but cannot rule out edits within the decrypted regions. Displaying a signing certificate does not validate the changed executable. This report therefore does not call the sample an unmodified, authenticated Meta binary.
 
-There's a contiguous command table in the binary ([`05-agent-tools.txt`](evidence-ios/05-agent-tools.txt)). The transport is `node.register` → `node.invoke.request` / `node.invoke.result`, plus `/nodes/heartbeat`.
+The [US App Store listing](https://apps.apple.com/us/app/muse-from-meta/id6760173601) independently lists Meta as the seller and version 8.1 as of the review date. Matching marketing versions do not establish byte-for-byte identity. The original IPA acquisition chain was not recorded here.
 
-| Area | Commands |
+## 2. Agent commands and approval evidence
+
+[Tool excerpts](evidence-ios/05-agent-tools.txt) and [reproduced command/event names](evidence-ios/04-command-names.txt) show:
+
+| Area | Examples |
 |---|---|
-| **Location** | `location.get`, `location.set_sharing_mode`, `geofence.set` / `list` / `remove` |
-| **Health** | `health.samples`, `health.query` |
-| **HomeKit** | 14 `home.*` commands incl. **`home.accessory.set`**, **`home.security.sweep`**, `home.bind_geofence` |
-| **Calendar / Reminders** | `calendar.search`, `calendar.events.create/update/delete`, `reminders.*` |
-| **Contacts** | `contacts.search/create/update/delete` |
-| **Photos** | `photo.sync`, `media.delete`, `album.*` |
-| **Other** | `bluetooth.scan`, `message.draft`, `device.find`, `data_source.backfill`, `data_source.refresh`, `ui.navigate.*` |
+| Location | `location.get`, `location.set_sharing_mode`, `geofence.set/list/remove` |
+| Health | `health.samples`; additional health-query references |
+| HomeKit | `home.accessory.set`, `home.scene.run`, `home.security.sweep`, `home.bind_geofence` |
+| Calendar / reminders | `calendar.search`, `calendar.events.create/update/delete`, `reminders.*` |
+| Contacts | `contacts.search/create/update/delete` |
+| Photos | `photo.sync`, `photo.sync_stop`, `media.delete`, `media.favorite`, album operations |
+| Messaging | `message.draft`, `message.shortcut_setup`, forwarding App Intents |
+| Sync | `data_source.backfill`, `data_source.refresh`, `client.data_source.publish` |
 
-**Not present on iOS:** sending SMS, placing calls, camera or screen capture, reading other apps' notifications, a custom keyboard, or a VPN/network extension. iOS doesn't allow the first several, and Meta didn't ship the last two.
+These are compiled names/descriptions, not a runtime-confirmed registration list. The binary contains approval prompts, persistent-allow UI copy and `Node data sync: node HITL denied proactive sync`. That contradicts an assumption that all background publishing bypasses permission checks. Enforcement and production defaults remain untested.
 
-**Approval gate:** each command has a human-in-the-loop prompt ("{assistant} wants to…", 45 strings) with persistent **`allow_always` / `auto_allow`** options (UI: "Always allowed", "Auto allowed"). The log line `Node data sync: node HITL denied proactive sync` shows proactive syncs go through the same gate. Once you tap "Always", later requests are expected to go through without asking again (inferred, not provable statically).
+`message.draft` references Apple’s message composer, where the user sends the message. This sample does not establish direct reading of the iOS Messages database or an Android-style notification listener. The camera usage prompt is present; absence of a `camera.*` agent command would not establish absence of camera functionality.
 
-## 3. Background data sync
+## 3. Background sync and remote wakeups
 
-Nine sync sources ([`06-sync-upload.txt`](evidence-ios/06-sync-upload.txt)):
+Nine sync-source class names appear in the binary:
 
 ```
-CalendarSyncSource     ContactsSyncSource        RemindersSyncSource
-HealthSyncSource       LocationSyncSource        NotesSyncSource
-EmailContextSyncSource IMessageContextSyncSource HomeKitBridgeSource
+CalendarSyncSource       ContactsSyncSource       RemindersSyncSource
+HealthSyncSource         LocationSyncSource       NotesSyncSource
+EmailContextSyncSource   IMessageContextSyncSource HomeKitBridgeSource
 ```
 
-- Chunked **backfill** of history (`chunked backfill starting fresh=`).
-- Scheduled by the background task **`com.meta.hatch.nodedata.sync.refreshTask`**.
-- **`HatchVmLockedSilentPushHandler`** (`hatch_node_vm_locked`): a **silent push** from Meta's server makes the app reconnect (`connectWithBootstrap`) from the background, with no user interaction.
+There are chunked-backfill and incremental-upload strings, as well as the permitted background-task identifier `com.meta.hatch.nodedata.sync.refreshTask`. The existence of a sync-source class does not mean it can independently read all historical data; the message sources depend on forwarded content. [Sync evidence](evidence-ios/06-sync-upload.txt).
 
-## 4. Camera roll: the iOS version of MediaSync
+`HatchVmLockedSilentPushHandler` contains reconnect logic and strings for ignoring pushes when the runtime gate is off, the session is absent or VM identifiers mismatch. A silent push can request background work, but iOS controls delivery and execution; it is not a guarantee that a server can wake the app at any time. [Apple background-push documentation](https://developer.apple.com/documentation/usernotifications/pushing-background-updates-to-your-app).
 
-`HCHHatchMediaSync` uploads through `media_sync.upload_asset`, scheduled by the background task **`com.meta.hatch.cameraroll.sync.processingTask`**.
+## 4. Photos: ongoing upload, full-library override and a temporary pause
 
-- Sync is triggered **on launch, on foreground, when you join Wi-Fi, and whenever your photo library changes**.
-- About **500 photos per run** on Wi-Fi, unless a `full_sync` sets a persistent unlimited override (**`cameraRollSyncBypassLimit`**).
-- Permission prompt: *"Muse needs access to your photo library to sync media to your agent."*
+The sample contains `HCHHatchMediaSync`, `media_sync.upload_asset`, a local upload manifest and `com.meta.hatch.cameraroll.sync.processingTask`. Strings describe catch-up on Wi-Fi arrival and photo-library changes, conditions-based budgets, permission checks and denial by the node approval gate. [Upload evidence](evidence-ios/06-sync-upload.txt).
 
-Unlike Android, this is a library mirror, like the Mac build.
+**A distinction that matters:** the tool text describes `full_sync: true` as a persistent override for this and future automatic catch-ups, to be used only after an explicit request to sync all photos. It describes a normal per-run cap of roughly 500 on Wi-Fi. That figure is tool-description evidence, not a measured limit.
 
-## 5. Health: 110 HealthKit types
+The UI copy says a pause clears on reopening the app; the **Camera Roll Sync** setting is the persistent off-switch. `photo.sync_stop` cancels the current run without disabling future automatic sync. Other strings say automatic sync is skipped for limited Photos access. These controls are omitted by simply calling the feature a whole-library mirror. [Reproduced consent/tool text](evidence-ios/05-sync-and-consent.txt).
 
-Entitlements: `com.apple.developer.healthkit` + **`healthkit.background-delivery`**. `healthkit.access` is empty, so there's **no clinical-records access** ([`07-health.txt`](evidence-ios/07-health.txt)).
+## 5. Health: 110 imported type identifiers, not 110 proven uploads
 
-It imports 110 HealthKit type identifiers (`nm -u`), including heart rate, **heart-rate variability**, **AFib burden**, **blood oxygen**, **blood pressure**, **blood glucose**, **insulin delivery**, **blood alcohol**, **sleep**, **fall count**, **State of Mind** (mood logging), full **nutrition**, and **workout GPS routes**. Uploads come from `uploadSnapshot(...includeRawSamples...)` and `health.background_update`. With background delivery, iOS wakes the app when new samples arrive.
+`nm -u` contains **110 distinct HealthKit type-identifier symbols**, including identifiers for heart rate, blood pressure, glucose, insulin delivery, sleep, nutrition and AFib burden. Separate imported classes include `HKStateOfMind` and `HKWorkoutRoute`. [Reproducible count/list](evidence-ios/11-health-import-count.txt) · [Broader health excerpts](evidence-ios/07-health.txt).
+
+**An import is not a granted permission, a requested read set or proof of transmission.** Shared health libraries may reference types unused by a particular feature. Actual access depends on OS support, available records and the user’s per-type Health permissions.
+
+The displayed entitlements contain HealthKit and HealthKit background delivery, and the sample has health-sync/raw-sample-upload strings. The displayed `healthkit.access` array is empty and no clinical-record usage description is present; this review found no declared clinical-record access. [Entitlements](evidence-ios/03-entitlements.json).
 
 ## 6. Location and HomeKit
 
-([`08-location.txt`](evidence-ios/08-location.txt))
+The sample declares foreground/Always location prompts and a location background mode. Strings describe significant-location-change monitoring and upload events, with skip paths. The tool description says background sharing should be requested only when the user explicitly asks, and requires OS authorization. [Location evidence](evidence-ios/08-location.txt).
 
-- `startMonitoringSignificantLocationChanges`, and `[LBR] Location change detected, sending location update` once sharing mode is **`always`**.
-- The agent's instructions say "Use ONLY when the user explicitly asks" before switching to `always`.
-- Geofences default to a 150 m radius. **`home.bind_geofence`** runs HomeKit actions automatically when a geofence fires.
-- The `home.*` commands let the remote agent set accessories (locks, garage doors, lights) and run a **security sweep** of your home devices.
+`home.accessory.set` and scene commands can request changes to supported accessories. `home.security.sweep` describes reading reachable accessories’ states/sensor values. `home.bind_geofence` describes automatic HomeKit actions on entering or leaving a location, requiring both HomeKit and Always location permissions. These are consequential capabilities; they do not prove that any particular lock can be opened, or that camera video is available. [Tool text](evidence-ios/05-agent-tools.txt).
 
-A Meta-hosted VM that knows when you leave home and can operate your door locks is a big increase in exposure.
+## 7. iMessage, Mail and Notes through user-created Shortcuts
 
-## 7. iMessage, Mail and Notes through Shortcuts
+The sample contains `HCHForwardIMessageToHatchAppIntent` and `HCHForwardEmailToHatchAppIntent`. Its guidance asks the user to create a Shortcuts automation that forwards matching new content. It explicitly states **no message-history access**, and describes disabling forwarding or deleting the automation. Previously uploaded messages are not deleted merely by turning forwarding off. [Sync/Shortcuts evidence](evidence-ios/06-sync-upload.txt).
 
-iOS doesn't let apps read iMessage. Muse ships App Intents that **Shortcuts automations** can call without opening the app: `HCHForwardIMessageToHatchAppIntent` and `HCHForwardEmailToHatchAppIntent`. The app then **walks the user through building an automation that forwards messages to Meta**. Verbatim from the binary:
+The guidance suggests a space in “Message Contains” to match many messages, or selecting senders. A space is **not a universal catch-all**: one-word messages and photos without matching text can be missed. A user-created automation is an authorized OS pathway, not evidence of an iOS sandbox bypass.
 
-> "Leave Sender empty and type a **single space in Message Contains**. One-word texts and photos without a caption have no space, so they aren…"
-> "Add them to Sender and leave Message Contains empty. **Every message they send comes through**, including one-word replies and photos."
+Notes copy describes a separately installed export shortcut, labels it a prototype and notes account availability gates. It describes exporting all notes, but strings alone do not establish that the prototype is enabled for retail accounts.
 
-A single space matches nearly every message. Other strings: *"Previously uploaded messages are not deleted."* and, for Notes, *"Share a text copy of all your Apple Notes."*
+## 8. Shared containers, browser sharing and debug surfaces
 
-This gets around iOS's privacy model: Apple blocks apps from reading your messages, so Muse has **you** build the pipe.
+- **Shared Meta containers:** `group.com.facebook.family`, `group.com.metaplatforms.family` and `T84QZS65DQ.platformFamily` appear in entitlement metadata. These allow sharing with other apps that possess matching entitlements; they do not expose every app’s private database or prove a particular exchange occurred. [Apple app-group documentation](https://developer.apple.com/documentation/xcode/configuring-app-groups) · [Local metadata](evidence-ios/03-entitlements.json).
+- **Identity/analytics:** `FBFamilyDeviceID`, IDFA-related imports, SKAdNetwork and Meta analytics names are present. This is not proof of actual cross-app identity transmission or successful IDFA access. [Notable strings/imports](evidence-ios/10-notable.txt).
+- **Share extension:** Safari preprocessing collects URL/title, description, thumbnail/icon URLs and selected text, with description/first-paragraph fallbacks. This is a share-sheet pathway, distinct from the Mac’s broad debugger extension. [Extension evidence](evidence-ios/04-extensions.txt).
+- **Three bundled extensions:** Notification Service, Share and Widget. A notification service extension modifies notifications for its own app; it is not an Android-style listener for other apps’ notifications. No keyboard or VPN extension appears in this bundle inventory. [Reproduced extension metadata](evidence-ios/12-extension-metadata.json) · [Apple documentation](https://developer.apple.com/documentation/usernotifications/unnotificationserviceextension).
+- **Temporary SSH-access UI:** strings include “Meta SSH access,” temporary debug-access wording and `https://api.muse.ai/ssh-access/tokens`. These identify a debug-access surface, not proof that Meta staff have active access or that the UI is publicly enabled. A `dev` build-branch string does not establish an employee-only rollout. [Evidence](evidence-ios/10-notable.txt).
+- **OHTTP and noVNC:** relay hostnames and remote-VM viewer assets are present. Hostnames alone do not prove which traffic uses a relay. The VNC assets describe viewing a cloud browser, not capturing the phone’s screen. [Endpoints](evidence-ios/09-endpoints.txt).
 
-## 8. Shared Meta identity
+Negative string searches for trackers, jailbreak checks or stealth code are limited searches, not proof those behaviors are absent. The earlier “clean in this build” conclusion was too broad.
 
-([`03-entitlements.txt`](evidence-ios/03-entitlements.txt), [`10-notable.txt`](evidence-ios/10-notable.txt))
+## 9. Reduce access or remove it
 
-- App groups **`group.com.facebook.family`** and **`group.com.metaplatforms.family`**, and keychain group `T84QZS65DQ.platformFamily`: storage shared with Facebook, Instagram, Messenger and WhatsApp on the same phone.
-- `FBFamilyDeviceID` logged next to `idForVendor`, and a **`group.com.facebook.family.appgrouptokenshare`** container.
-- IDFA and SKAdNetwork are imported. There's no App Tracking Transparency usage string, so IDFA will probably read as zeros.
+1. Review Muse connector approvals, turn off ongoing sharing and disable **Camera Roll Sync** rather than only pausing it.
+2. Revoke Muse’s location, Photos, Contacts, Calendar, Reminders, Home, Bluetooth, camera and microphone permissions in iOS settings as applicable.
+3. Revoke Muse’s access in the Health app’s app-permissions controls.
+4. Disable/delete the Shortcuts automations you created for Muse.
+5. Disconnect services and remove the app. Use current Muse account/data controls to request cloud deletion; this review has not verified a Muse-specific Accounts Center workflow or backup retention.
 
-## 9. Other notable pieces
+## 10. Reproduce the added iOS evidence
 
-- **"Meta SSH access"**: a setting that says *"Give temporary access… Open access to your CVM for debugging purposes"* and calls `https://api.muse.ai/ssh-access/tokens`. It grants Meta staff shell access to *your* cloud VM, where your synced data lives. It's probably limited to internal testing (the build branch string is `dev`), but it ships in the App Store binary.
-- **151 unique hosts**, including `hatch.metaaivm.com`, `agent.meta.ai`, `hatch-api.meta.ai`, `api.muse.ai` and `genai-hatch-realtime.facebook.com`. Some traffic goes through **Oblivious HTTP relays** (`meta-ohttp-relay-prod.fastly-edge.com`, `meta.privacy-gateway.cloudflare.com`). This is a genuine privacy measure for the traffic it covers ([`09-endpoints.txt`](evidence-ios/09-endpoints.txt)).
-- **Extensions:** Notification Service, Share (Safari `GetPageContent.js` sends only title, URL, description and selected text), and Widget. There's no keyboard and no VPN ([`04-extensions.txt`](evidence-ios/04-extensions.txt)).
-- **Clean in this build:** no third-party trackers (no Firebase, AppsFlyer or Sentry), no jailbreak detection, no bot-evasion scripts. App Attest is used.
+On macOS, with Python 3 and Xcode command-line tools:
 
-## 10. Summary
+```bash
+unzip com.facebook.hatch_8.1_und3fined.ipa -d /tmp/muse-ipa-review
+python3 scripts/collect-review-evidence.py ios com.facebook.hatch_8.1_und3fined.ipa /tmp/muse-ipa-review/Payload/HatchApp.app --output /tmp/muse-ios-review
+```
 
-| Capability | Proven by |
-|---|---|
-| 110 health types, background delivery, raw-sample upload | HealthKit entitlements, `nm -u`, `uploadSnapshot(...includeRawSamples...)` |
-| Always-on location + geofence-triggered actions | `startMonitoringSignificantLocationChanges`, `home.bind_geofence` |
-| Remote control of door locks, cameras, lights | `home.accessory.set`, `home.security.sweep` |
-| Camera roll mirrored to Meta | `HCHHatchMediaSync`, `cameraRollSyncBypassLimit`, BGTask |
-| iMessage / email forwarding via Shortcuts, "single space" trick | `HCHForwardIMessageToHatchAppIntent`, in-app guidance strings |
-| Calendar, contacts, reminders, notes backfill + sync | 9 `*SyncSource` classes, `data_source.backfill` |
-| Server can wake the app | `HatchVmLockedSilentPushHandler` |
-| Cross-app Meta identity | `group.com.facebook.family`, `FBFamilyDeviceID` |
-
-## 11. Remove it
-
-1. Settings → Privacy & Security → **Location Services** → Muse → **Never**.
-2. **Health** app → Sharing → Apps → Muse → **Turn Off All**.
-3. Settings → Muse → Photos → **None**. Also turn off Contacts, Calendars, Reminders, **Home**, Bluetooth.
-4. **Shortcuts** → Automation: **delete every automation that uses "Forward … to Muse"**. Uninstalling the app doesn't delete what was already forwarded.
-5. Delete the app, then request deletion through Meta's Accounts Center.
-
----
-
-*Static analysis only (codesign, otool, nm, strings, page-hash verification against Apple's CodeDirectory). Nothing was installed or run. The IPA and extracted bundle are not in this repo.*
+The collector hashes the IPA, records signature display **and verification**, reads plists, lists selected strings and counts imported health identifiers. It never executes app code. It regenerates the machine-readable review files; earlier narrative evidence files remain separately indexed in [EVIDENCE.md](EVIDENCE.md). The earlier page-hash analysis is not reproduced by this collector.

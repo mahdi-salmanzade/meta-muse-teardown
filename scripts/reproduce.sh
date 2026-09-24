@@ -2,6 +2,7 @@
 # Print the core macOS findings from your own copy of Muse-3.0.dmg.
 # This is a console inspection, not a byte-for-byte rebuild of every evidence file.
 # Nothing here executes the app: the DMG is mounted read-only and only inspected.
+# Requires macOS command-line tools and Python 3.
 #
 #   ./scripts/reproduce.sh /path/to/Muse-3.0.dmg
 set -euo pipefail
@@ -15,7 +16,10 @@ C="$APP/Contents"
 MOUNTED=0
 cleanup() {
   if [[ "$MOUNTED" == 1 ]]; then
-    hdiutil detach "$MNT" -quiet || true
+    if ! hdiutil detach "$MNT" -quiet; then
+      echo "[!] Could not detach $MNT; leaving $WORK for manual cleanup." >&2
+      return
+    fi
   fi
   rm -rf "$WORK"
 }
@@ -56,8 +60,18 @@ echo; echo "[*] Remote VM endpoints"
 grep -E "metaaivm|/hatch/" "$WORK/strings.txt" | sort -u
 
 echo; echo "[*] Auto-sync consent copy (web UI)"
-LC_ALL=C grep -aoE "function autoSyncCopy.{0,1800}" "$C/Resources/hatch/index.html" \
-  | grep -oE "fbs\._\(\`[^\`]+\`" | sed 's/fbs._(`//;s/`$//'
+python3 - "$C/Resources/hatch/index.html" <<'PY'
+from pathlib import Path
+import re
+import sys
+text = Path(sys.argv[1]).read_text()
+start = text.index("function autoSyncCopy")
+end = text.index("function ", start + len("function "))
+copies = re.findall(r"fbs\._\(`([^`]+)`", text[start:end])
+if not copies:
+    raise SystemExit("No auto-sync copy found in this build")
+print("\n".join(copies))
+PY
 
 echo; echo "[*] Bundled Chrome extension"
 cat "$C/Resources/chrome/manifest.json"

@@ -84,7 +84,7 @@ def collect_ios(args):
     write(args.output, "03-entitlements.json", json.dumps(plistlib.loads(entitlements.encode()), indent=2, sort_keys=True))
     strings = checked("strings", "-n", "8", str(binary)).splitlines()
     write(args.output, "04-command-names.txt", "# Exact command/event strings; registration and availability not runtime-verified.\n" +
-          selected_strings(strings, r"^(home|health|media|calendar|contacts|reminders|message|location|data_source|shortcut_notifications)\.[a-z_.]+$"))
+          selected_strings(strings, r"^(home|health|photo|media|album|geofence|bluetooth|device|calendar|contacts|reminders|message|location|data_source|shortcut_notifications)\.[a-z_.]+$"))
     snippets = [s for s in strings if any(s.startswith(prefix) for prefix in [
         "Turn on to back up your camera roll.", "Turning this off fully disables camera roll sync.",
         "When true, enable the persistent full-library override", "Cancel the currently running camera roll sync.",
@@ -94,6 +94,16 @@ def collect_ios(args):
         "To stop iMessage reads when the user asks to disconnect",
         "Incoming messages forwarded by a user-created Apple Shortcuts automation."])]
     write(args.output, "05-sync-and-consent.txt", "# Selected tool descriptions and UI copy from strings -n 8; not runtime observations.\n" + "\n".join(sorted(set(snippets))))
+    imports = checked("xcrun", "nm", "-u", str(binary))
+    health_types = sorted(set(re.findall(r"^_(HK\w*TypeIdentifier\w+)$", imports, re.M)))
+    write(args.output, "11-health-import-count.txt", f"# Unique HealthKit type-identifier imports: {len(health_types)}\n"
+          "# Imports are not a list of granted permissions or demonstrated uploads.\n" + "\n".join(health_types))
+    extensions = []
+    for extension in sorted((app / "PlugIns").glob("*.appex")):
+        metadata = plistlib.loads((extension / "Info.plist").read_bytes())
+        extensions.append({"bundle": extension.name, "identifier": metadata.get("CFBundleIdentifier"),
+                           "extension": metadata.get("NSExtension")})
+    write(args.output, "12-extension-metadata.json", json.dumps(extensions, indent=2, sort_keys=True))
 
 
 def collect_android(args):

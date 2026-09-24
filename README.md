@@ -1,29 +1,35 @@
-# Muse by Meta: what it actually takes from your Mac
+![Muse privacy concern — independent teardown](assets/muse-platforms.png)
 
-A teardown of **Muse 3.0 for macOS** (`Muse-3.0.dmg`), Meta's desktop AI agent, internally codenamed **Endo / Hatch**.
+# Muse by Meta: iOS, macOS and Android privacy teardown
 
-**TL;DR:** Muse is a genuine, Meta-signed app. Once you grant its permissions, it:
+[**iOS**](IOS.md) · [**macOS**](#1-is-this-really-metas-app) · [**Android**](ANDROID.md) · [**All evidence**](EVIDENCE.md) · [**Review updates**](REVIEW.md)
 
-- reads your **iMessage history** straight out of the Messages database
-- reads your **WhatsApp chats** straight out of WhatsApp's SQLite file
-- keeps **uploading new messages, notes, calendar events, reminders and contacts** to Meta in the background
-- uploads your **Photos library** on a timer
-- can **see your screen and click and type** anywhere on your Mac
-- installs a **Chrome extension with debugger access to every website you visit**
+> The internet is the 'greatest spying machine the world has ever seen' and is not a technology that necessarily favours the freedom of speech.
+>
+> — Julian Assange’s remarks, as summarized by [The Guardian, 15 March 2011](https://www.theguardian.com/media/2011/mar/15/web-spying-machine-julian-assange). This full sentence is the article’s summary, not a verbatim sentence from his speech.
 
-The "brain" of the agent doesn't run on your computer. It runs in a **Meta-hosted virtual machine** (`*.metaaivm.com`), and your Mac is wired up as its remote-controlled "node".
+A static teardown of **Muse 3.0 for macOS** (`com.meta.endo`), plus Android and iOS samples. Meta uses **Hatch** internally; the Mac binary also contains **Endo** names.
 
-This is the company that ran a VPN called Onavo to [decrypt Snapchat, YouTube and Amazon traffic from its own users](#metas-track-record) and paid teenagers $20 a month to install a root-certificate "research" app. Read what Muse does before you click "Allow".
+**The privacy issue is the breadth of access:** the Mac build contains tools for iMessage, WhatsApp, Mail, Notes, contacts, calendars, files, screen capture and computer control, plus background-sync machinery and a powerful bundled Chrome extension. Enabling a connector can expose private information to a cloud agent; some connectors support ongoing uploads.
+
+**This report establishes shipped capabilities, not what a particular user's account uploaded.** OS permissions, connector settings, approval rules, feature flags and platform restrictions affect what actually runs. No Muse app was launched, no account was connected and no network traffic from the apps was captured. Strings and decompiled code do not establish successful execution or server-side enforcement.
 
 ### Platforms covered
 
-| Platform | Build | Report |
+| Platform | Inspected build | Report / evidence strength |
 |---|---|---|
-| macOS | Muse 3.0 (`com.meta.endo`) | this page |
-| Android | 8.0.0.21.168 (`com.facebook.aura`), Play-signed | **[ANDROID.md](ANDROID.md)**: SMS, call log, **every app's notifications (default: all apps, no 2FA filter)**, background location, 19 Health Connect types published proactively |
-| iOS | 8.1.0 (`com.facebook.hatch`), App Store binary, verified untampered | **[IOS.md](IOS.md)**: 110 HealthKit types, always-on location, **HomeKit lock/camera control bound to geofences**, camera-roll mirror, Shortcuts that forward iMessages to Meta ("type a single space") |
+| macOS | 3.0, build `1075746581` | This page; Meta Developer ID signature verifies. Production update feed still lists this build on 2026-09-24. |
+| Android | 8.0.0.21.168 (`com.facebook.aura`) | [ANDROID.md](ANDROID.md): verified APK signature/source stamp; SMS, calls, notifications, location and **19 health-data category permissions**, plus history/background permissions. |
+| iOS | 8.1.0, build `1074192126` (`com.facebook.hatch`) | [IOS.md](IOS.md): **modified/decrypted-looking IPA with invalid signature**; sample-specific findings, not authenticated retail-code claims. |
 
-> Every claim below points to a file in [`evidence/`](evidence/) and can be rebuilt from your own copy of the DMG with [`scripts/reproduce.sh`](scripts/reproduce.sh). This repo contains **no Meta binaries or source**, only hashes, `strings`/`grep` output and short excerpts for commentary.
+### What changed in this review — 2026-09-24
+
+- Added the iOS sample: HomeKit controls and geofence automation, HealthKit background-delivery entitlement, camera-roll sync controls and user-created Shortcuts message forwarding.
+- Corrected Android's health-permission count, missing calendar backfill, notification approval gates and the unsupported claim that OTP protection is absent everywhere.
+- Restored the Mac email consent copy's distinction between metadata and message bodies; removed unsupported claims about entire-library uploads and server-controlled sync defaults.
+- Added current release checks and Meta's public statements about training, advertising, credential isolation and Confidential VM below. See [REVIEW.md](REVIEW.md) for the correction log and remaining unknowns.
+
+Evidence excerpts, metadata, research scripts and the supplied banner artwork are tracked. The DMG/APK/IPA and extracted app code are excluded from Git. See [reproduction](#11-reproduce-it-yourself) for the scope of each script.
 
 ---
 
@@ -34,18 +40,19 @@ This is the company that ran a VPN called Onavo to [decrypt Snapchat, YouTube an
 3. [What it can read](#3-what-it-can-read)
 4. [What it uploads in the background](#4-what-it-uploads-in-the-background)
 5. [Full computer control](#5-full-computer-control)
-6. [The Chrome extension: debugger on every site](#6-the-chrome-extension-debugger-on-every-site)
+6. [The Chrome extension: broad debugger access](#6-the-chrome-extension-broad-debugger-access)
 7. [`stealth.min.js`: a bot-detection evasion kit](#7-stealthminjs-a-bot-detection-evasion-kit)
 8. [Is Muse spyware?](#8-is-muse-spyware)
 9. [Meta's track record](#metas-track-record)
 10. [If you already installed it](#10-if-you-already-installed-it)
 11. [Reproduce it yourself](#11-reproduce-it-yourself)
+12. [Current public disclosures and release status](#12-current-public-disclosures-and-release-status)
 
 ---
 
 ## 1. Is this really Meta's app?
 
-Yes. This is not a trojan pretending to be Meta. The code signature, notarization and provisioning profile all belong to Meta Platforms, Inc. ([`evidence/01-signature.txt`](evidence/01-signature.txt)).
+The inspected Mac app carries Meta’s Developer ID signature and passes `codesign --verify --deep --strict`. Its recorded Gatekeeper assessment is accepted/notarized. This establishes provenance and integrity, not that the software is risk-free ([`evidence/01-signature.txt`](evidence/01-signature.txt)).
 
 | Field | Value |
 |---|---|
@@ -56,11 +63,11 @@ Yes. This is not a trojan pretending to be Meta. The code signature, notarizatio
 | Gatekeeper | `accepted`, `source=Notarized Developer ID` |
 | Provisioning profile | "Endo Hatch MacOS Developer ID Application", Team "Meta Platforms, Inc." |
 | Update feed | `https://www.facebook.com/endo/release/appcast.xml?channel=production` (Sparkle) |
-| Source paths leaked in binary | `fbobjc/Apps/Internal/Endo/Sources/...` |
+| Source paths present in binary | `fbobjc/Apps/Internal/Endo/Sources/...` |
 
-It is **not App-Sandboxed**: there is no `com.apple.security.app-sandbox` entitlement ([`evidence/02-entitlements.txt`](evidence/02-entitlements.txt)). Anything the process can reach as your user, it can reach.
+It is **not App-Sandboxed**: there is no `com.apple.security.app-sandbox` entitlement ([`evidence/02-entitlements.txt`](evidence/02-entitlements.txt)). It is not restricted to an App Sandbox container. Unix permissions, macOS privacy controls and other OS protections still apply.
 
-Entitlements granted:
+Declared entitlements (these are not user permission grants):
 
 ```
 com.apple.security.automation.apple-events      = true   (script other apps)
@@ -78,14 +85,14 @@ The `Info.plist` also asks for Desktop, Documents, Downloads, network volumes, r
 
 ## 2. Architecture: your Mac as a node for a Meta VM
 
-The app is a thin native Swift shell around a 53 MB web UI (`Resources/hatch/index.html`). The agent itself runs remotely:
+The app is a thin native Swift shell around a 53 MB web UI (`Resources/hatch/index.html`). The bundle contains the following remote-agent integration evidence:
 
-- Meta leases a **VM per user** (`/hatch/fetch_leased_vm`, `/hatch/destroy_and_release_vm`, `.metaaivm.com`).
-- Your Mac connects to that VM's gateway over WebSocket and **exposes local tools to it**.
+- VM leasing/release endpoints are present (`/hatch/fetch_leased_vm`, `/hatch/destroy_and_release_vm`, `.metaaivm.com`).
+- The client implements a WebSocket gateway connection and **exposes local tools**.
 - Backend hosts found in the binary: `agent.meta.ai`, `hatch-api.meta.ai`, `api.meta.ai`, `meta.graph.meta.com`, `auth.meta.com`, plus gateway hosts `node.hatch.one` and `*.customer.prod.willow606.com`.
 - Tool-call text in the binary tells the model to `"Use files.upload to copy the complete file to the VM."`
 
-In other words, **your data leaves the machine to reach the agent**. It doesn't just sit locally for an on-device model.
+These are cloud-agent pathways, not evidence that all processing stays on-device. The exact data sent depends on the operation and permissions. Meta’s published cloud architecture is summarized in [§12](#12-current-public-disclosures-and-release-status).
 
 ## 3. What it can read
 
@@ -110,7 +117,7 @@ The binary contains an `IMessageReader`, `IMessageDBSchema` and `EndoIMessageSyn
 
 > "Extract one downloaded attachment from a visible message on this Mac … Returns the original file bytes, including photos and PDFs … **Requires Full Disk Access** and iMessage read permission. … Does not mark the message read."
 
-Reading `~/Library/Messages/chat.db` requires Full Disk Access. **Once you grant Full Disk Access, the app can read every file your user account can read**, not just Messages.
+Reading `~/Library/Messages/chat.db` requires Full Disk Access. **Full Disk Access extends access beyond Messages** to other privacy-protected data; it does not grant root, bypass every protection, or independently authorize all Muse tools.
 
 ### WhatsApp: reading another app's private database
 
@@ -125,7 +132,7 @@ ChatStorage.sqlite
 
 > "Search text messages in the primary account of the WhatsApp desktop app installed on this Mac. … **Advanced Chat Privacy, locked and hidden chats** … are excluded. … Requires the user's consent for WhatsApp on this Mac and Full Disk Access."
 
-Meta owns WhatsApp, so this is Meta's own product reading the end-to-end-encrypted messenger's **decrypted local store** and sending search results to a Meta cloud VM. The "E2E encrypted" promise covers messages in transit. It says nothing about a second Meta app reading them off your disk. The other people in your chats never agreed to this.
+This is an endpoint-access pathway to WhatsApp’s **local plaintext database**, subject to the stated exclusions and permissions. It is not a demonstrated break of WhatsApp’s transport encryption. Search results can include other participants’ messages; this review cannot establish what those participants consented to or which results were transmitted in practice.
 
 ### Mail, Notes, Messages via AppleScript
 
@@ -141,11 +148,11 @@ To be fair: the file tools explicitly reject `~/.ssh`, `~/.gnupg`, `~/.aws`, key
 
 > "Credential files (keychains, ~/.ssh, ~/.gnupg, ~/.aws, a password store) are rejected."
 
-That rule applies to the `files.*` tools. It doesn't limit what `computer.control` can see on screen or what the Chrome extension can read in your browser.
+These tool descriptions state a credential-file restriction; they do not prove enforcement across every possible screen or browser pathway. Nor does the presence of screen-control tools prove a bypass of credential protections. The cloud browser and this local extension should be assessed separately.
 
 ## 4. What it uploads in the background
 
-This is the core problem. Muse doesn't only fetch data when you ask a question. It has a **sync engine** that pushes your personal data to Meta continuously ([`evidence/05-sync-and-upload-strings.txt`](evidence/05-sync-and-upload-strings.txt)).
+The app contains a **sync engine** for sending personal data to its gateway after the relevant access and sync settings are enabled; collection is not limited to individual search requests ([`evidence/05-sync-and-upload-strings.txt`](evidence/05-sync-and-upload-strings.txt)).
 
 **Sync sources compiled into the binary:**
 
@@ -155,13 +162,13 @@ EndoCalendarSyncSource     EndoRemindersSyncSource  EndoContactsSyncSource
 NodeDataSyncSource         NodeBackfillUploadState  EndoBackfillResumeStore
 ```
 
-**Backfill:** a bulk import of your existing history:
+**Backfill:** support for importing historical data, with scope depending on the source and requested window:
 
 > "Data source id to backfill. Supported: **imessage, email, calendar, notes, reminders, contacts**."
 
-It has resumable upload state (`BackfillResumeStore`, `NodeBackfillUploadState`), so a partial upload survives restarts.
+It contains resumable-upload state (`BackfillResumeStore`, `NodeBackfillUploadState`), consistent with continuing interrupted backfills. Restart recovery was not tested.
 
-**Deltas:** after the backfill, changes stream up:
+**Deltas:** strings describe subsequent change uploads and snapshots:
 
 ```
 [EndoCalendarSyncSource] Delta (
@@ -172,11 +179,11 @@ It has resumable upload state (`BackfillResumeStore`, `NodeBackfillUploadState`)
 **The consent copy** in the web UI ([`evidence/07-autosync-consent-copy.txt`](evidence/07-autosync-consent-copy.txt)), shown under the friendly heading "Keep ___ up to date":
 
 > **Keep messages up to date:** "New messages are shared automatically. Turn this off to share only what you ask for."
-> **Keep email up to date:** "Who new email is from and what it is about are shared automatically."
+> **Keep email up to date:** "Who new email is from and what it is about are shared automatically. **The message text is shared only when you ask.**"
 > **Keep notes up to date:** "New and edited notes are shared automatically."
 > **Keep calendar / reminders / contacts up to date:** "New and changed … are shared automatically."
 
-"Shared" means **uploaded to Meta**. Note the framing: the privacy-preserving choice is worded as the thing you have to *turn off*. **The switch defaults to ON.** In the connector consent dialog, the initial state is `useState(Wi?.autoSync.enabled ?? !0)`, and `!0` is `true` in minified JavaScript. Unless Meta's config explicitly sends `false`, connecting a source (Messages, Notes, …) arms continuous sharing, and you have to notice and switch it off ([`12-permission-and-pairing-review.txt`](evidence/12-permission-and-pairing-review.txt)).
+The copy describes automatic sharing, but expressly distinguishes email metadata from body text. The web UI reads connector `autoSync.enabled` state and sends changes through `setLocalConnectorAutoSync` to native code. One consent-dialog initializer falls back to `true` when that state is missing (`Wi?.autoSync.enabled??!0`). This is **not proof that every connector defaults on or that the server can override a user’s choice**. The native binary also contains `nodeAutoSync.` preference keys and sync-disabled paths. See [the additional evidence](evidence/12-permission-and-pairing-review.txt).
 
 **Photos (MediaSync)** runs as its own background uploader:
 
@@ -190,7 +197,7 @@ media_sync_manifest.json
 media_sync_enabled
 ```
 
-`Already on server` and `everything up to date` describe a system meant to mirror your **entire library** to Meta, not one photo you chose to attach.
+These strings establish background media-upload and deduplication machinery. **They do not establish the selected date range, media types, default enablement or that the entire library is uploaded.** `media_sync_last_date` and permission/skip paths are also present. The previous whole-library conclusion was too strong.
 
 ## 5. Full computer control
 
@@ -203,9 +210,9 @@ AXUIElement
 Accessibility action that hides the computer-control preview while Hatch keeps working
 ```
 
-With both granted, the remote agent can capture any window and type or click into any app: banking apps, password managers, 2FA prompts, all of it. The string about *hiding the computer-control preview while Hatch keeps working* means the agent is designed to keep operating your Mac after you've tucked away its on-screen indicator.
+These permissions support broad screen observation and input automation. Sensitive information visible in ordinary windows may be exposed, but protected surfaces and actual approval enforcement were not tested. The preview-hiding accessibility label shows a UI option to hide a preview while work continues; it does not establish covert execution or suppression of macOS privacy indicators.
 
-## 6. The Chrome extension: debugger on every site
+## 6. The Chrome extension: broad debugger access
 
 `Resources/chrome/` is a Manifest V3 extension called **"Muse Browser Node"**, "Connects your browser to Muse as a controllable node" ([`evidence/08-chrome-extension-manifest.json`](evidence/08-chrome-extension-manifest.json), [`evidence/09-browser-extension.txt`](evidence/09-browser-extension.txt)).
 
@@ -216,11 +223,13 @@ With both granted, the remote agent can capture any window and type or click int
 "externally_connectable": { "ids": ["*"] }
 ```
 
-- **`debugger` + `<all_urls>`** lets it drive the Chrome DevTools Protocol on any tab. It can read the full page (including logged-in sessions), screenshot it, type into forms and click buttons.
+- **`debugger` + `<all_urls>`** requests broad browser access. The extension implements page reads, screenshots and input through Chrome DevTools Protocol. This requires installation, pairing and a permitted target; the manifest alone does not mean it reads every visited page. [Chrome permission documentation](https://developer.chrome.com/docs/extensions/develop/concepts/declare-permissions) also describes separate incognito/file-access controls.
 - **`history` + `bookmarks` + `downloads`** give it your browsing history, bookmarks and downloads list.
 - The commands it exposes to the remote agent: `tabs.list/open/close/navigate`, `page.content`, `page.screenshot`, `page.click`, `page.type`, `page.fill_form`, `history.search`, `bookmarks.search`, `downloads.list`.
-- **Blocklist:** the only sites the agent is forbidden to drive are Meta's own (`agent.meta.ai`, `hatch.meta.ai`, `muse.ai`, `internalfb.com`) and WhatsApp. **Your bank, your email and your employer's SSO are all allowed.** Meta protected its own properties from its agent and left yours open.
-- `externally_connectable: {"ids": ["*"]}` lets *any* installed extension message it. The current code has no `onMessageExternal` listener, so this does nothing today. It's still a wide-open door on an extension with `debugger` power, one update away from mattering.
+- **Local blocklist:** contains `agent.meta.ai`, `hatch.meta.ai`, `hatch.ecto1.ai`, `muse.ai`, `internalfb.com` and WhatsApp domains. It is not a general bank/email/SSO blocklist. Non-web schemes are also rejected, with an `about:blank` exception. Absence from this list does not prove that an action is authorized by the remote service; motive cannot be inferred from the list.
+- `externally_connectable: {"ids": ["*"]}` permits messages from other extension IDs, but no `onMessageExternal` handler was found in the shipped JavaScript. **No working external-message control path was demonstrated.**
+
+**Pairing controls omitted from the original report:** web pairing checks sender/event origins against `https://hatch.meta.ai` and `https://agent.meta.ai`, restricts gateway hostnames and requires `wss:` for web-issued credentials. Manual pairing has a different URL policy. These checks are visible in [the additional evidence](evidence/12-permission-and-pairing-review.txt); this is not a full security audit.
 
 ## 7. `stealth.min.js`: a bot-detection evasion kit
 
@@ -232,79 +241,25 @@ With both granted, the remote agent can capture any window and type or click int
 
 This is **puppeteer-extra-plugin-stealth**. Its job is to make an automated browser look human to anti-bot systems by faking `navigator.webdriver`, `chrome.runtime`, plugins, languages, WebGL vendor and `hardwareConcurrency` ([`evidence/10-stealth-js.txt`](evidence/10-stealth-js.txt)).
 
-It isn't referenced by filename in the native binary, the web bundle or the extension, so it may be loaded indirectly or be unused. Either way, **Meta shipped a tool whose only purpose is to defeat websites' ability to tell they're talking to a bot.** It fits with the extension's `cursor-overlay.js` and "managed Chromium" mode (`MANAGED_BROWSER_DEBUG_PORT = '9222'`).
+It isn't referenced by filename in the native binary, the web bundle or the extension, so it may be loaded indirectly or be unused. Bundling these browser-fingerprinting evasions is a finding; **execution and use against any particular site remain unverified**. The extension separately contains `cursor-overlay.js` and a managed-browser debugging-port constant (`9222`).
 
 ## 8. Is Muse spyware?
 
-Muse asks before each permission. It isn't hidden, and it's signed and notarized by Meta. By the narrow definition ("software installed without consent"), it isn't spyware.
+**This static review does not establish spyware, malicious intent, covert collection or a security exploit.** It establishes a broad set of data-access and remote-control capabilities that deserve informed consent and independent testing.
 
-**By function, it's hard to tell apart from spyware:**
+The meaningful questions are which connectors are enabled, what information they send, whether approvals are enforced, who can access the stored data, whether it is used for training, and what deletion actually removes. A signature or a permission prompt does not answer all of those questions. Conversely, a powerful API or an upload string alone does not prove unauthorized surveillance.
 
-| Typical spyware capability | Muse |
-|---|---|
-| Read SMS / iMessage | ✅ `imessage.search`, direct `chat.db` read via Full Disk Access |
-| Read WhatsApp | ✅ reads `ChatStorage.sqlite` |
-| Read email | ✅ `email.search` / `email.read` |
-| Contacts, calendar | ✅ plus continuous delta upload |
-| Photo library exfiltration | ✅ MediaSync background uploader |
-| Screen capture | ✅ ScreenCaptureKit |
-| Remote keyboard / mouse control | ✅ Accessibility (`computer.control`) |
-| Browser history + live page content | ✅ Chrome extension with `debugger` on `<all_urls>` |
-| Camera / microphone | ✅ entitlements + `camera.session` |
-| Data sent to a remote operator | ✅ Meta-hosted VM, `*.metaaivm.com` |
-| Background persistence of uploads | ✅ resumable backfill, timers, deltas |
-
-The only difference between this and stalkerware is **who the operator is** and the fact that **you clicked "Allow"**. The operator is Meta, which has repeatedly been caught, fined and sued for collecting more than it said it would (next section). The "Allow" is a one-time click with friendly wording, and the upload switches are under server control.
-
-Your consent also doesn't cover the other people in your iMessage threads, WhatsApp groups, contacts and photos. Their data goes to Meta too, and they never saw a prompt.
+Shared messages, contacts and photos can also contain information about people other than the account holder. That is a real privacy consideration, without assuming anything about each person's consent.
 
 ## Meta's track record
 
-Why the operator matters. All of the following is public record.
+Historical context can inform trust, but it is **not evidence that Muse repeats these practices**.
 
-### Onavo & "Project Ghostbusters": decrypting Snapchat traffic (2016–2019)
-
-- Facebook bought the Israeli VPN company **Onavo** in 2013 and marketed **Onavo Protect** as a free privacy VPN. The FTC later described Onavo as a "user surveillance company".
-- In June 2016, **Mark Zuckerberg** emailed executives: *"Whenever someone asks a question about Snapchat, the answer is usually that because their traffic is encrypted we have no analytics about them."* He asked for a way to get that data.
-- The Onavo team built **"kits" for iOS and Android that intercept traffic for specific sub-domains, "allowing us to read what would otherwise be encrypted traffic"**. This was a **man-in-the-middle** attack run through the VPN on users who had installed it for privacy. Internally it was **Project Ghostbusters**, a reference to Snapchat's ghost logo.
-- The same technique was later turned on **YouTube (2017–2018)** and **Amazon (2018)**.
-- This came out in **court documents unsealed in March 2024** in the consumer antitrust class action against Meta.
-
-Sources: [TechCrunch](https://techcrunch.com/2024/03/26/facebook-secret-project-snooped-snapchat-user-traffic/) · [The Register](https://www.theregister.com/2024/03/27/meta_snapchat_data/) · [TechRadar](https://www.techradar.com/computing/cyber-security/facebooks-onavo-vpn-used-to-wiretap-competitor-data-court-filings-reveal) · [SFGate](https://www.sfgate.com/tech/article/facebook-snapchat-project-ghostbusters-meta-19373667.php) · [TheStreet](https://www.thestreet.com/technology/how-facebook-used-a-vpn-to-spy-on-what-you-do-on-snap-youtube-and-amazon)
-
-### Onavo Protect pulled from the App Store (2018)
-
-Apple told Facebook that Onavo violated its data-collection rules, and Facebook pulled it from the iOS App Store in August 2018. The Android version was discontinued in 2019.
-
-Sources: [CNBC](https://www.cnbc.com/2018/08/22/apple-removes-facebook-onavo-app-from-app-store.html) · [TechCrunch](https://techcrunch.com/2018/08/22/apple-facebook-onavo/amp)
-
-### "Facebook Research": paying teenagers to install a root-level VPN (2016–2019)
-
-Under **Project Atlas**, Facebook paid people aged **13 to 35** up to **$20 a month** to sideload a "Facebook Research" VPN using an **enterprise certificate**. That gave it root-level access to phone traffic, including **private messages in social media apps**. Facebook hid its involvement behind beta-testing services (Applause, BetaBound, uTest). After TechCrunch exposed it on **29 January 2019**, Apple revoked Facebook's enterprise certificate.
-
-Sources: [MacRumors](https://www.macrumors.com/2019/01/29/facebook-sideloading-vpn-app/) · [Gizmodo](https://gizmodo.com/facebook-is-paying-teens-to-install-a-research-app-that-1832182370) · [TechCrunch](https://techcrunch.com/2019/01/31/mess-with-the-cook/) · [The Register](https://www.theregister.com/2019/01/30/facebook_apple_enterprise_certificate_revocation/)
-
-### A$20 million penalty over Onavo (Australia, 2023)
-
-On **26 July 2023** the Australian Federal Court ordered Facebook Israel Ltd and Onavo Inc to pay **A$10 million each** for misleading consumers. The companies had promoted Onavo Protect as protecting users' data without adequately disclosing that users' app-activity data went to Meta for commercial purposes. The app had over 270,000 Australian installs.
-
-Source: [ACCC](https://www.accc.gov.au/media-release/20m-penalty-for-meta-companies-for-conduct-liable-to-mislead-consumers-about-use-of-their-data)
-
-### US$5 billion FTC penalty (2019)
-
-The largest privacy penalty ever imposed at the time, for violating the 2012 FTC order by **deceiving users about their ability to control their personal information**. It followed the **Cambridge Analytica** scandal, which exposed data on 87 million users.
-
-Source: [FTC](https://www.ftc.gov/news-events/news/press-releases/2019/07/ftc-imposes-5-billion-penalty-sweeping-new-privacy-restrictions-facebook)
-
-### "Local Mess": covert localhost tracking on Android (2024–2025)
-
-Researchers from IMDEA Networks, Radboud University and KU Leuven found that between roughly September 2024 and June 2025, the **Facebook and Instagram Android apps listened on localhost ports**. Meta Pixel scripts on ordinary websites could pass browsing identifiers to them, which tied your web browsing to your logged-in identity **even in incognito mode and behind a VPN**. Meta paused it on 3 June 2025 after disclosure, and Chrome 137 shipped countermeasures.
-
-Sources: [localmess.github.io](https://localmess.github.io/) · [Android Authority](https://www.androidauthority.com/meta-yandex-android-tracking-3563736/)
-
-### The pattern
-
-Every episode has the same shape: **a product sold as useful or protective (a free VPN, a paid "research" program, a login SDK) whose real value to Meta is the data it pulls out**. Muse is presented as a helpful assistant. Technically, it's the broadest data pipe Meta has ever asked a user to install on a computer: messages, WhatsApp, email, photos, screen, keyboard and browser, all routed to a Meta server.
+- **Onavo / Project Ghostbusters:** reporting on court filings unsealed in March 2024 described interception of encrypted competitor-app traffic for analytics, including Snapchat, YouTube and Amazon. Treat the filings and reporting as their respective sources, not a Muse finding. [The Register](https://www.theregister.com/2024/03/27/meta_snapchat_data/).
+- **Facebook Research (2019):** reporting described payments of up to $20 per month to participants aged 13–35 for installing a traffic-monitoring VPN through enterprise distribution. A trusted root certificate used for interception is **not equivalent to rooting a phone** or unrestricted filesystem access. [MacRumors](https://www.macrumors.com/2019/01/29/facebook-sideloading-vpn-app/).
+- **Onavo penalty (2023):** the Australian Federal Court ordered Facebook Israel and Onavo to pay A$10 million each over misleading conduct concerning data use. [ACCC, 26 July 2023](https://www.accc.gov.au/media-release/20m-penalty-for-meta-companies-for-conduct-liable-to-mislead-consumers-about-use-of-their-data).
+- **FTC settlement (2019):** Facebook agreed to a US$5 billion penalty and privacy restrictions to settle allegations that it violated its 2012 FTC order. [FTC, 24 July 2019](https://www.ftc.gov/news-events/news/press-releases/2019/07/ftc-imposes-5-billion-penalty-sweeping-new-privacy-restrictions-facebook).
+- **Localhost tracking (2025 disclosure):** researchers documented Facebook/Instagram Android apps receiving website identifiers over localhost, linking browser activity to app identities despite incognito/cookie protections. Their update says Meta Pixel stopped this localhost traffic on 3 June 2025. The research site now also links its USENIX Security 2026 paper. **This was not demonstrated in Muse.** [Original researchers](https://localmess.github.io/).
 
 ## 10. If you already installed it
 
@@ -312,18 +267,30 @@ Every episode has the same shape: **a product sold as useful or protective (a fr
 2. **Turn off media / Photos sync.**
 3. **Revoke in System Settings → Privacy & Security:** Full Disk Access, Accessibility, Screen Recording, Automation, Photos, Contacts, Calendars, Reminders, Camera, Microphone, Location.
 4. **Remove the "Muse Browser Node" extension** from every Chrome profile (`chrome://extensions`).
-5. Quit Muse, delete `/Applications/Muse.app`, and remove its leftovers: `find ~/Library -iname '*com.meta.endo*'`.
-6. Deleting the app doesn't delete what's already been uploaded. Request deletion through Meta's **Accounts Center**, and in the EU/UK file a GDPR Art. 17 erasure request.
-7. Tell the people you message. Their messages and photos may have gone too.
+5. Quit Muse and remove `/Applications/Muse.app`. To **list** possible leftovers for review, use `find ~/Library -iname '*com.meta.endo*'`; this command does not delete anything.
+6. Disconnect connectors and use Muse’s current account/data controls to request removal of cloud data. **Uninstalling is not evidence of server deletion.** This review has not verified retention periods, backup deletion or an Accounts Center workflow for Muse.
+7. If you keep using Muse, review the training-data setting described in §12 and consider what information about other people your connectors share.
 
 ## 11. Reproduce it yourself
 
 ```bash
-git clone <this repo> && cd <repo>
+git clone https://github.com/mahdi-salmanzade/meta-muse-teardown.git
+cd meta-muse-teardown
 ./scripts/reproduce.sh ~/Downloads/Muse-3.0.dmg
 ```
 
-The script mounts the DMG **read-only**, copies the app bundle out, and runs only `codesign`, `spctl`, `plutil`, `strings` and `grep`. It never launches Muse.
+Requires macOS command-line tools and Python 3. The script mounts the DMG **read-only**, copies the app into a temporary directory, inspects signatures/plists/strings/resources and prints the core Mac findings. It never launches Muse and cleans up the temporary copy on exit. It does **not** regenerate every historical evidence file byte-for-byte.
+
+For the new review evidence, use Python 3 and the extracted samples:
+
+```bash
+python3 scripts/collect-review-evidence.py mac extracted/Muse.app --output /tmp/muse-mac-review
+python3 scripts/collect-review-evidence.py android extracted-apk/jadx/sources evidence-android --output /tmp/muse-android-review
+python3 scripts/collect-review-evidence.py ios com.facebook.hatch_8.1_und3fined.ipa extracted-ipa/Payload/HatchApp.app --output /tmp/muse-ios-review
+python3 scripts/collect-review-evidence.py release --output /tmp/muse-release-review
+```
+
+The first three commands are local static inspection; `release` alone fetches the public production update feed. The Android command requires an existing JADX extraction and the manifest-permission evidence. The iOS command requires macOS command-line tools and records signature failures instead of treating displayed certificate metadata as verification. Platform reports describe extraction and verification commands.
 
 | File | What it shows |
 |---|---|
@@ -337,7 +304,28 @@ The script mounts the DMG **read-only**, copies the app bundle out, and runs onl
 | [`evidence/08-chrome-extension-manifest.json`](evidence/08-chrome-extension-manifest.json) | Browser extension permissions |
 | [`evidence/09-browser-extension.txt`](evidence/09-browser-extension.txt) | Blocklist, exposed commands, allowed gateway hosts |
 | [`evidence/10-stealth-js.txt`](evidence/10-stealth-js.txt) | puppeteer-extra stealth evasion header |
-| [`evidence/11-feature-flags.txt`](evidence/11-feature-flags.txt) | Server-side feature flags shipped in `metaconfig.json` |
+| [`evidence/11-feature-flags.txt`](evidence/11-feature-flags.txt) | Feature-flag names; names do not establish enabled rollout |
+| [`evidence/12-permission-and-pairing-review.txt`](evidence/12-permission-and-pairing-review.txt) | Native sync bridge, consent-state initializer, browser pairing controls |
+| [`evidence/13-release-feed.json`](evidence/13-release-feed.json) | Dated production-feed metadata without transient CDN query strings |
+
+## 12. Current public disclosures and release status
+
+Checked **2026-09-24**. Statements below are attributed to their publishers; the server protections were not independently tested.
+
+**Release status.** Meta announced Muse on **8 September 2026**, initially rolling out in the US on iOS, Android and the web. [Meta launch announcement](https://about.fb.com/news/2026/09/introducing-muse-personal-ai-agent/). The live Mac production feed lists **3.0 / 1075746581**, matching the inspected bundle and DMG size ([captured metadata](evidence/13-release-feed.json)). The US App Store lists **8.1**, matching the iOS sample’s marketing version; this does not authenticate the sample. [App Store](https://apps.apple.com/us/app/muse-from-meta/id6760173601). Android’s newest distributed version was not established in this review.
+
+**What Meta says about privacy and security.** Its 8 September technical post describes:
+
+- **Training enabled by default:** conversations, tool calls and subagent handoffs may train models after removal of key personally identifying information; users can opt out in Muse settings.
+- **Advertising:** conversations and VM data are not shared with Meta’s ad systems, although websites visited by Muse can influence advertising indirectly.
+- **Provider access:** current VM protections do not cryptographically prevent Meta access needed to operate the service. **Confidential VM** was announced for later in 2026, with limited testing; general availability was not verified here.
+- **Security controls:** separate credential storage and Sentinel authorization, scoped approvals, isolation of the agent runtime, and filters for email OTPs/reset links. These are vendor descriptions, not independently verified guarantees or proof of equivalent filtering for Android SMS/notifications.
+
+Source: [Meta, How We Built Safety Into Muse](https://research.meta.ai/blog/security-and-safety-for-ai-agents-our-approach-with-muse).
+
+**Newer announcement.** On **23 September 2026**, Meta announced Muse integration for its AI glasses. This expands the announced product scope; the three local samples do not establish what glasses collect or when each feature becomes available. [Meta’s Connect announcement (Spanish)](https://about.fb.com/ltam/news/2026/09/tu-agente-personal-llega-a-los-lentes-con-ia/).
+
+The App Store’s linked [Muse privacy page](https://muse.ai/privacy) required login during this review. No claims about its unseen text, exact retention periods or deletion guarantees are made here.
 
 ---
 

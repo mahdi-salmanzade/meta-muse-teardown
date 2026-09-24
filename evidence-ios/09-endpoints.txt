@@ -1,3 +1,8 @@
+REVIEW NOTE (2026-09-24): Original extraction notes retained below. "PROVEN" refers
+only to static strings/imports/metadata in this unverified IPA, not observed execution,
+permission grants, transmitted data, or completeness of negative searches. Interpretive
+claims are qualified in IOS.md. A hostname alone does not demonstrate a connection.
+
 09 - ENDPOINTS / DOMAINS
 ========================
 Method: strings of all 5 Mach-O binaries; (a) hosts in http(s)/ws(s) URLs, (b) bare hostnames under
