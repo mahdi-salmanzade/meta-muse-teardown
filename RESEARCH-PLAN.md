@@ -13,10 +13,10 @@
 | # | Workstream | Question it answers | Platforms | Output | Status |
 |---|---|---|---|---|---|
 | S1 | Capability teardown | What can each build access? | all | README / ANDROID / IOS | done |
-| S2 | **Cross-platform data matrix** | Per data type: access mechanism, on-demand vs background, backfill depth, approval gate, default, evidence | all | [CROSS-PLATFORM.md](CROSS-PLATFORM.md) | in progress |
-| S3 | **Android & browser boundaries** | Does every background publish path reach the approval gate? Is the exported phone-ID provider caller-checked? Pairing-token storage, expiry, revocation | Android, macOS extension | `evidence-android/12-13`, `evidence/14` | in progress |
-| S4 | **Consent, defaults & retention copy** | What do the apps *tell* users about defaults, sharing and deletion, and how does that compare with Meta's public statements? | all (UI strings only) | `evidence*/15-consent-retention-*` | in progress |
-| S5 | **Network & protocol map** | Hosts, RPC/method names, transport (WSS, OHTTP), which calls carry user data; third-party SDK inventory | all | `evidence*/16-network-*` | in progress |
+| S2 | **Cross-platform data matrix** | Per data type: access mechanism, on-demand vs background, backfill depth, approval gate, default, evidence | all | [CROSS-PLATFORM.md](CROSS-PLATFORM.md) | done (static) |
+| S3 | **Android & browser boundaries** | Does every background publish path reach the approval gate? Is the exported phone-ID provider caller-checked? Pairing-token storage, expiry, revocation | Android, macOS extension | `evidence-android/12-13`, `evidence/14` | done |
+| S4 | **Consent, defaults & retention copy** | What do the apps *tell* users about defaults, sharing and deletion, and how does that compare with Meta's public statements? | all (UI strings only) | `evidence*/15-*` | done |
+| S5 | **Network & protocol map** | Hosts, RPC/method names, transport (WSS, OHTTP), which calls carry user data; third-party SDK inventory | all | `evidence*/16-network-*` | done |
 
 ## Phase 2: dynamic testing (needs a throwaway Meta account)
 

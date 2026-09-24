@@ -1,0 +1,304 @@
+16 - NETWORK & PROTOCOL MAP: CROSS-PLATFORM SUMMARY  [S5, static analysis only]
+==================================================================================
+
+Samples: macOS 3.0 (com.meta.endo), iOS 8.1.0 (com.facebook.hatch), Android 8.0.0.21.168 (com.facebook.aura).
+Per-platform detail: evidence/16-network-macos.txt, evidence-ios/16-network-ios.txt,
+evidence-android/16-network-android.txt. Everything below is derived from those files plus a direct string check.
+
+Method for "shared" hosts and methods: fixed-string search of
+  macOS   = strings of Contents/MacOS/Muse + Chrome extension JS + Info.plist, and the web bundle Resources/hatch/index.html
+  iOS     = strings of the 5 Mach-O binaries (app, MobileConfig framework, 3 extensions) + Info.plist
+  Android = host-like tokens in jadx sources/resources + strings of lib/arm64-v8a/*.so + decoded manifest
+A host counts as present when its exact string occurs. Presence proves a reference, not a connection.
+Associated-domain entitlements were not part of the iOS search. The iOS IPA failed strict signature
+verification (evidence-ios/01), so iOS strings are "present in this sample".
+Nothing was executed; no host was contacted. Secrets are [REDACTED].
+
+
+## A. HOSTS REFERENCED ON ALL THREE PLATFORMS (50 exact strings)
+
+  Role                    Hosts
+  Muse agent / API        agent.meta.ai, api.meta.ai, hatch-api.meta.ai (REST "Stefi"), meta.ai, www.meta.ai,
+                          muse.ai, api.muse.ai (/muse/prompts/, /ssh-access/tokens)
+  Agent VM gateway        hatch.metaaivm.com (shared load balancer, WSS /v1/noise), metaaivm.com (per-VM hosts)
+  Speech                  shortwave.facebook.com (wss ASR / dictation; macOS also /vllm_proxy speech-to-speech)
+  Auth / account / graph  auth.meta.com, accountscenter.meta.com, accountscenter.facebook.com, meta.graph.meta.com,
+                          graph.meta.com, od.graph.meta.com, graph.facebook.com, www.facebook.com, m.facebook.com,
+                          www.meta.com
+  Analytics               graph.facebook.com (/logging_client_events on iOS + Android, path string on macOS;
+                          Android also /pigeon_nest), graph.fbpigeon.com, relay.fbpigeon.com (domain-list entries)
+  Uploads / CDN           rupload.meta.ai (/gen_ai_document_gen_ai_tenant), scontent.xx / static.xx / video.xx /
+                          external.xx / fna / snr / xx / xy / xz .fbcdn.net, external- and wacdn-origincache-internal-
+                          services-all.fbcdn.net
+  Privacy relay (OHTTP)   meta-ohttp-relay-prod.fastly-edge.com, meta-ohttp-relay-dev.fastly-edge.com,
+                          meta-ohttp-config-prod.fastly-edge.com, meta.privacy-gateway.cloudflare.com,
+                          meta.hpke-keys.privacy-gateway.cloudflare.com
+  DNS                     doh.facebook-dns.com (Meta domain-classifier list only)
+  Other Meta / links      connect.facebook.net, giphy.com (domain list), www.instagram.com, www.messenger.com, wa.me,
+                          www.internalfb.com (employee-only), www.pariscope.dev ("Hatchery" internal/dev links)
+  Third party             stripe.com, link.com (Stripe Link checkout terms/links), t.me (Telegram channel links)
+
+  Notable hosts on only one or two platforms
+  macOS only    node.hatch.one, *.willow606.com, *.exe.xyz (VM-gateway allowlists), vm.meta.ai, vm.muse.ai,
+                shortwave.meta.ai, www.multimango.com (/api/alo/default-models), js.stripe.com (Stripe.js),
+                map tiles (tiles.virtualearth.net, clarity.maptiles.arcgis.com, gis.apfo.usda.gov), time.akamai.com,
+                fonts.googleapis.com, cdnjs.cloudflare.com, parmsl.sentry.io (dashboard link only),
+                production.museai.com / voice.museai.com
+  iOS only      api.push.apple.com (APNs), api.mapbox.com / api.maptiler.com / demotiles.maplibre.org (MapLibre
+                defaults), i.ytimg.com, www.youtube.com, lookaside.ar.meta.com, genai-waveform-realtime.facebook.com,
+                mo-realtime.facebook.com, b-api.facebook.com
+  Android only  pagead2.googlesyndication.com (copied Advertising-ID ping code), time.android.com (ExoPlayer SNTP),
+                accounts.spotify.com, auth.onepeloton.com, login.link.com, api.healthex.io (connector OAuth),
+                telegram.org, genai-graph.facebook.com
+  iOS + Android cdn.jsdelivr.net (KaTeX; Android also Mermaid; no SRI), fcm.googleapis.com, b-www.facebook.com
+                (crash/diagnostic upload), ar.graph.meta.com (Flytrap bug reports), graph.meta.ai (/graphql),
+                *-realtime.facebook.com + edge-stun.facebook.com (WebRTC voice), gateway.facebook.com (DGW),
+                rekor.sigstage.dev + log20xx shards (embedded Sigstore STAGING trust root)
+  macOS + iOS   od.auth.meta.com, accounts.meta.com, secure.facebook.com, *.ecto1usercontent.com, www.google.com
+                (s2/favicons lookup: iOS near checkout UI; macOS via an image proxy), www.openstreetmap.org
+  macOS + Android  accounts.google.com, play.google.com, www.googleapis.com, *.metaaiusercontent.com
+
+
+## B. GATEWAY PROTOCOL / RPC MAP (unified)
+
+Shape (all three): one long-lived WebSocket per user, WSS to hatch.metaaivm.com/v1/noise (or a per-VM
+*.metaaivm.com URL from the lease response), carrying a Noise_XX_25519_AESGCM_SHA256 channel. Frames are JSON
+{type: req|res|event, id, method|event, params|payload}. Each method string is paired with an HTTP-style
+route (/chat/stream, /nodes/register, /client/data-source-publish ...) that the gateway serves over the same
+channel. The VM-side agent runtime is called "Jarvis".
+
+Two generations coexist:
+  - node.* (older "node" protocol): used by the macOS Chrome extension (node.register / node.invoke.request /
+    node.invoke.result / node.heartbeat) and present in the macOS and iOS native method tables.
+  - client.* (newer): macOS native and Android Java use client.invoke -> client.invoke.result and
+    client.data_source.publish. On Android node.* strings exist only in the shared native library
+    (lib:libstartup.so); the Java client does not use them and node.invoke.request is absent.
+
+D->M = device to Meta gateway/VM; M->D = gateway/VM to device.
+USER DATA: YES = can carry personal content off the device; cmd = carries the agent's command/params
+(which can include user-authored text, e.g. an SMS to send); meta = identifiers/state only (per code).
+
+  Method / event                   Dir    USER DATA  macOS  iOS  Android  What it carries
+  client.register_capabilities     D->M   meta       y      y    y        device model/family, enabled permissions,
+                                                                          command list, per-source "permission granted"
+                                                                          flags; re-sent when a permission changes
+  client.invoke                    M->D   cmd        y      -*   y        agent asks the device to run a local command
+                                                                          (Android: the only inbound request routed)
+  client.invoke.result             D->M   YES        y      y    y        command output: messages/SMS + attachments,
+                                                                          contacts, calendar, call log, photos, files,
+                                                                          screenshots (macOS), location, health,
+                                                                          notifications; Android also carries backfill ack
+  client.data_source.publish       D->M   YES        y      y    y        background ("proactive") sync and backfill chunks.
+                                                                          macOS: iMessage, Mail, Calendar, Notes,
+                                                                          Reminders, Contacts. iOS: contacts, calendar,
+                                                                          reminders, health, location. Android: SMS,
+                                                                          call log, contacts, calendar, health (backfill +
+                                                                          live); location, notifications, battery,
+                                                                          network state incl. Wi-Fi SSID/BSSID (live only)
+  node.register                    D->M   meta       y(+ext) y   so-only  node id, name, command schema; extension sends
+                                                                          navigator.userAgent as model_id
+  node.invoke.request              M->D   cmd        ext    y    -        device/browser command
+  node.invoke.result               D->M   YES        y(+ext) y   so-only  command output (extension: page text/HTML, tabs,
+                                                                          history, bookmarks)
+  node.heartbeat / connection.ping D->M   no         y      y    ping     keepalive (Android: connection.ping + WS ping)
+  node.list / node.unpair          D->M   meta       y      y    y        Android node.list response can include other
+                                                                          nodes' network_ssid
+  chat.stream / chat.send          D->M   YES        y      y    stream   prompt text, attachments (Android inlineBytes)
+  chat.search                      D->M   YES        y      y    y        search text over the user's chats
+  chat.subscribe/cancel/resume/stream_events/message_get   D->M  meta   mixed    replies flow back M->D
+  voice.calls.join                 D->M   meta       y      y    y        call signalling; audio goes to shortwave /
+                                                                          *-realtime hosts
+  activity.log                     D->M   maybe      y      path  -
+  widgets.state.patch              D->M   maybe      y      y    unused
+  model.get / model.set            D->M   meta       y      y    y        model picker
+  navigation.recents.touch / .pinned.set   D->M  behavioural  y  y  y    which items the user opens/pins
+  *.subscribe (activity, identity, spaces, fs|files, skills, theme, reset, navigation, sessions)
+                                   D->M   meta       y      y    most     then updates M->D
+  data_source.backfill / .refresh  M->D   cmd        y      y    backfill a date window; device acks, then streams
+                                                                          chunks via client.data_source.publish
+  data_source.search               M->D   cmd        y      -    -        macOS Notes search + publish
+  Backfill ack                     D->M   meta       y      y    y        macOS *BackfillAck types; iOS BackfillAck
+                                                                          ("acking agent and initiating chunked upload");
+                                                                          Android BackfillAckJson {backfill_initiated,
+                                                                          chunked_v1, transport client.data_source.publish},
+                                                                          chunks <=1 MiB, <=256, <=64 MiB total
+  Photo sync                       D->M   YES        MediaSync  media_sync.upload_asset  photos.upload cmd
+                                                                          photo bytes + filename/local id to the VM file
+                                                                          server (/fs/upload)
+  delta.*, message.assistant, identity.updated, reactions.updated
+                                   M->D   YES        y      y    y        streamed assistant output (can quote user data)
+  approvals.snapshot               M->D   previews   web    y    y        pending human-in-the-loop approvals
+  ssh.operator.updated             M->D   no         -      y    y        state of Meta operator SSH access to the VM
+                                                                          (toggle: /v1/ssh/operator/enable|disable|status,
+                                                                          all three)
+  service.notice / security.alert / heartbeat.notification / wallet.step_up
+                                   M->D   no         notice iOS  Android  service/security notices, payment step-up
+  (-* iOS has client.invoke.result but no standalone "client.invoke" string; it receives node.invoke.request.)
+
+  Other channels that carry user data (not gateway RPC):
+  - REST routes on the VM over the same channel: fs/read|write|upload|raw, memory.search/get, email.messages.list,
+    credentials.capture/register (VM credential vault), dyi.export, bug_report_logs.create (282 routes listed in
+    evidence/16-network-macos.txt appendix A; 144 JarvisPath entries on Android).
+  - hatch-api.meta.ai: /hatch/sharing/upload, /hatch/feedback, /hatch/help_ticket, /hatch/attribution/report_events.
+  - api.meta.ai/hatch/bug_report and ar.graph.meta.com/bugs: user-initiated bug reports with logs and screenshots.
+  - Speech: shortwave (dictation audio, all three); macOS speech-to-speech over wss://shortwave.facebook.com/vllm_proxy;
+    iOS/Android WebRTC voice to *-realtime.facebook.com.
+  - Android link previews are fetched on-device with User-Agent "facebookexternalhit/1.1" (from the user's IP).
+
+
+## C. TRANSPORT SECURITY (side by side)
+
+  Topic                    macOS                              iOS                               Android
+  OS-level policy          No NSAppTransportSecurity key      No ATS key in any of 4 plists     network_security_config: base-config
+                           (default ATS for URLSession/        (default ATS)                     cleartextTrafficPermitted="true",
+                           WebKit)                                                              system CAs only; debug-overrides
+                                                                                                (user CAs) inactive: not debuggable
+  OS-level pinning         none declarable on macOS           none in plist                     18 SPKI pins (exp. 2027-09-17) for
+                                                                                                facebook.com, fbcdn.net, meta.com,
+                                                                                                instagram.com, ...; NOT meta.ai,
+                                                                                                metaaivm.com, muse.ai, fastly-edge;
+                                                                                                link-shim l./lm./h.facebook.com,
+                                                                                                l.instagram.com cleartext + unpinned
+  Meta stack (Tigon/MNS)   Fizz TLS 1.3 + ECH, QUIC;          same; CACerts.plist = 143 public  BoringSSL TLS 1.3 + ECH, QUIC;
+                           _CalculateCertPin, "Pinning        WebPKI roots + SecTrustSet-       native verifier; no pin list found
+                           validation failed";                AnchorCertificatesOnly; pin       in strings
+                           SecTrustSetAnchorCertificatesOnly  telemetry records user-installed
+                           imported; embedded "Facebook       roots; no Meta-private CA
+                           Rootcanal Prod Root CA"
+  Pinning bypass switch    FBWhitehatSSLPinningBypass         FBWhitehatSSLPinningBypass        (not reported)
+  Plaintext guards         "Attempt to send a plaintext HTTP request to a Meta or Ohai domain" / "... Meta AI VM domain"
+                           tripwires in all three native stacks; request sanitiser categories plaintext / ohttp /
+                           meta_ai_vm / third_party
+  Cleartext allowances     Chrome extension manual pairing    none found beyond generic         platform cleartext allowed for
+                           accepts ws://; web parser accepts  "http://%@"                       unlisted hosts; server may supply a
+                           ws:                                                                  ws:// gateway URL (dev path)
+  VM channel               WSS + Noise_XX_25519_AESGCM_SHA256; "failing closed (no plaintext send)"; notary tokens; private
+                           auth (vm_proof, enrollment, key_required) - all three
+  VM attestation           AMD SEV-SNP: web parser + VCEK     Rust SEV-SNP verifier (VCEK/ASK/  SEV-SNP + Sigstore verifier in
+                           checks; native initWithSevSnp-     ARK Milan/Genoa/Turin), chip-ID   libstartup.so; chip pin per VM;
+                           VerifierEnabled:; web default      pinning, Sigstore image manifest  gated by enable_snp_attestation_
+                           attestation_enforce_mode = 0       (STAGING trust root); gated by    verifier (server)
+                           ("Off"); NoiseAlwaysAccept-        server flags; NoiseAlwaysAccept-
+                           AttestationVerifier class          AttestationVerifier class
+  OHTTP ("Ohai")           web OhaiRelayClient; only use      HCHACS: ACS token + CVM lease/    OHAI enabled in Tigon config, relay
+                           found: anonymous CVM lease via     bind over OHTTP; allow-listed     fastly prod; GraphQL allow-list =
+                           ACS, flag hatch_acs_ohai_enabled   GraphQL queries (runtime list);   "ALL"; static callers: ACS CVM
+                           default false                      possible analytics ACS claims     lease/bind + internal test page
+  NOT via OHTTP (all 3)    chat, device commands, client.data_source.publish, backfill, photo sync, crash uploads, and
+                           the gateway WebSocket itself. Those carry account-identifying credentials (Bearer / ABRA
+                           tokens, x-hatch-verified-uid injected by the gateway).
+  Tokens in URLs           extension ?auth_token=; shared-    notary_token= query strings       vm_id + notary_token query params
+                           agent ingress ?vm_id&auth_token
+  Device identifiers       USDID token header, family_device_ Family Device ID + IDFV           X-ANDROID-ID, X-FB-Device-ID,
+  on requests/telemetry    id + device_id in analytics        (evidence-ios/10); IDFA route     X-FB-Family-Device-Id,
+                           context                            "unsupported"                     X-FB-Integrity-Machine-Id; AAID
+                                                                                                sent to attribution endpoint
+  Updates                  Sparkle 2.7.0-beta.1, HTTPS feed   App Store; server min-version     Play in-app update;
+                           on facebook.com, EdDSA-signed                                        /hatch/latest_app_version/
+
+Reading: the content path (device <-> VM) is designed to be encrypted end-to-end to the VM with Noise and
+optionally bound to an attested AMD SEV-SNP "confidential VM". Whether attestation is enforced is decided by
+server flags on every platform, and an accept-all verifier class exists. Even when enforced, the VM is run by
+Meta, so this limits who can read traffic in transit, not what the agent on the VM does with the data.
+OHTTP only hides the account at VM-lease time.
+
+
+## D. TELEMETRY AND CRASH REPORTING (side by side)
+
+  Topic                    macOS                              iOS                               Android
+  Core Meta pipelines      FBAnalytics, FFLogger/Falco,       FBAnalytics/Falco/OneFabric,      Falco "FF" uploader to /pigeon_nest
+                           OneFabric, federated analytics,    QPL, Loom/Profilo, memory-trace   + /logging_client_events (some
+                           QPL/perflogger                     upload                            batches "X-FB-Falco-Deidentified"),
+                                                                                                QPL; consent state hard-coded
+  Per-command / sync log   hatch_node_operations_logger:      same logger: command, datatype,   HatchNodeQplLogger: command, hitl
+                           command_execution_completed,       trigger, permission type/state,   outcome, permission_checked, chunk
+                           result_upload_*, permission_state_ sharing mode, item counts         counts
+                           changed {auto_sync, hitl_mode,
+                           file_access, connector_enabled}
+  Connector / permission   web click events (1,190 names):    health consent funnel             HatchConnectorQplLogger (provider,
+  funnel                   connector_connect/disconnect,      (shown/granted/denied),           consent accepted/denied);
+                           connector_auto_sync_toggle,        permission_requested|granted,     permission_prompted/accepted/denied
+                           agent_permission_resolve/revoke,   sync_* events                     for SMS, contacts, calendar, call
+                           chat_inline_approval_decision                                        log, location, mic, notifications
+  Content in telemetry?    Field names in all three are commands, counts, states, lengths and timings; none show message
+                           text being logged (Android chat logger records message_length/response_length). macOS web
+                           code redacts sensitive URL params and "sensitive" gateway methods.
+  User control             "Client telemetry" setting (web):  (not found)                       (not found; consent bitmask fixed)
+                           ON by default; forced OFF on
+                           confidential VMs
+  Install / ad attribution install_event_reported only; no   FIRST_APP_LAUNCH etc. to          Google Advertising ID read and sent
+                           ad identifiers found               /hatch/attribution/*; SKAdNetwork as "adid" with FIRST_APP_LAUNCH/
+                                                              + AdServices token; IDFA route    REGISTRATION/LOGIN to /hatch/
+                                                              "unsupported"                     attribution/report_events, gated by
+                                                                                                a server "compliance action"
+  Crash reports            Crashpad (EndoCrashpadHandler) ->  Breakpad + Crashpad -> same URL;  Lacrima/ACRA/Breakpad ->
+                           www.facebook.com/mobile/ios_       app-exit reports -> reliability_  b-www.facebook.com/mobile/
+                           breakpad_crash_logs/               event_log_upload; MetricKit ->    reliability_event_log_upload;
+                                                              b-www.../extra_data_collector     fields for logcat, minidump,
+                                                                                                granted-permission list, screen
+                                                                                                navigation chain, user id
+  Could crashes hold       Minidumps include thread stacks and memory regions on all three; iOS/Android also userId,
+  user content?            optional env vars (iOS) or logcat fields (Android). Sanitiser classes exist (iOS) but use is
+                           unknown. Strings do not show scrubbing of message/file content.
+  Bug reports (user-       api.meta.ai/hatch/bug_report:      api.meta.ai/hatch/bug_report +    ar.graph.meta.com/bugs: logcat,
+  initiated)               description, full-screen           Flytrap: screenshots with         VM agent_logs, hatch_diagnostics
+                           screenshot, debug logs, perf and   redaction tool, view hierarchy,   (permissions, Node ID, User ID,
+                           connection info                    connection state                  gateway URL), mobileconfigs,
+                                                                                                screenshots
+
+
+## E. THIRD-PARTY SDK / LIBRARY INVENTORY
+
+  Component                       macOS            iOS              Android          What it can send, to whom
+  Firebase Messaging + IID        -                -                yes (19.0.0)     FCM token/instance ID to Google; token
+                                                                                     forwarded to Meta; VM push payloads are
+                                                                                     encrypted to the device
+  Google datatransport (CCT)      -                -                yes (3.1.3)      Google SDK usage logs to
+                                                                                     firebaselogging(-pa).googleapis.com
+  Play services ads-identifier    -                -                yes (17.0.1)     reads Advertising ID; Muse sends it to
+                                                                                     Meta's attribution endpoint
+  Play services auth / fido /     -                -                yes              Google sign-in, SMS User Consent (one OTP
+  identity / blockstore / googleid                                                   SMS after consent), passkeys
+  Play services location          -                -                yes (21.3.0)     fused location / geofencing via Google
+  ML Kit image labeling           -                -                yes (16.0.8)     on-device labels; SDK telemetry via CCT
+  Play Billing / Review / Update  -                -                yes              purchases, review prompt, update check
+  Spotify auth SDK                -                -                yes              OAuth with accounts.spotify.com
+  Sparkle                         yes (2.7.0-b1)   -                -                appcast fetch from facebook.com; no system
+                                                                                     profile key set
+  Crashpad / Breakpad / ACRA      Crashpad         Breakpad+Crashpad Breakpad+ACRA   crash data to Meta endpoints only
+  MetricKit (Apple)               linked           used             -                diagnostics to b-www.facebook.com (iOS)
+  AdServices / SKAdNetwork        -                yes              -                attribution token to Meta
+  WebRTC                          browser API (W)  yes              yes              voice media to Meta realtime/STUN hosts
+  MapLibre                        GL JS + Bing/    Native; Meta     static maps via  tile requests reveal map area + IP to the
+                                  Esri/USDA/OSM    tiles (MapLibre  facebook.com     tile provider (macOS web layers are third
+                                  tile layers      defaults unused)                  party)
+  Stripe.js                       loaded (W)       UI/links only    links only       macOS: Stripe receives browser signals at
+                                                                                     checkout
+  KaTeX / Mermaid                 bundled          KaTeX from       KaTeX + Mermaid  jsDelivr sees IP/UA/timing; no SRI (iOS,
+                                                   jsDelivr         from jsDelivr    Android)
+  Google favicon service          via image proxy  near checkout UI -                site domain to Google (iOS direct)
+  Sentry JS SDK 10.29.0           compiled in (W), -                -                no destination found statically
+                                  no DSN found
+  noVNC                           yes (W)          yes              yes              VM browser view, bridged to the gateway
+  Sigstore verifier               -                yes              yes              offline verification; STAGING trust root
+  OkHttp                          -                -                bundled, unused  -
+
+  Not found on any platform: Firebase Analytics, Crashlytics, Google Analytics/Tag Manager, AppsFlyer, Adjust,
+  Branch, Braze, OneSignal, Mixpanel, Amplitude, Segment, PostHog, Datadog, Bugsnag, Statsig, LaunchDarkly.
+  All analytics, crash and attribution uploads identified go to Meta-owned hosts; Google (Android Play services,
+  FCM, datatransport), Stripe (macOS web checkout), jsDelivr (iOS/Android renderers) and map-tile providers
+  (macOS web) are the third parties that code paths can reach.
+
+
+## F. WHAT STATIC ANALYSIS CANNOT DETERMINE
+  - Which of these hosts are contacted in practice, and what the payloads of client.invoke.result,
+    client.data_source.publish, node.invoke.result, photo sync and chat actually contain (Phase 2 test D3).
+  - Server-side flag values that decide whether Noise private auth and SEV-SNP attestation are enforced, whether the
+    ACS/OHTTP lease path is used, which GraphQL queries go through OHTTP, telemetry sampling, and the Android
+    attribution "compliance action".
+  - Meta's native pin sets for meta.ai / metaaivm.com / muse.ai, and whether the whitehat pinning bypass is reachable.
+  - Where Chandra / Falco batches land on macOS (hosts built at runtime), and whether Sentry is initialised in the
+    macOS web UI.
+  - Whether crash minidumps, logcat or debug-log attachments contain user content in practice.
+  - Ownership of the non-Meta-looking domains (multimango.com, pariscope.dev, willow606.com, exe.xyz, hatch.one).
+  - Server-side retention, linkage and use of anything received.

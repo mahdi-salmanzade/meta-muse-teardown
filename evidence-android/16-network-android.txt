@@ -1,0 +1,520 @@
+16 - NETWORK & PROTOCOL MAP (Android 8.0.0.21.168, com.facebook.aura)  [S5, static only]
+==========================================================================================
+
+Method: static reading of the jadx decompilation (extracted-apk/jadx/sources), the decoded binary
+manifest (extracted-apk/manifest-tree.txt), the network-security-config resource decoded from
+extracted-apk/raw/res/t0.xml (resource 0x7f150002, resolved via resources.arsc), `strings` over
+extracted-apk/raw/lib/arm64-v8a/*.so, extracted-apk/raw/assets/ and the *.properties SDK version files.
+Nothing was installed, executed or network-contacted.
+
+Path shorthand: "aura/" = extracted-apk/jadx/sources/com/facebook/aura/ ; "X/" = obfuscated
+extracted-apk/jadx/sources/X/ ; "lib:" = a string inside extracted-apk/raw/lib/arm64-v8a/<name>.so.
+
+CAVEAT: a hostname, URL, method name or field name in code shows capability, not behaviour. It does not
+prove a connection is made, when it is made, or what is actually sent. Server-side MobileConfig flags
+(MC.*) can switch many paths on or off. Secrets/keys are shown as [REDACTED].
+
+
+## 1. HOST INVENTORY BY ROLE
+----------------------------
+Markers: [ALL] = the same host string also occurs in the macOS and iOS samples; [+mac] / [+iOS] = also in that
+one sample only; no marker = Android only. (Compared against macOS binary/web-bundle/extension strings and
+evidence-ios/09-endpoints.txt. Cross-platform table: evidence/16-network-cross-platform.txt.)
+
+### 1a. Meta agent / Muse API ("Stefi" REST, GraphQL, web)
+  hatch-api.meta.ai [ALL]    Primary REST base ("Stefi"). aura/network/sandbox/AuraSandbox.java
+                             (STEFI_BASE_URL), aura/network/stefi/AuraStefiClient.java,
+                             aura/network/hatchauth/HatchAuthClient.java, aura/mobileconfig/AuraMobileConfigFetcher.java,
+                             aura/onboarding/OnboardingAssetPrefetchRepoKt.java, aura/devices/pairing/LinkEncryptedSetupCoordinatorKt.java.
+                             88 path classes (incl. Raw and parameterised ones) in aura/network/api/StefiHatchPath.java, e.g. /hatch/login,
+                             /hatch/auth/*, /hatch/lease_vm, /hatch/fetch_vms?notary_token=true, /hatch/bind_cvm,
+                             /hatch/acs/lease_vm, /hatch/v1/acs/issue_token, /hatch/vm/wake, /hatch/destroy_and_release_vm,
+                             /hatch/attribution/report_events, /hatch/attribution/compliance_action, /hatch/bug_report,
+                             /hatch/bug_report_attachment, /hatch/feedback, /hatch/help_ticket, /hatch/sharing/upload,
+                             /hatch/sharing/send, /hatch/wallet/*, /hatch/checkout/*, /hatch/subscription*,
+                             /hatch/device_token/mint|revoke, /hatch/ptt/encryption-key, /hatch/latest_app_version/,
+                             /hatch/vesta-auth/user-info, /hatch/chip-allowlist, /hatch/cvm-chip-selection,
+                             /hatch/mint_vm_recovery_token, /hatch/wearables/link, /muse/graduation/*.
+  api.muse.ai [ALL]          Second Stefi base (AuraSandbox.MUSE_STEFI_BASE_URL); /muse/prompts/ (StefiMusePath);
+                             https://api.muse.ai/ssh-access/tokens (aura/confidentialvm/repository/ConfidentialVmRepositoryKt.java).
+  graph.meta.ai [+iOS]       https://graph.meta.ai/graphql (aura/graphql/AuraGraphQLService.java,
+                             aura/partners/voice/avatar/HatchAvatarAssetServiceKt.java).
+  meta.graph.meta.com [ALL]  https://meta.graph.meta.com/graphql (AuraGraphQLService), /oidc_callback_uri/
+                             (aura/webview/auth/HatchWebSessionProvisioner.java).
+  graph.meta.com, *.graph.meta.com [ALL]  Default endpoint suffix (aura/network/endpoint/AuraEndpointSelector.java).
+  api.meta.ai [ALL]          https://api.meta.ai/proton/hatch/voice/tts/stream (aura/partners/voice/api/VoiceCatalogRepository.java).
+  agent.meta.ai [ALL]        Web app / share links (aura/common/url/HatchUrl.java).
+  www.meta.ai [ALL], meta.ai [+mac]  Web session provisioning, OIDC callback (HatchWebSessionProvisioner.java);
+                             https://meta.ai/proxygen/health (aura/settings/internal/OhaiInternalSettingsViewModel.java, internal OHAI test page).
+  muse.ai [ALL], www.muse.ai [+iOS], applink.muse.ai [+iOS]  Share links / deep links (HatchUrl.java, aura/deeplink/AuraDeeplinkRouteMapper.java).
+  genai-graph.facebook.com, genai-graph.instagram.com, graph-www.facebook.com, graph.oculus.com,
+  b-graph.facebook.com, payments-graph.{facebook,instagram,oculus,whatsapp}.com, payments-graph.graph.meta.com
+                             MobileConfig string defaults (X/C87t.java) from shared Meta libraries.
+
+### 1b. VM gateway (the user's cloud agent VM, "CVM")
+  hatch.metaaivm.com [ALL]   FEATHER_NOISE_HOST; Noise ingress path /v1/noise; also /gateway and /ws
+                             (aura/network/transport/tigon/NoiseGatewayHatchWebSocket.java, aura/gateway/VmNotaryTokenKt.java).
+  *.metaaivm.com [ALL]       Per-VM gateway domain; requests get "needsMetaAIVMAuth"
+                             (aura/network/transport/tigon/internal/TigonVmAuth.java). The concrete wss:// URL is
+                             server-supplied ("vm_ws_url" in lease/bind responses, aura/network/acs/HatchAcsCvmClientKt.java).
+  Jarvis HTTP paths (144, aura/network/api/JarvisPath.java) served by the VM gateway, e.g. fs/read, fs/write,
+  fs/upload, fs/raw/, chat/history, api/connectors/*, permissions/*, approvals/*, v1/credentials/capture|catalog*,
+  vault/luks/lock|unlock|status, v1/ssh/operator/enable|disable, api/dyi/export, api/recovery/storage/*,
+  whatsapp_companion/link|status, api/messenger_companion/*, api/shopping/events, api/debug/bug-report-logs.
+
+### 1c. Auth / accounts
+  auth.meta.com [ALL], accountscenter.meta.com [ALL], accountscenter.facebook.com [ALL], www.meta.com (login) [ALL],
+  www.facebook.com [ALL]
+                             aura/accountcenter/*, aura/common/url/AccountCenterHostsKt.java, HatchWebSessionProvisioner.java.
+  accounts.google.com [+mac], www.googleapis.com   Google Sign-In / Credential Manager (aura/login/nativeflow/NativeLoginGoogleSignIn.java,
+                             aura/auth/credentialmanager/AuraCredentialManagerConfig.java; OAuth client id 138594053405-[REDACTED].apps.googleusercontent.com).
+  accounts.spotify.com       Spotify auth SDK (com/spotify/sdk/android/auth/AuthorizationRequest.java) used by connector OAuth
+                             (aura/skills/connect/accountlinking/AuraOAuthAccountLinkingActivityBase.java).
+  auth.onepeloton.com, login.link.com, api.healthex.io   "Direct OAuth" connector hosts
+                             (aura/skills/connect/config/SkillConnectConfigKt.java: peloton, stripe-link, healthex).
+
+### 1d. Analytics / telemetry / crash / bug reports (Meta)
+  graph.facebook.com [ALL]   https://graph.<facebook.com>/logging_client_events (aura/analytics/impl/MetaAnalyticsUploader.java),
+                             /pigeon_nest and /pigeon_health_metrics (aura/analytics/impl/FFMetaAnalyticsUploader.java),
+                             sessionless MobileConfig (aura/mobileconfig/AuraSessionlessMobileConfigFetcher.java).
+                             Host built by aura/network/endpoint/AuraAnalyticsEndpointSelector.java ("graph" + ".facebook.com").
+  b-www.facebook.com [+iOS]  https://b-www.facebook.com/mobile/reliability_event_log_upload = Lacrima crash upload
+                             (X/C6961AlJ.java A0a, X/C88U.java; used by aura/crashreporting/AuraLacrimaConfig.java).
+  ar.graph.meta.com [+iOS]   https://ar.graph.meta.com/bugs and /bug_attachments (aura/bugreport/AuraBugReportSender.java, "Flytrap").
+  www.pariscope.dev [ALL]    Internal "Hatchery" link text written into bug reports (aura/bugreport/AuraBugReportCollector.java).
+  graph.fbpigeon.com, relay.fbpigeon.com [+mac]  lib: strings only.
+  hatch-api.meta.ai          also receives MobileConfig fetch, attribution events, bug reports (see 1a).
+
+### 1e. Update / install
+  play.google.com [+mac]     Play in-app update / store links (com/google/android/play/core/appupdate, aura/appupdate/AuraPlaySoftNudge.java).
+  hatch-api.meta.ai          /hatch/latest_app_version/ (aura/appupdate/AppUpdateChecker.java).
+  www.internalfb.com [ALL]   Internal dogfood build links (AppUpdateChecker.java: intern/mobile_builds, intern/orchard/install);
+                             employee-only host.
+  com.facebook.appmanager / com.facebook.system (package names, not hosts): Meta preload "oxygen" install referrer
+                             (aura/analytics/hatch/HatchInstallReferrerLogger.java, manifest XINSTALL_REFERRER_HANDOFF).
+
+### 1f. CDN / media / realtime
+  rupload.meta.ai [ALL]      https://rupload.meta.ai/gen_ai_document_gen_ai_tenant/ (HatchAvatarAssetServiceKt.java).
+  shortwave.facebook.com [ALL]  wss://shortwave.facebook.com/v2/transcription and /voyager/v1/asr/duplex
+                             (aura/composer/dictation/HatchShortwaveDictationClient.java, HatchVoyagerDictationClient.java) - dictation audio.
+  genai-hatch-realtime.facebook.com [+iOS], genai-kepler-realtime.facebook.com [+iOS], meta-ai-realtime.facebook.com [+iOS]
+                             Realtime voice (com/facebook/rp/platform/metaai/rsys/MetaAiRsysSdk$startSession$2$6.java).
+  wearable-ai-realtime.facebook.com, edge-stun.facebook.com, chat-e2ee-mini.facebook.com, gateway-edge.meta.com,
+  gateway-fallback.facebook.com (all [+iOS])   lib: strings (shared RTC/transport libraries).
+  gateway.facebook.com [+iOS], gateway.workplace.com [+iOS]   DGW (distributed gateway) client (com/facebook/distribgw/client/DGWClientConfig.java;
+                             aura/network/dgw/AuraDGWModule.java, used by aura/partners/voice/session/impl/HatchVoiceSessionControllerProvider.java).
+  *.fbcdn.net (scontent.xx, static.xx, video.xx, external.xx, fna, snr, xy, xz, *-origincache-internal-services-all) [ALL]   lib: strings.
+  www.facebook.com/maps/static/   static maps (aura code).
+
+### 1g. Privacy relay / OHTTP ("OHAI")
+  meta-ohttp-relay-prod.fastly-edge.com [ALL]   https://meta-ohttp-relay-prod.fastly-edge.com/ and /chunked/
+                             (aura/network/tigon/AuraTigonServiceProvider.java setOhaiProxyUrl / setOhaiProxyChunkedUrl).
+  meta-ohttp-config-prod.fastly-edge.com [ALL]  https://meta-ohttp-config-prod.fastly-edge.com/ohai_acs_config.json
+                             (aura/network/acs/OhaiAcsConfigFetcher.java CONFIG_URL); lib: /ohai_keyconfig.json.
+  meta-ohttp-relay-dev.fastly-edge.com [ALL], meta.privacy-gateway.cloudflare.com [ALL], meta.hpke-keys.privacy-gateway.cloudflare.com [ALL]
+                             lib: libstartup.so strings only (not referenced by Java).
+
+### 1h. Third party
+  fcm.googleapis.com [+iOS]  "https://fcm.googleapis.com/fcm/send" (aura/notifications/push/AuraPushTokenSender.java); Firebase Messaging.
+  fb-messaging-b8df1.firebaseio.com   firebase_database_url string resource (resources.arsc); Firebase project "fb-messaging-b8df1".
+  firebaselogging.googleapis.com, firebaselogging-pa.googleapis.com   Google datatransport/CCT endpoints stored as
+                             interleaved obfuscated literals in X/C80U.java (decoded: /v0cc/log/batch?format=json_proto3 and
+                             /v1/firelog/legacy/batchlog; embedded Google API key [REDACTED]).
+  pagead2.googlesyndication.com  "https://pagead2.googlesyndication.com/pagead/gen_204?id=gmob-apps" in
+                             aura/attribution/HatchAdvertisingIdFetcher.java (copy of Google's AdvertisingIdClient ping code).
+  cdn.jsdelivr.net [+iOS]    KaTeX 0.16.11 and Mermaid 11 JS/CSS loaded from the CDN into WebViews, no "integrity" attribute
+                             (aura/conversation/view/richcontent/HatchKatexRenderer.java, MermaidSvgRenderer.java).
+  time.android.com           SNTP client (X/C6721Aex.java) belonging to the bundled ExoPlayer DASH code (X/C7622Az4.java); library code.
+  rekor.sigstage.dev, log2025-alpha{1,2,3}.rekor.sigstage.dev, log2026-1.us-east4.rekor.sigstage.dev [+iOS]
+                             lib: libstartup.so embedded Sigstore trusted-root JSON (attestation verifier). Listed as
+                             transparency-log base URLs; a hostname in a trust root is not proof of a fetch.
+  telegram.org, t.me [ALL], wa.me [ALL], www.whatsapp.com, www.messenger.com, www.instagram.com, threads.net   channel/deep links (aura/channels/ChannelApp.java).
+  stripe.com [ALL], link.com [+iOS]  checkout terms links (aura/agentpermission/CheckoutTermsDisclosureKt.java).
+  nip.io, sslip.io, xip.io   Deny-list for custom connector hosts (aura/skills/connect/config/CustomConnectorApiKeyValidator.java).
+  Arbitrary third-party sites: link previews are fetched ON-DEVICE by aura/opengraph/HatchOpenGraphRepository.java
+                             with User-Agent "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)"
+                             (HatchOpenGraphRepositoryKt.USER_AGENT), i.e. from the user's IP with Facebook's crawler UA.
+
+### 1i. Not found on Android (present on macOS)
+  node.hatch.one, hatch.meta.ai, *.customer.prod.willow606.com, vm.meta.ai, vm.muse.ai, shortwave.meta.ai,
+  www.multimango.com: 0 hits in jadx sources and native strings.
+
+
+## 2. PROTOCOL / RPC MAP
+------------------------
+Transport: one WebSocket per user to the VM gateway (wss, server-supplied vm_ws_url), carried inside a
+Noise channel (section 3). JSON frames {"type":"req"|"res"|"event", "id", "method"|"event", "params"|"payload",
+"seq"} (aura/gateway/JarvisProtocol.java, JarvisProtocolJsonKt.java, HatchGatewayNetworkLogRecorder.java: "req",
+"res", "evt"/"event", "method", "ok"). Inbound frames are dispatched in
+aura/gateway/HatchGatewayEventsHandler.java (by "event", else by "method"); the ONLY inbound request method
+that is routed is client.invoke ("inbound req method=... has no route" otherwise).
+
+### 2a. RpcMethod (aura/network/api/RpcMethod.java) - complete: 52 variants = 51 fixed wire strings + Raw(String)
+Direction: D->M = device sends to Meta's gateway/VM ; M->D = gateway/VM pushes to device.
+UserData column = can the frame carry the user's personal data OFF the device (D->M), or user content
+coming back (M->D). "meta" = identifiers/metadata only per code.
+
+ Class                       Wire string                  Dir   Sender/handler (aura/...)                               UserData
+ --------------------------  ---------------------------  ----  ------------------------------------------------------  ---------------------------------------------
+ ClientRegisterCapabilities  client.register_capabilities D->M  nodes/HatchNodeClient.java, nodes/snapshot/HatchClient-  meta: client_id, platform, version, device_metadata
+                                                                CapabilitiesProtocol.java                                 {model_id, device_family, delivery_app}, enabled_permissions,
+                                                                                                                          command list, data_sources {is_permission_granted, supports_backfill,
+                                                                                                                          emits_proactively} (nodes/json/*Json$$serializer.java)
+ ClientInvoke                client.invoke                M->D  gateway/HatchGatewayEventsHandler.java -> nodes/         command + params from the agent (e.g. SMS text/recipient for
+                                                                HatchNodeClient.java handleInvokeRequest                  sms.send, calendar/contacts edits, data_source.backfill window)
+ ClientInvokeResult          client.invoke.result         D->M  nodes/snapshot/HatchClientCapabilitiesProtocol.java      YES: {client_id, invoke_id, ok, payload_json, card_json, files}
+                                                                (sendInvokeResult)                                        = results of device commands: SMS/MMS search + attachments,
+                                                                                                                          call log, contacts, calendar, photos (+uploads), location,
+                                                                                                                          notifications, health, battery, network. Also carries the
+                                                                                                                          backfill ack (2c).
+ ClientDataSourcePublish     client.data_source.publish   D->M  nodes/HatchNodeClient.java, nodes/datasource/            YES: {producer_id, event_id, operation "proactive"|
+                                                                DataSourcePublishPipeline.java, HatchClientCapabilities-  "reconciliation_page", occurred_at, payload_json,
+                                                                Protocol.sendDataSourcePublish                            reconciliation_id, chunk_index, chunk_count, is_final}.
+                                                                                                                          Sources (commands/*/*DataSource.java): sms, call_log,
+                                                                                                                          contacts, calendar, health (backfill+proactive); location,
+                                                                                                                          notifications, network_state, battery (proactive only);
+                                                                                                                          alarms, reminders, geofences (neither).
+ ConnectionPing              connection.ping              D->M  gateway/HatchGatewayEventsHandler.java (sendRequestAndWait) meta (keepalive)
+ ChatStream                  chat.stream                  D->M  gateway/HatchChatHandler.java (buildChatSendRequest)     YES: user's message text + attachments (JarvisProtocolJsonKt:
+                                                                                                                          "attachments=", "inlineBytes="), reply_to_text, model
+ ChatCancel                  chat.cancel                  D->M  HatchGatewayEventsHandler.java                           meta
+ ChatSubscribe               chat.subscribe               D->M  HatchGatewayEventsHandler.java                           meta (after_stream_seq, after_chat_event_seq, replay_limit)
+ ChatMessageGet              chat.message_get             D->M  HatchGatewayEventsHandler.java                           meta (message id); response = message content
+ ChatSearch                  chat.search                  D->M  HatchGatewayEventsHandler.java                           YES: search query text
+ ActivitySubscribe           activity.subscribe           D->M  HatchGatewayEventsHandler.java sendSubscriptions         meta
+ FsSubscribe                 fs.subscribe                 D->M  "                                                         meta
+ IdentitySubscribe           identity.subscribe           D->M  "                                                         meta
+ SpacesSubscribe             spaces.subscribe             D->M  "                                                         meta
+ ThemeSubscribe              theme.subscribe              D->M  "                                                         meta
+ ArtifactsSubscribe          navigation.subscribe         D->M  "                                                         meta
+ ArtifactPinnedSet           navigation.pinned.set        D->M  library/repo/ArtifactsDataSource.java                    meta (artifact ids)
+ ArtifactRecentsTouch        navigation.recents.touch     D->M  library/repo/ArtifactsDataSource.java                    meta (artifact ids, usage)
+ ModelGet                    model.get                    D->M  settings/internal/*, bugreport/AuraBugReportSender.java  meta
+ ModelSet                    model.set                    D->M  settings/internal/HatchModelSelectionScreenKt*           meta (model choice)
+ NodeList                    node.list                    D->M  nodes/HatchNodeClient.java                               meta; RESPONSE lists paired devices and may include
+                                                                                                                          "network_ssid" of other nodes (nodes/json/NodeListEntryJsonKt.java)
+ NodeUnpair                  node.unpair                  D->M  nodes/HatchNodeClient.java                               meta
+ VoiceCallsJoin              voice.calls.join             D->M  partners/voice/session/impl/HatchWsSignalingService$proxy$2.java  meta (signaling); audio itself goes to realtime hosts (1f)
+ NodeDisconnect              node.disconnect              -     defined, no reference found (HTTP "api/nodes/disconnect" used instead, nodes/core/NodePaths.java)
+ WidgetsStatePatch           widgets.state.patch          -     defined, no reference found in aura
+ Raw                         <any string>                 -     escape hatch; no construction found
+ ActivityUpdated             activity.updated             M->D  HatchGatewayEventsHandler.handleActivityUpdatedEvent     user content from VM (agent activity log)
+ AgentStatus                 agent.status                 M->D  handleAgentStatusEvent                                   agent state
+ ApprovalsSnapshot           approvals.snapshot           M->D  handleApprovalsSnapshotEvent                             pending HITL approvals (previews of actions/payloads)
+ ArtifactItemsSnapshot       navigation.items.snapshot    M->D  handleArtifactItemsSnapshotEvent                         library items
+ ArtifactItemsUpdated        navigation.items.updated     M->D  handleArtifactItemsUpdatedEvent                          library items
+ ArtifactItemsRemoved        navigation.items.removed     M->D  handleArtifactItemsRemovedEvent                          library items
+ NavigationTabOrderUpdated   navigation.tab_order.updated M->D  _navigationTabOrderUpdated                               UI state
+ FeedChanged                 feed.changed                 M->D  handleFeedChangedEvent                                   feed content
+ FeedUpdated                 feed.updated                 M->D  handleFeedChangedEvent                                   feed content
+ FeedStatusUpdated           feed.status.updated          M->D  handleFeedUpdatedEvent                                   status
+ FilesUpdated                files.updated                M->D  handleFileUpdatedEvent                                   VM file-system change notices
+ GoalUpdated                 goal.updated                 M->D  handleGoalUpdatedEvent                                   goals
+ HeartbeatNotification       heartbeat.notification       M->D  handleHeartbeatNotificationEvent                         agent "heartbeat" notices (not a transport keepalive)
+ IdentityUpdated             identity.updated             M->D  refreshIdentity()                                        agent identity
+ PinUpdated                  pin.updated                  M->D  handlePinUpdatedEvent                                    pin reminders
+ ReactionsUpdated            reactions.updated            M->D  handleReactionsUpdatedEvent                              chat reactions
+ ScheduleUpdated             schedule.updated             M->D  _tasksUpdateEvents                                       scheduled tasks
+ TasksUpdated                tasks.updated                M->D  _tasksUpdateEvents                                       tasks
+ ServiceNotice               service.notice               M->D  handleServiceNoticeEvent                                 service messages
+ SessionsUpdated             sessions.updated             M->D  handleSessionsUpdatedEvent                               chat sessions
+ SpacesUpdated               spaces.updated               M->D  handleSpacesUpdatedEvent                                 spaces
+ SpacesDataInvalidated       spaces.data_invalidated      M->D  handleSpacesDataInvalidatedEvent                         cache invalidation
+ SshOperatorUpdated          ssh.operator.updated         M->D  handleSshOperatorUpdatedEvent                            state of operator SSH access to the user's VM
+ ThemeUpdated                theme.updated                M->D  handleThemeUpdatedEvent                                  theme
+ WalletStepUp                wallet.step_up               M->D  handleWalletStepUpEvent                                  payment step-up request
+ WalletStepUpResult          wallet.step_up_result        M->D  handleWalletStepUpResultEvent                            payment step-up result
+ (unlisted events)           e.g. delta.message_start, delta.message_done, message.assistant ...  M->D  protocol.parseEvent -> HatchChatEvent  assistant replies / tool output
+
+### 2b. Device-command names carried inside client.invoke (aura/nodes/*, HatchNodeClient strings)
+  alarm.set|update|list|dismiss|dismiss_all, battery.get, calendar.search, calendar.events.create|update|delete,
+  calendar.reminders.list|set|remove, call_log.search, contacts.search|create|update|delete, geofence.set|list|remove,
+  location.get, message.search, message.send (SMS_SEND), message.draft, MESSAGE_ATTACHMENT_GET, notifications.get,
+  notifications.action, network.state, photos.search, photos.upload, photos.upload_status, phone call,
+  subscriptions.*, invite.upsell, background.session, data_source.backfill (reserved command,
+  HatchNodeClient.handleReservedDataSourceCommand). (Full lists: evidence-android/04-agent-commands.txt.)
+
+### 2c. Heartbeat / ack / backfill ack
+  - Keepalive: connection.ping (D->M request) and gateway keepalive ping
+    (aura/gateway/HatchGatewayConnection$GatewayConnectionEngineHost$sendKeepalivePing$1.java). No node.heartbeat.
+  - Invoke delivery: client.invoke carries invoke_id; device replies client.invoke.result; duplicates are dropped
+    ("client.invoke: dropping frame - invokeId=...", "redelivered_dropped", aura/nodes/datasource/InvokeResultAck.java).
+  - Backfill: gateway sends client.invoke command "data_source.backfill" with start_date/end_date; device replies
+    (client.invoke.result) with BackfillAckJson {status:"backfill_initiated", delivery_mode:"chunked_v1",
+    transport:"client.data_source.publish", source, start_date, end_date, estimated chunks, chunk_policy}
+    (aura/nodes/datasource/BackfillAckJson.java). ChunkPolicyJson from DataSourcePublishPipeline.java:
+    chunk_days (per source), max_chunk_bytes 1048576 (1 MiB), max_chunks 256, max_total_bytes 67108864 (64 MiB),
+    may_bisect true; frame cap "4194304B wire limit". Chunks then stream as client.data_source.publish with
+    operation "reconciliation_page". Proactive (non-backfill) publishes use operation "proactive".
+  - node.register / node.heartbeat / node.invoke.result / node.list / node.unpair and /nodes/* path strings exist
+    only in lib:libstartup.so (shared xplat gateway method->path table, same as macOS). The Android Java node client
+    uses the client.* methods above instead; node.invoke.request is absent.
+
+### 2d. Other device-originated channels carrying user data (not RpcMethod)
+  - Jarvis HTTP over the Noise channel to the VM: fs/upload, fs/write, v1/credentials/capture (credential vault),
+    api/feed/*, approvals/batch-decide, api/chat/poke, artifacts/share, api/shopping/events, etc. (JarvisPath.java).
+  - hatch-api.meta.ai Stefi: /hatch/sharing/upload, /hatch/bug_report(+attachment), /hatch/feedback,
+    /hatch/help_ticket, /hatch/attribution/report_events (adid), /hatch/wallet/*, /hatch/checkout/*.
+  - Dictation audio: wss://shortwave.facebook.com (1f). Realtime voice: *-realtime.facebook.com via RTC.
+  - Bug reports (user-initiated): ar.graph.meta.com/bugs with logcat.txt, agent_logs.txt (VM logs), hatch_diagnostics.txt
+    (node permissions, "Phone Contacts Sharing", location-permission state, notification_listener, Node ID, User ID,
+    Gateway URL), mobileconfigs.txt, screenshots (aura/bugreport/AuraBugReportCollector.java).
+  - Push token: registered with Meta via GraphQL ABRARegisterPushTokenMutation (FCM or FBNS token,
+    aura/notifications/push/AuraPushTokenSender.java).
+
+
+## 3. TRANSPORT SECURITY
+------------------------
+### 3a. network_security_config (manifest: android:networkSecurityConfig=@0x7f150002 -> res/t0.xml), decoded in full:
+<network-security-config>
+  <base-config cleartextTrafficPermitted="true">
+    <trust-anchors>
+      <certificates src="system"/>
+    </trust-anchors>
+  </base-config>
+  <domain-config cleartextTrafficPermitted="false">
+    <domain includeSubdomains="true">facebook.com</domain>
+    <domain includeSubdomains="true">fbcdn.net</domain>
+    <domain includeSubdomains="true">fbsbx.com</domain>
+    <domain includeSubdomains="true">facebookcorewwwi.onion</domain>
+    <domain includeSubdomains="true">fbcdn23dssr3jqnq.onion</domain>
+    <domain includeSubdomains="true">fbsbx2q4mvcl63pw.onion</domain>
+    <domain includeSubdomains="true">instagram.com</domain>
+    <domain includeSubdomains="true">cdninstagram.com</domain>
+    <domain includeSubdomains="true">workplace.com</domain>
+    <domain includeSubdomains="true">oculus.com</domain>
+    <domain includeSubdomains="true">facebookvirtualassistant.com</domain>
+    <domain includeSubdomains="true">discoverapp.com</domain>
+    <domain includeSubdomains="true">freebasics.com</domain>
+    <domain includeSubdomains="true">internet.org</domain>
+    <domain includeSubdomains="true">viewpointsfromfacebook.com</domain>
+    <domain includeSubdomains="true">meta.com</domain>
+    <domain includeSubdomains="true">llama.com</domain>
+    <pin-set expiration="2027-09-17">
+      <pin digest="SHA-256">x4QzPSC810K5/cMjb05Qm4k3Bw5zBn4lTdO/nEW/Td4=</pin>
+      <pin digest="SHA-256">ICGRfpgmOUXIWcQ/HXPLQTkFPEFPoDyjvH7ohhQpjzs=</pin>
+      <pin digest="SHA-256">grX4Ta9HpZx6tSHkmCrvpApTQGo67CYDnvprLg5yRME=</pin>
+      <pin digest="SHA-256">58qRu/uxh4gFezqAcERupSkRYBlBAvfcw7mEjGPLnNU=</pin>
+      <pin digest="SHA-256">r/mIkG3eEpVdm+u/ko/cwxzOMo1bk4TyHIlByibiA5E=</pin>
+      <pin digest="SHA-256">i7WTqTvh0OioIruIfFR4kMPnBqrS2rdiVPl/s2uC/CY=</pin>
+      <pin digest="SHA-256">uUwZgwDOxcBXrQcntwu+kYFpkiVkOaezL0WYEZ3anJc=</pin>
+      <pin digest="SHA-256">WoiWRyIOVNa9ihaBciRSC7XHjliYS9VwUGOIud4PB18=</pin>
+      <pin digest="SHA-256">Wd8xe/qfTwq3ylFNd3IpaqLHZbh2ZNCLluVzmeNkcpw=</pin>
+      <pin digest="SHA-256">ape1HIIZ6T5d7GS61YBs3rD4NVvkfnVwELcCRW4Bqv0=</pin>
+      <pin digest="SHA-256">oC+voZLIy4HLE0FVT5wFtxzKKokLDRKY1oNkfJYe+98=</pin>
+      <pin digest="SHA-256">K87oWBWM9UZfyddvDfoxL+8lpNyoUB2ptGtn0fv6G2Q=</pin>
+      <pin digest="SHA-256">cGuxAXyFXFkWm61cF4HPWX8S0srS9j0aSqN0k4AP+4A=</pin>
+      <pin digest="SHA-256">aCdH+LpiG4fN07wpXtXKvOciocDANj0daLOJKNJ4fx4=</pin>
+      <pin digest="SHA-256">rn+WLLnmp9v3uDP7GPqbcaiRdd+UnCMrap73yz3yu/w=</pin>
+      <pin digest="SHA-256">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=</pin>
+      <pin digest="SHA-256">diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=</pin>
+      <pin digest="SHA-256">q4PO2G2cbkZhZ82+JgmRUyGMoAeozA+BSXVXQWB8XWQ=</pin>
+    </pin-set>
+    <domain-config cleartextTrafficPermitted="true">
+      <domain>h.facebook.com</domain>
+      <domain>l.facebook.com</domain>
+      <domain>l.alpha.facebook.com</domain>
+      <domain>lm.facebook.com</domain>
+      <domain>l.instagram.com</domain>
+      <pin-set/>
+    </domain-config>
+  </domain-config>
+  <debug-overrides>
+    <trust-anchors>
+      <certificates overridePins="true" src="user"/>
+    </trust-anchors>
+  </debug-overrides>
+</network-security-config>
+  (Pins are public SPKI SHA-256 digests, not secrets.)
+
+  Reading:
+  - Cleartext HTTP is PERMITTED by default (base-config) for every host not listed; system CAs only (user-installed
+    CAs are NOT trusted in release). debug-overrides (user CAs + overridePins) apply only to debuggable builds;
+    manifest has android:debuggable=false. No android:usesCleartextTraffic attribute in the manifest.
+  - Pinning (18 SPKI pins, expiry 2027-09-17) and cleartext ban cover facebook.com, fbcdn.net, meta.com, instagram.com
+    etc. They do NOT list meta.ai (hatch-api.meta.ai, graph.meta.ai, api.meta.ai, agent.meta.ai), metaaivm.com (VM gateway),
+    muse.ai / api.muse.ai, or fastly-edge.com (OHTTP relay). For those hosts the OS config gives system-CA TLS and allows
+    cleartext at the platform level.
+  - Link-shim hosts h./l./lm.facebook.com, l.instagram.com are explicitly allowed cleartext and unpinned (empty pin-set).
+  - The OS network_security_config only governs Java/platform TLS stacks (HttpURLConnection = Tigon's HucClient
+    fallback, com/facebook/tigon/tigonhuc/HucClient.java; WebView). Most traffic uses Meta's native Tigon/MNS stack
+    (lib:libstartup.so), which has its own verifier; its pin set was not located in strings.
+
+### 3b. App-level (Tigon) transport policy
+  - aura/network/tigon/AuraTigonServiceProvider.java: externalRequestInterceptorEnforceSanitization = true; plaintext and
+    third-party allowlists are server-controlled MobileConfig strings (MC.hatch_android.external_request_interceptor_additional_
+    plaintext_allowlist / _third_party_allowlist, aura/network/transport/tigon/AuraTigonConfigGatesImpl.java). Credential-domain
+    allowlist: facebook.com, graph.meta.com, meta.ai, api.muse.ai.
+  - lib:libstartup.so: "Attempt to send a plaintext HTTP request to a Meta AI VM domain", "Attempt to send a plaintext HTTP
+    request to a Meta or Ohai domain", "Meta AI VM domain uses OS fallback", "Not a Meta or Ohai domain" (Tigon request
+    sanitization categories).
+  - trustSandboxCertificates = true and forceHttp2 only when an internal sandbox override is enabled (aura/network/sandbox/
+    AuraSandbox.java); proxyHostAndPortForE2ETest read from a shared-prefs test config (X/C19617ji.java).
+  - TLS: lib strings show BoringSSL TLS 1.3 state machine and ECH support; QUIC (mvfst, "useMvfst") for DGW. No explicit
+    minimum-TLS-version setting found in Java.
+  - ws:// vs wss://: every hard-coded WebSocket URL is wss:// (shortwave). aura/network/http/HatchHttpApi.jarvisHttpBaseUrl
+    accepts a server-supplied "ws://" gateway URL and maps it to http:// (dev/sandbox path); the Tigon sanitizer string above
+    indicates plaintext to Meta AI VM domains is blocked. No ws:// literal URL in aura code.
+  - Headers added by the Tigon interceptor chain (aura/network/tigon/deviceidentifiers/*.java):
+    X-FB-Device-ID, X-ANDROID-ID (Settings.Secure android_id), X-FB-Family-Device-Id, X-FB-Integrity-Machine-Id; which
+    requests receive them is decided in native code (com/facebook/tigon/interceptors/deviceidentifiers/DeviceIdentifiersInterceptor.java
+    loads "deviceidentifiersinterceptor").
+
+### 3c. End-to-end channel to the VM: Noise + attestation (Android HAS the macOS equivalent)
+  - lib:libstartup.so: "Noise_XX_25519_AESGCM_SHA256", "noise.handshake.attestation_failed",
+    "noise.handshake.private_auth.vm_proof_failed|key_required|enrollment_required|decode_failure|invalid_response",
+    "private-auth notary token must be nonempty", "x-hatch-verified-notary-spaces".
+  - Java: aura/network/noise/AuraNoiseVmTransport.java, aura/network/transport/tigon/NoiseGatewayHatchWebSocket.java
+    (Noise ingress /v1/noise on hatch.metaaivm.com, vm_id + notary_token query params, credential headers Authorization /
+    Proxy-Authorization / Cookie handled separately), aura/network/transport/HatchNoiseHandshakeOutcome.java
+    (LEGACY_PEER_VERIFIED, PRIVATE_AUTH_PEER_VERIFIED, VERIFICATION_FAILED, KEY_REQUIRED, ENROLLMENT_REQUIRED),
+    aura/network/transport/HatchNoisePrivateAuth.java (Authenticate{notaryEndorsement, rvKey} | Discover),
+    aura/network/notary/HatchNotaryTokenCache.java (X-Hatch-Notary-Authorization header, "vm_notary_tokens").
+  - AMD SEV-SNP attestation verifier in lib:libstartup.so ("SEV attestation rejected", "VCEK chip_id", "AMD ASK certificate
+    is revoked", "SNP chain verification failed", "no TCB floor configured for chip stepping",
+    xplat/hatch/attestation/verifier/src/pipeline.rs, .../transparency/bundle.rs) plus a Sigstore/Rekor bundle verifier
+    (embedded trusted root lists *.rekor.sigstage.dev). Expected chip IDs per VM: aura/gateway/HatchCvmChipPin.java /
+    /hatch/cvm-chip-selection. The SNP verifier is gated by MobileConfig MC.hatch_android.enable_snp_attestation_verifier
+    (aura/network/transport/tigon/DefaultNoiseGatewayCarrierFactory.java) - i.e. server-switchable.
+  - Push content from the VM is encrypted to the device: aura/notifications/push/AuraCvmPushDecryptor.java ("RV key must
+    be 32 bytes", "vm_mismatch", "device_mismatch", "outside_validity_window", "CVM push decryption failed").
+
+### 3d. OHTTP ("OHAI") and anonymous credentials (ACS)
+  - Tigon config (AuraTigonServiceProvider.java): ohaiEnabled=true, ohaiConfigProviderEnabled=true,
+    relay https://meta-ohttp-relay-prod.fastly-edge.com/ (+ /chunked/), setOhaiAllowedGraphQLQueries("ALL"),
+    ohaiOhttpTargetNewVip=true. Signed config from meta-ohttp-config-prod.fastly-edge.com/ohai_acs_config.json, verified
+    with an embedded key (aura/network/acs/OhaiAcsConfigVerifier.java; value [REDACTED]).
+  - Which requests use it: only requests built with HatchHttpRequest.useOhai=true (aura/network/transport/HatchHttpRequest.java;
+    TigonHatchHttpClient.java line ~266). Static callers found: aura/network/acs/HatchAcsOhaiNetworker.java (postJson with
+    useOhai=true, ohaiFetchConfigInternally=true) used by HatchAcsCvmClient for /hatch/acs/lease_vm and the VM bind
+    (fields client_public_key, bind_proof, vm_id; headers X-ACS-CREDENTIAL, X-ACS-CONFIG-ID, X-ACS-PROJECT-NAME, X-ACS-TAG),
+    and the internal OHAI test page. ACS tokens are first issued over the normal authenticated Stefi path
+    /hatch/v1/acs/issue_token (blinded_tokens, config_id, request_proof; aura/network/acs/HatchAcsTokenFetcher.java).
+    This is the "confidential VM" lease path (aura/gateway/HatchVmRepository.leaseConfidentialVm -> HatchAcsCvmLeaseKt.leaseCvmViaAcs);
+    the legacy /hatch/lease_vm and /hatch/fetch_vms paths also exist.
+  - Native layer: "OHAI-intended request received while OHAI is disabled; failing closed to avoid sending an
+    un-deidentified request", "OHAI GraphQL request is missing its query name" (lib:libstartup.so). Whether any GraphQL
+    query is actually flagged for OHAI is not visible in Java.
+  - Chat, device commands, data_source.publish and backfill go over the Noise/WebSocket gateway, NOT via OHTTP (no useOhai on
+    those paths). OHTTP here de-identifies the VM lease/bind, not the content stream.
+
+
+## 4. TELEMETRY / ANALYTICS / CRASH
+-----------------------------------
+### 4a. Pipelines
+  - Falco / "FF" logger (Meta analytics2 successor): aura/analytics/impl/MetaAnalyticsBuilder.java, FFMetaAnalyticsUploader.java
+    -> https://graph.facebook.com/pigeon_nest (and /pigeon_health_metrics); optional header "X-FB-Falco-Deidentified: 1" on some
+    batches; auth with a Falco client token "4331325740476680|[REDACTED]" (MetaAnalyticsUploaderKt.FALCO_CLIENT_TOKEN).
+    Second uploader: MetaAnalyticsUploader.java -> https://graph.facebook.com/logging_client_events. Falco thrift schemas in
+    assets/com/facebook/logginginfra/falco/*.meta (Identity, AppScopedIdentity, FacebookIdentity, PrivacyContext, Event,
+    Batch, QPLSamplingConfig) and lib:libxplat_logginginfra_falco_thrift_thrift-cpp2-typesAndroid.so, lib:libffsingletonjnilogger.so.
+    OneFabric / micro-batch (MetaAnalyticsBuilder$maybeEnableOneFabric*, MetaMicroBatchConfigProvider.java).
+  - Consent state is a hard-coded bitmask (aura/analytics/impl/UserConsentStateProvider.java: flags 16|32); its meaning is
+    not determinable statically.
+  - QPL (QuickPerformanceLogger): aura/qpl/*, aura/perf/*. Notable loggers:
+      HatchNodeQplLogger - per device command: action (e.g. ".get", ".list", ".search", "message.send", "message.draft",
+        "network.state"), command_category, hitl_access, hitl_group, hitl_resolved, permission_checked, "granted_",
+        data_read, data_source_count, supports_backfill, chunk_count, chunks_attempted, chunks_rejected, ack_sent,
+        first_chunk_sent, final_chunk_sent, request_id_prefix, connection_state.
+      HatchConnectorQplLogger - connector linking: provider, skill_name, auth_type, oauth_flow_type, consent_accepted/denied,
+        consent_sheet_loaded, credential_submitted, disconnect_confirmed, is_custom_connector, entry_point.
+      HatchConversationQplLogger - per chat turn: message_length, response_length, attachment_count, content_types, tool_calls,
+        message_id, correlation_id, follow_up_count, ws_* timings. It reads transcript text locally only to detect
+        "sandbox://" media; no string shows message text being put into the marker.
+      HatchActivationQplLogger (activation/onboarding, invite_code, tos_consent_present, is_geo_gated), HatchPauseQplLogger
+        (VM lock/unlock), HatchNavTTRC* (navigation timing).
+  - Hatch structured event loggers (aura/analytics/hatch/): hatch_app_events, hatch_app_interactions, hatch_app_impressions,
+    hatch_app_opens, hatch_notification_events (received/impression/click/dismiss/drop), hatch_os_notification_setting
+    (os_notification_enabled, permission_change), hatch_client_cvm_event (vm_id), hatch_install_events,
+    hatch_install_referrer_logger (Play + Meta appmanager referrer, app_scoped_device_id), hatch_native_login,
+    time-spent (HatchTimeSpentLogger), fx_access_library (aura/analytics/accesslibrary/AuraAccessLibraryLogger.java).
+    Event types include permission_prompted / permission_accepted / permission_denied / toggle_on / toggle_off
+    (HatchEventType.java); screens include sms/"messages_permission", contacts_permission, calendar_permission,
+    call_log_permission, location_permission, microphone_permission, phone_notifications_permission, bluetooth_permission,
+    connector_permissions, onboarding_permissions, data_controls, download_agent_data_dialog (HatchScreen.java); components
+    include ai_training_toggle, permission_toggle, settings_share_location, settings_phone_contacts, agent_permission_*,
+    skill_whatsapp_companion_* (HatchComponent.java). Metadata keys include permission_key, permission_mode, permission_default,
+    thread_id, message_id, space_id, goal_id, vm_id, file_type, is_voice_memo_used, is_dictation_used (HatchMetadataKey.java).
+    => Strings indicate Meta logs which OS permissions and connector permissions are prompted/granted/denied and which
+       device commands the agent runs; they do not show message bodies being logged.
+  - Attribution: aura/attribution/HatchAdvertisingIdFetcher.java reads the Google Advertising ID (AdvertisingIdClient, fields
+    "limit_ad_tracking", "ad_id_size"); HatchAttributionEventsClient.java posts events FIRST_APP_LAUNCH, REGISTRATION, LOGIN,
+    EXISTING_SESSION_LOGIN, RESURRECTION, CONFIRMATION with "adid" (or "no_advertisement_id") to
+    hatch-api.meta.ai/hatch/attribution/report_events, gated by a server "compliance action" (report / buffer / ignore)
+    from /hatch/attribution/compliance_action. Manifest declares com.google.android.gms.permission.AD_ID and
+    BIND_GET_INSTALL_REFERRER_SERVICE.
+  - MobileConfig (server feature flags): hatch-api.meta.ai (AuraMobileConfigFetcher.java) and graph.facebook.com
+    (AuraSessionlessMobileConfigFetcher.java); assets/params_map*.txt; mobileconfigs.txt included in bug reports.
+  - Device IDs used by telemetry/HTTP: Family Device ID (shared across Meta apps), X-FB-Device-ID, ANDROID_ID,
+    Integrity Machine ID (3b), PhoneId (aura/analytics/impl/MetaPhoneIdForAnalytics.java), Pigeon/Abra identity.
+
+### 4b. Crash reporting
+  - Meta "Lacrima" + ACRA fork + Breakpad: aura/crashreporting/AuraLacrimaConfig.java, com/facebook/acra/*,
+    com/facebook/errorreporting/lacrima/*, lib:libbreakpad.so. Upload: https://b-www.facebook.com/mobile/reliability_event_log_upload,
+    with the logged-out "AR" access token (aura/appid/AuraClientToken.java; token [REDACTED]).
+  - Strings show report contents may include: stack traces, Java/native (minidump) crashes, ANR traces, "AppGrantedPerm" /
+    "IsPermGranted" (list of granted Android permissions incl. SMS, contacts, call log, location, microphone),
+    "hatch_nav_chain" (screen navigation chain, HatchScreenCrashAnnotator.java), session/user ids
+    (LacrimaConfigBuilder.setUserId, setDeviceId), and report-field names "logcat", "logcat_file", "logcat_intercept",
+    "saved_logcat", "minidump_file" (X/AbstractC6962AlL.java, X/Am5.java). Whether logcat is attached for this app, and whether
+    logcat or a minidump would contain user content (message text, contact names) cannot be determined statically; a minidump
+    captures process memory regions by design.
+  - Bug reports (user-initiated, separate): see 2d; include logcat and VM agent logs.
+
+
+## 5. THIRD-PARTY SDK INVENTORY
+-------------------------------
+ SDK (version from raw/*.properties)          Evidence                                                  What it can send / to whom
+ -------------------------------------------  --------------------------------------------------------  --------------------------------------------------------------
+ Firebase Messaging 19.0.0, IID 19.0.0,       com/google/firebase/{messaging,iid}; res strings            FCM registration with Google (instance ID, token); push delivery.
+ Common 19.5.0, Components, Encoders,          gcm_defaultSenderId=622912139302, project_id=fb-messaging-  Token forwarded to Meta (GraphQL ABRARegisterPushTokenMutation).
+ measurement-connector 19.0.0 (interface      b8df1, google_app_id=1:622912139302:android:[REDACTED],    Push payloads from the VM are encrypted (AuraCvmPushDecryptor).
+ only; NO Firebase Analytics/Crashlytics       google_api_key / google_crash_reporting_api_key=[REDACTED], No com.google.android.gms.measurement or crashlytics packages found.
+ classes found)                                firebase_database_url=https://fb-messaging-b8df1.firebaseio.com
+ Google datatransport runtime/backend-cct      com/google/android/datatransport/*, X/C80U.java           Usage/diagnostic logs to firebaselogging(-pa).googleapis.com from Google
+ 3.1.3, transport-api 3.0.0                                                                                libraries that use it (ML Kit, Firebase); content determined by Google SDK.
+ Play services ads-identifier 17.0.1           com/google/android/gms/ads/identifier; aura/attribution/*  Reads Advertising ID; Muse sends it ("adid") to Meta attribution endpoint.
+                                               manifest AD_ID permission                                  Copied Google ping code references pagead2.googlesyndication.com.
+ Play services auth 21.1.1, auth-base,         aura/login/nativeflow/NativeLoginGoogleSignIn.java,        Google account sign-in (id token), SMS User Consent API for login OTP
+ auth-api-phone 18.3.0, identity-credentials,  AuraCredentialManagerConfig.java, SmsOtpUserConsent.java,  (reads one SMS only after user consent), passkeys/FIDO.
+ fido 21.0.0, googleid 1.1.0, blockstore       analytics/hatch/passkey/*                                  Blockstore: no direct aura reference found.
+ 16.4.0
+ Play services location 21.3.0                 aura/commands/geofence/HatchGeofenceManager.java,          Fused location / geofencing via Google Play services (Google's location
+                                               HatchGeofenceBroadcastReceiver.java                        services may use Wi-Fi/cell scans per OS settings).
+ Play services stats, tasks, base, basement    com/google/android/gms/*                                   Support libraries.
+ ML Kit image labeling (play-services-mlkit-   aura/commands/photos/MlKitPhotoLabeler.java,               On-device photo labels (model delivered by Play services); SDK usage
+ image-labeling 16.0.8, vision-common 17.3.0)  PhotoLabelScanner.java                                     telemetry via datatransport. Labels themselves feed photos.search results.
+ Play Billing 8.3.0                            com/android/billingclient/api, aura/iap/*                  Google Play purchases (subscriptions/credits).
+ Play Review 2.0.1, Play App Update 2.1.0      aura/appreview/HatchInAppReviewManager.java,              In-app review prompt; update availability via Play.
+                                               aura/appupdate/AuraPlaySoftNudge.java
+ Spotify Android auth SDK                      com/spotify/sdk/android/auth/*                             OAuth with accounts.spotify.com for the Spotify connector.
+ WebRTC (org.webrtc) + Meta rsys               org/webrtc, lib:librsysmerged*.so                          Realtime voice media to Meta realtime hosts.
+ noVNC 1.5.x                                   assets/vmvnc/novnc-rfb.js, vnc.html                        Renders the remote VM browser; connects to the VM, not to third parties.
+ Local document viewers (pptxjs, jszip, d3,    assets/pptxviewer, docxviewer, sheetviewer                 Local rendering; no hosts found in their index.html.
+ xlsx, docx-preview)
+ KaTeX 0.16.11, Mermaid 11 (remote)            HatchKatexRenderer.java, MermaidSvgRenderer.java          Fetched at render time from cdn.jsdelivr.net (IP, UA, timing to jsDelivr); no SRI.
+ OkHttp                                        okhttp3/internal only                                     No OkHttpClient/CertificatePinner use found outside the package.
+ BouncyCastle, Jackson, slf4j, Tink            org/bouncycastle, com/fasterxml, org/slf4j                 Libraries (no network of their own).
+ ExoPlayer / media3                            X/*, androidx/media3                                       Media playback; bundled SNTP client to time.android.com for live DASH.
+ Meta shared libs (not third party): Tigon/MNS, Falco, QPL, Lacrima, MobileConfig, Profilo, Flipper (debug), msys, rsys,
+ Vesta (lib:libvesta_client_jni.so; /hatch/vesta-auth/user-info), Pando, Bloks, FBNS push, DGW.
+
+ Other manifest/asset notes: assets/fbpermissions.json (Meta cross-app SSO permission/signature map);
+ assets/fb_code_transparency_signed.jwt (Meta code-transparency manifest); res/ty.xml is an app-restrictions (MDM) file
+ with keys such as "disable_notification_ingestion" (default false), "block_gchat", "block_workplace".
+
+
+## 6. WHAT STATIC ANALYSIS CANNOT DETERMINE
+------------------------------------------
+  - Whether and when any listed host is actually contacted, and the actual contents of client.data_source.publish,
+    client.invoke.result, chat.stream and telemetry batches (needs D3 traffic capture on a test device).
+  - The effective values of server-side MobileConfig flags: enable_snp_attestation_verifier, the Tigon plaintext / third-party
+    allowlists, OHAI/ACS lease path vs legacy lease, attribution compliance action, sampling rates for Falco/QPL.
+  - Whether the confidential-VM (ACS + Noise private-auth + SNP) path is the default for ordinary users or a subset.
+  - The native Tigon/MNS certificate-verification and pinning policy for meta.ai / metaaivm.com / muse.ai (the OS pin-set
+    does not cover them; no native pin list was found in strings).
+  - Which requests carry the X-FB-Device-ID / X-ANDROID-ID / Family Device ID / Integrity Machine ID headers (decided in native code).
+  - Whether crash reports attach logcat or minidumps with user content for this app, and whether Falco batches marked
+    "deidentified" are in fact unlinkable.
+  - Which GraphQL queries (if any) are sent through OHTTP given setOhaiAllowedGraphQLQueries("ALL").
+  - Server-side retention, processing and sharing of anything received.

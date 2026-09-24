@@ -1,0 +1,668 @@
+16 - NETWORK & PROTOCOL MAP (macOS 3.0, com.meta.endo)  [S5, static analysis only]
+=====================================================================================
+
+Sample:  Muse-3.0.dmg -> Muse.app (hashes of the DMG in EVIDENCE.md). Files inspected:
+           Muse.app/Contents/MacOS/Muse                      sha256 9dd289adcecfa47df540eb93ed73036096d065d94d84428133bbe74f7460fd23
+           Muse.app/Contents/MacOS/EndoCrashpadHandler       sha256 f5b9573e83b5806887ab667a48921e1a66d1cabe184eaa3ae1237330c24b2d7c
+           Muse.app/Contents/Resources/hatch/index.html      sha256 6dc0f2726e492d39acaaa382d01ad4f050e0d998d7a10abb7a65ccddba2e502a
+           Muse.app/Contents/Resources/hatch/metaconfig.json, Resources/chrome/ (bundled Chrome extension),
+           Contents/Info.plist, Frameworks/Sparkle.framework
+Method:  `strings -n 5` of both Mach-O binaries (grep -n, context read with sed -n); `otool -L`; plutil;
+         Python byte-search of the 53 MB single-file web bundle (index.html); plain reading of the extension JS.
+         Nothing was executed and no host was contacted.
+Caveat:  a hostname, path or method string shows that code *references* it, not that a connection is made,
+         when, or what is sent. Payload contents, defaults set by server-side config (MetaConfig/MobileConfig)
+         and runtime routing are not observable statically (see section 6). Tokens/keys are [REDACTED].
+Related: evidence/05 (sync/backfill strings), evidence/06 (/hatch/ paths), evidence/09 + 12 (extension),
+         evidence/11 (feature flags), evidence/13 (Sparkle feed).
+
+
+## 1. HOST INVENTORY BY ROLE
+(N = native binary Contents/MacOS/Muse, W = web bundle Resources/hatch/index.html, X = Chrome extension,
+ P = Info.plist.  "*" = also referenced on iOS and Android, see evidence/16-network-cross-platform.txt)
+
+### 1a. Meta agent / product API
+  api.meta.ai *            N  https://api.meta.ai + /hatch/bug_report, /proton/hatch/voice/tts/stream, /proton/login,
+                              /proton/heisenberg, /hatch/checkpoint/status, /metaconfig/metaconfig
+                              ("Endpoint: POST https://api.meta.ai/metaconfig/metaconfig (Bearer ABRA token)").
+                              Adjacent paths (/hatch/fetch_leased_vm, /hatch/destroy_and_release_vm,
+                              /hatch/verify_oauth_token, /hatch/subscription, /hatch/accounts_center_link,
+                              /hatch/accounts_center_entrypoint, /hatch/session/bootstrap) - base host inferred
+                              from adjacency, not proven.
+  hatch-api.meta.ai *      N  https://hatch-api.meta.ai/hatch/help_ticket
+  agent.meta.ai *          N W X  web app; /connectors/connect/<id> (e.g. apple_contacts), /?settings_tab=,
+                              OAuth callbacks /api/hatch/oauth/callback, /api/hatch/ac_oauth; extension pairing
+                              POST /api/hatch/extension-pairing (X background.js)
+  hatch.meta.ai            W X  production web origin; extension host permission
+  hatch.ecto1.ai, hatch.club, ecto1.meta.ai   W  HATCH_DOMAINS production/proxy hosts ("ecto1" = internal codename)
+  www.meta.ai, meta.ai *   N W
+  muse.ai *                N W  (https://muse.ai/?hatch_aymh_complete=1); W MUSE_WEB_HOSTS adds production.museai.com,
+                              preview alias voice.museai.com and pattern *.preview.muse.ai
+  api.muse.ai *            N  (in Meta domain list; iOS pairs it with /ssh-access/tokens, see evidence-ios/10)
+  vm.muse.ai, vm.meta.ai   N  (Meta domain list / Noise connect code)
+  www.multimango.com       N  https://www.multimango.com/api/alo/default-models ("[AloModels] no token/url
+                              -> using compiled defaults"). Owner of this domain not established statically.
+  www.pariscope.dev *, hatch.pariscope.dev   W  "hatchery" / voice debug deep links; N has
+                              "endo_dev_show_pariscope_debug_links" (developer-only by name). Owner not established.
+
+### 1b. Agent VM gateway (the user's cloud VM, "CVM" when confidential)
+  hatch.metaaivm.com *     N W  shared load balancer; WSS path /v1/noise with ?vm_id= ("[Hatch][Noise] Connecting
+                              WSS endpoint: %{public}s vm_id=%{public}s"); W: HATCH_SHARED_LB_HOST, NOISE_WS_PATH
+  *.metaaivm.com *         N W X  per-VM gateway hosts (".metaaivm.com")
+  *.willow606.com, *.exe.xyz   W  HATCH_VM_GATEWAY_HOST_SUFFIXES = [.metaaivm.com, .willow606.com, .exe.xyz]
+  *.customer.prod.willow606.com   X  extension HATCH_WEB_GATEWAY_HOST_SUFFIXES
+  node.hatch.one           X  fallback "wss://node.hatch.one/ws" when the extension is paired manually
+                              Owners of willow606.com, exe.xyz and hatch.one are not established statically.
+  VM-side services named in N/W: /vault, /sentinel, /authd, /auth ; web route table tags daemon, authd,
+                              sentinel (egress permissions), vault (LUKS status) - appendix A.
+
+### 1c. Realtime voice / speech
+  shortwave.facebook.com * N  wss://shortwave.facebook.com/vllm_proxy  (speech-to-speech session: "[S2S] user said: ",
+                              input_audio_buffer.*), wss://shortwave.facebook.com/voyager/v1/asr/duplex (dictation)
+  shortwave.meta.ai        W  wss://shortwave.meta.ai/voyager/v1/asr/duplex, wss://shortwave.meta.ai/v2/transcription
+                              (PCM 16 kHz dictation)
+  api.meta.ai              N  /proton/hatch/voice/tts/stream (text-to-speech)
+
+### 1d. Auth / account
+  auth.meta.com *, od.auth.meta.com (".od.auth.meta.com", also iOS)   N W
+  accountscenter.meta.com *, accountscenter.facebook.com *, accounts.meta.com (also iOS), accountscenter.instagram.com   N W
+  meta.graph.meta.com *    N  /webview_tokens_query (login token exchange, "native_sso_token"), /webview_blobs_decrypt
+  graph.meta.com *, graph.facebook.com *, www.facebook.com *, secure.facebook.com (also iOS)   N W
+  www.at-od.facebook.com   W  allowed callback origin for checkout/PayPal linking
+  USDID                    N  x-meta-usdid / X-Meta-USDID-UUID headers; ES256 keypair + JWT (USDIDLiteToken,
+                              com.meta.usdid keychain item) - a Meta device-identity token, not a host
+
+### 1e. Analytics / telemetry / crash
+  www.facebook.com/mobile/ios_breakpad_crash_logs/   N  crash upload URL string next to "EndoCrashpadHandler"
+  /logging_client_events, /pigeon_health_metrics   N  analytics upload paths (FBAnalytics); the host is built at
+                              runtime (iOS pairs the same path with graph.facebook.com, evidence-ios/16)
+  graph.fbpigeon.com *, relay.fbpigeon.com *   N  entries in the Meta domain list ("pigeon" is also the analytics
+                              payload schema name: fbsql_analytics_pigeon); endpoint use not shown
+  (no host string)         N  "Chandra rejected the batch" - native relay of web telemetry batches (sec. 4)
+  /api/analytics           W  relative beacon endpoint on the web origin (used only when not embedded in the app)
+  parmsl.sentry.io         W  ONLY inside buildSentryUserUrl() - a link to a Sentry dashboard
+                              (".../explore/traces/?...query=user.id:..."); not an ingest/DSN host
+
+### 1f. Update
+  www.facebook.com *       P  SUFeedURL https://www.facebook.com/endo/release/appcast.xml?channel=production
+                              (Sparkle; feed contents in evidence/13). SUPublicEDKey present ([REDACTED] - public
+                              EdDSA verification key).
+
+### 1g. CDN / media / uploads
+  rupload.meta.ai *        W  https://rupload.meta.ai/gen_ai_document_gen_ai_tenant/<uuid> (file.upload span)
+  *.fbcdn.net *            N W  scontent.xx, static.xx, video.xx, external.xx, snr, fna, *origincache* hosts
+  h./s./cf.metaaiusercontent.com, htmlpreview.s.metaaiusercontent.com, cf./s.ecto1usercontent.com   W
+                              image/HTML-preview CSP allowlist (user-generated content hosting)
+  VM file server           N  /fs/upload/status, multipart "pipeline=media_device_sync" (Photos sync, sec. 2d)
+
+### 1h. Privacy relay / OHTTP ("Ohai")
+  meta-ohttp-relay-prod.fastly-edge.com *, meta-ohttp-relay-dev.fastly-edge.com *,
+  meta-ohttp-config-prod.fastly-edge.com *, meta.privacy-gateway.cloudflare.com *,
+  meta.hpke-keys.privacy-gateway.cloudflare.com *, privacy-gateway.cloudflare.com   N  Meta/Ohai domain list
+  doh.facebook-dns.com *   N  Meta domain list (DNS-over-HTTPS host); use not shown
+  (no host string)         W  OhaiRelayClient / FixedOhaiClient with relay URL supplied by config (sec. 3e)
+
+### 1i. Third party
+  js.stripe.com, pay.stripe.com, stripe.com *, hooks.stripe.com, stripe.network   W  Stripe.js checkout
+                              (STRIPE_JS_URL = https://js.stripe.com/clover/stripe.js)
+  PayPal                   W  usePayPalLinking (callback origins are facebook.com hosts; no paypal host string)
+  t0-t3.tiles.virtualearth.net (Bing aerial), clarity.maptiles.arcgis.com (Esri),
+  gis.apfo.usda.gov (NAIP), www.openstreetmap.org, maplibre.org   W  map raster/attribution sources;
+                              vector style URL comes from MobileConfig hatch_web:map_vector_style_light/_dark
+  time.akamai.com          W  dash.js default UTC timing source for DASH video playback
+  fonts.googleapis.com, fonts.gstatic.com   W  allowed by the slide-deck CSP
+  cdnjs.cloudflare.com     W  pdfobject script URL (jsPDF "pdfobjectnewwindow" output mode)
+  unpkg.com                W  chevrotain diagram helper (developer utility)
+  api.weather.gov, api.notion.com, api.calendly.com, www.googleapis.com   W  appear only in sample approval
+                              cards / tool-mock fixtures, not as client endpoints
+  giphy.com                N  Meta domain list entry
+  www.google.com/s2/favicons?domain=<host>   W  getFaviconUrl() for source/link chips; the URL is passed through
+                              proxyExternalImageUrl(), so the fetch may go via Meta's external-image proxy rather than
+                              straight from the Mac (proxy behaviour not visible statically)
+
+### 1j. Local only
+  http://127.0.0.1:<port>  N  Chrome DevTools Protocol to the managed browser (Target.*, Page.getFrameTree)
+  /tmp/endo-native-messaging.sock   N  Chrome native-messaging bridge to the bundled extension
+
+
+## 2. PROTOCOL / RPC MAP
+
+### 2a. Transport shape
+  The app keeps one long-lived gateway connection to the user's agent VM ("Jarvis connection" in logs):
+  WSS to hatch.metaaivm.com/v1/noise?vm_id=... (or a per-VM *.metaaivm.com host), wrapped in a
+  Noise_XX_25519_AESGCM_SHA256 channel (sec. 3d). Frames are JSON-RPC-like: `type` req/res/event, `id`,
+  `method`, `params`, `payload`; "unsupported gateway method: " and "RPCs already pending" errors exist.
+  Each native method string is paired with an HTTP-style route (the gateway multiplexes HTTP-shaped
+  requests over the Noise stream: HCHNoiseGatewayCarrierBridge, "TigonNoiseService", noise_stream ids).
+
+### 2b. Native gateway methods (Contents/MacOS/Muse strings 13714-13777)
+  Direction: D->M = Mac to Meta VM gateway; M->D = gateway to Mac.  UD = can carry user data.
+
+  method                          route                            dir          UD   notes
+  chat.subscribe                  /chat/subscribe                  D->M (+stream M->D)  yes  conversation stream
+  chat.stream                     /chat/stream                     D->M, deltas M->D   yes  prompt, attachments; replies
+  chat.send / chat.resume         /chat/send, /chat/resume         D->M         yes
+  chat.cancel                     /chat/cancel                     D->M         no
+  chat.stream_events (-events)    /chat/stream-events              D->M         yes
+  chat.search                     /chat/search                     D->M         yes  search text; results M->D
+  voice.calls.join                /voice/calls/join                D->M         meta
+  connection.ping                 /connection/ping                 D->M         no   keepalive/presence
+  client.register_capabilities    /client/register-capabilities    D->M         meta NodeRegisterCapabilitiesParams:
+                                                                                     list of local commands/capabilities
+  client.invoke                   (event)                          M->D         yes  agent asks the Mac to run a local
+                                                                                     command (imessage.*, email.*, files.*,
+                                                                                     computer.*, data_source.* ...)
+  client.invoke.result            /client/invoke-result            D->M         YES  command output: message rows, files,
+                                                                                     screenshots, contacts, calendar ...
+  client.data_source.publish      /client/data-source-publish      D->M         YES  background sync + backfill snapshots
+                                                                                     (iMessage, Mail, Calendar, Notes,
+                                                                                     Reminders, Contacts - evidence/05)
+  widgets.state.patch             /widgets/state-patch             D->M         maybe
+  activity.log                    /activity/log                    D->M         maybe
+  node.register                   /nodes/register                  D->M         meta
+  node.invoke.result              /nodes/invoke-result             D->M         YES
+  node.heartbeat                  /nodes/heartbeat                 D->M         no
+  node.list / node.unpair         /nodes/list, /nodes/unpair       D->M         meta
+  navigation.recents.touch / navigation.pinned.set   D->M          meta
+  activity/fs(files)/identity/skills/spaces/theme/reset/navigation.subscribe   D->M subscribe, updates M->D
+  model.get / model.set           /model                           D->M         meta model picker
+  Pushed events (M->D): delta.message_start, delta.text_append, delta.thinking_append, delta.tool_start,
+    delta.block_done, delta.message_done, delta.turn_start, delta.agent_start/_done/_status,
+    delta.status_narration, delta.placeholder, delta.presentation, delta.compaction, message.assistant,
+    widget.state_updated, chat.background_done, identity.updated, node.disconnected, reactions.updated,
+    model.updated, fs.updated, tool_call.started/.completed, response.created
+  Data-source commands (invoked via client.invoke, results via client.data_source.publish):
+    data_source.backfill  "Publish a historical local-source window as a snapshot ... Supported: imessage,
+                          email, calendar, notes, reminders, contacts."
+    data_source.refresh   "calendar/reminders use [-7d, +14d]; contacts returns the whole address book"
+    data_source.search    Notes search; "publish matches as a snapshot and activate forward sync while allowed"
+  Backfill acks (device-side ack objects): IMessageBackfillAck, EmailBackfillAck, CalendarBackfillAck,
+    NotesBackfillAck, RemindersBackfillAck, ContactsBackfillAck; "failed to encode backfill ack";
+    gateway reject strings: "gateway rejected Mail/calendar/reminders backfill chunk", publish_rejected,
+    payload_too_large, auto_sync_disabled, sync_not_allowed(_midrun), connector_disabled, sharing_disabled.
+
+### 2c. Chrome extension node protocol (Resources/chrome/lib/protocol.js, connection.js)
+  node.register        ext->M  {node_id, display_name, platform:'browser', version, commands, device_family:'chrome',
+                               model_id: navigator.userAgent}                                  UD: browser UA
+  node.heartbeat       ext->M  {node_id} (chrome.alarms every 1 min) + {type:'ping'}/'pong' frames
+  node.invoke.request  M->ext  {request_id, command, params} - tabs.*, page.* (get_text, get_html, snapshot,
+                               click/type/submit), history.search, bookmarks.search, downloads.list ...
+  node.invoke.result   ext->M  {request_id, node_id, result:{ok, payload_json}}   UD: YES page text/HTML,
+                               tab URLs/titles, history, bookmarks
+  event node.unpaired  M->ext
+  HTTP to the gateway fileserver: POST /fs/read, GET /fs/raw (avatar image only).
+
+### 2d. Photos sync (native, "MediaSync")
+  "[MediaSync] Found N assets to check", "Already on server", "Uploaded", status check /fs/upload/status,
+  multipart form "file" with original_filename, local_identifier, "pipeline=media_device_sync";
+  settings keys media_sync_enabled / media_sync_manifest / media_sync_last_date; "[MediaSync] No Photos
+  permission, skipping sync". Direction D->M, UD: YES (photo bytes + metadata). Destination is the VM file
+  server by adjacency (HatchFileClient) - inferred.
+
+### 2e. Web client route table (W: HATCH_HTTP_ROUTE_SPECS, 282 entries, full list in appendix A)
+  The embedded web UI talks to the same gateway, over Noise ("transport: noise") or plain WS/HTTP.
+  57 routes are flagged noiseOnly, 12 are subscriptions. Services: default agent, daemon (16), authd (15),
+  sentinel (21, egress policy), vault (1). Routes that carry user data include chat.*, memory.search/get,
+  fs.read/reads/write/raw/thumbnail/search, email.messages.list, email.attachment.get,
+  credentials.capture/register (flagged sensitive: bodies redacted from telemetry), shared_agents.*,
+  spaces.*, dyi.export (data download), bug_report_logs.create, product_improvements.get/set (AI-training
+  preference, see S4). nodes.invoke_result / nodes.invoke_ack / nodes.sync mirror the node protocol.
+
+### 2f. Agent-VM egress controls (not the Mac's own traffic)
+  sentinel routes egress.permissions.tproxy / .mitm / .sni_rejection with UI copy:
+    "TLS interception" - "All TLS connections are always intercepted for inspection." /
+                         "TLS connections are only intercepted when required by policy."
+    "Transparent proxy enabled/disabled"; "SNI mismatch rejection".
+  These describe the cloud VM's outbound proxy for the agent's browsing/connectors. Which mode is default
+  is server state.
+
+
+## 3. TRANSPORT SECURITY
+
+### 3a. Network stacks
+  Tigon + MNS (Meta network stack): HTTP2_TCP, HTTP3_QUIC (mvfst), Fizz TLS 1.3 (fizz_handshake_success,
+  fizz_ech_* = Encrypted Client Hello fields), "MNS SecureTCP WebSocket transport", mbedTLS strings, proxygen.
+  "TigonMNSWithFallbackService", "Meta AI VM domain uses OS fallback" -> VM-domain traffic can fall back to
+  the OS stack. ATS: Info.plist has NO NSAppTransportSecurity key (default ATS applies to URLSession/WebKit;
+  Tigon/MNS sockets are outside ATS).
+
+### 3b. Certificate pinning / trust
+  "_CalculateCertPin", "Pinning validation failed.", "Certificate is revoked.", CRL parsing
+  ("Invalid CRL.", "Leaf signature verification failed."), "MNSCertificateVerifierApple".
+  "FBWhitehatSSLPinningBypass" - Meta's whitehat setting that lets bug-bounty researchers disable pinning.
+  No base64 SPKI pin hashes appear as strings (pins, if any, are not stored as text).
+  Embedded DER certificate: "CN=Facebook Rootcanal Prod Root CA, O=Facebook Inc." (self-signed, valid
+  2018-02-21 to 2048-02-21, sha256 76:03:12:4D:49:0B:2C:64:70:64:23:59:CF:6B:48:DA:34:25:80:88:36:53:09:9E:E5:48:81:2E:72:46:02:C7)
+  plus a 2048-bit RSA public key, next to MNSCertificateVerifierApple. Whether it is an extra trust anchor
+  or a pin target is not determinable.
+  Imported Security calls (nm -u): SecTrustSetAnchorCertificates, SecTrustSetAnchorCertificatesOnly,
+  SecTrustCreateWithCertificates, SecTrustEvaluateWithError - i.e. the app can evaluate chains against its own
+  anchor set instead of the system store. Unlike iOS (CACerts.plist, 143 roots) no bundled CA list file
+  exists in Contents/Resources; which anchors are used is not visible.
+  Meta domain classifier list includes pinningtest.appspot.com / insecure.pinningtest.appspot.com /
+  fbpinningtest.appspot.com test hosts and Meta .onion addresses.
+
+### 3c. Cleartext
+  Tripwires: "Attempt to send a plaintext HTTP request to a Meta or Ohai domain", "... to a Meta AI VM
+  domain", "Tagged Meta plaintext request", "Tripwire failed". TigonRequestSanitizationInterceptor
+  categories: plaintext / ohttp / meta_ai_vm / third_party with header_stripped,
+  query_parameter_would_be_stripped, needsMetaAIVMAuth.
+  Allowances: extension manual pairing accepts ws:// (normalizeWsUrlForCredentialSource; already in
+  evidence/12); web parseGatewayUrl accepts ws: or wss:; local CDP is http://127.0.0.1.
+
+### 3d. End-to-end channel to the VM (Noise + attestation)
+  "Noise_XX_25519_AESGCM_SHA256" (N and W), NoiseHandshake writeMessage1/readMessage2/writeMessage3,
+  "Noise carrier has no active channel; failing closed (no plaintext send)."
+  Private auth / notary: notary_token, "private-auth notary token must be nonempty", vm_notary_tokens,
+  fetchedWithNotarySupport, noise.handshake.private_auth.vm_proof_failed / enrollment_required /
+  key_required, noise.handshake.attestation_failed, "Refusing a confidential VM that did not prove itself
+  (privateAuthVerified=false)", request(carrierURL:...:expectedChipIds:...),
+  -[HCHNoiseGatewayCarrierBridge initWithSevSnpVerifierEnabled:transparencyPolicy:...].
+  W contains an AMD SEV-SNP attestation report parser (chipId, reportedTcb, measurement) with VCEK
+  certificate cross-checks, and createStrictSharedAgentNoiseTrustEvaluator. N also contains
+  facebook::tigon::noise::NoiseAlwaysAcceptAttestationVerifier (an accept-all verifier class, as on iOS).
+  BUT: W reads MobileConfig hatch_web:attestation_enforce_mode with default 0 = "Off" (1 = Staging, 2 = Prod),
+  overridable by a server-provided tier. Native enablement is a runtime argument. Whether attestation is
+  enforced for a given user is server-configured and not statically determinable.
+  Verified-identity headers: x-hatch-verified-uid, -media-path, -media-version, -media-variant,
+  -notary-spaces, x-hatch-noise-active, x-noise-connection-id.
+
+### 3e. OHTTP
+  Native: relay/config hostnames only as domain-list entries, plus headers x-fb-ohttp-no-user-country-forwarding
+  and x-ohttp-new-vip; no "message/ohttp-req" media-type string in the native binary.
+  Web: OhaiRelayClient / FixedOhaiClient (message/ohttp-req, message/ohttp-res, KEM X25519-HKDF-SHA256;
+  PROHIBITED_INNER_HEADER_PREFIXES proxy-, sec-, x-b3-, x-datadog-, x-forwarded-). The only feature found
+  using it: CVM lease - "Reserve anonymously through ACS over OHTTP, then bind the CVM to your signed-in
+  account.", gated by hatch_web:hatch_acs_ohai_enabled (default false in code). On this evidence OHTTP
+  covers anonymous confidential-VM reservation, not chat, sync or telemetry.
+
+### 3f. Tokens in URLs
+  Native strings "auth_token=", "notary_token=", "vm_id=" beside the Noise WSS connect log line.
+  Extension buildAuthenticatedWsUrl() sets ?auth_token=<token>. Web shared-agent ingress builds
+  wss://hatch.metaaivm.com/v1/noise?vm_id=&auth_token=&app_id=&request_id=. Query-string credentials can be
+  recorded by intermediaries' access logs; TLS still protects them in transit.
+
+### 3g. Update channel
+  Sparkle 2.7.0-beta.1 over HTTPS with EdDSA-signed updates (SUPublicEDKey). No SUEnableSystemProfiling key,
+  so Sparkle's optional system-profile upload is not enabled in Info.plist.
+
+
+## 4. TELEMETRY, ANALYTICS, CRASH REPORTING
+
+### 4a. Native Meta pipelines
+  FBAnalytics (FBAnalyticsCoreLogger, FBAnalyticsUserScopedLoggers, FBAnalyticsUnifiedLogging), FFLogger/Falco
+  (captured_falco_event, falco_data_quality_batch/_stream), OneFabric + unified_micro_batch, federated analytics
+  (event.federated.*), QPL / perflogger (facebook.perflogger.queue, qpl_join__*, logged_from_xplat_mnsqplobserver -
+  per-network-request QPL with request_friendly_name, server_region, retry, has_authorization_header).
+  Identity fields in the analytics context: device_id, family_device_id, os_build_number, user_id_from_provider,
+  app_id; USDID token; IOPlatformUUID string present (use not shown).
+  Muse-specific loggers and event names:
+    hatch_node_operations_logger (EndoNodeOperationsLogger.Invocation): command_execution_completed,
+      result_upload_started, result_upload_attempted, rpc_acknowledged, rejected_by_server,
+      permission_state_changed {auto_sync_changed, hitl_mode_changed, file_access_changed,
+      connector_enabled_changed}  -> logs per-command outcomes and connector/permission changes.
+    hatch_mac_install_logger: onboarding_app_launched, install_event_reported, endo_install_event_reported,
+      os_permission_observed, os_permission_changed (OS privacy permission state).
+    LoginAnalytics: login_auto_started, login_attempt_started, login_attempt_refused, browser_callback_timeout.
+    endo_analytics_session_id / _started_at / _last_event_at.
+    interaction_logger + "Chandra rejected the batch" + app id 1181158755084833: native relay of the web
+      telemetry batches ("[HatchEmbed] Embed capped N telemetry entries before relay").
+
+### 4b. Web-bundle telemetry (hatch/index.html)
+  createLogInfra channels: hatch-traces, pel-events, one-trace-events, checkout-upl; typed_events
+  interaction_logger / impressions / time_spent / qpl / other / upl; flush every 15 s or 100 entries.
+  Inside the app the batch is posted to native (postToNative {action:'telemetryBatch'}); otherwise
+  POST /api/analytics. QPL transport = MobileConfig hatch_web:falco_qpl_transport, default "chandra"
+  (alternatives "falco", "dual").
+  HatchClickEvent enum: 1,190 event names, e.g. connector_connect_link_click, connector_disconnect_link_click,
+  connector_auto_sync_toggle, connector_consent_permission_click, agent_permission_resolve,
+  agent_permission_revoke, chat_inline_approval_decision, whatsapp_pairing_link_click, voice_start_call,
+  settings_connectors_mitm_toggle, settings_client_telemetry_toggle_click.
+  Controls: setting "Client telemetry - Send browser analytics, performance measurements and error reports."
+  Code default ON (readStoredClientTelemetryPreference returns true unless localStorage
+  hatch:debug:client-telemetry-enabled == "false"); forced OFF while connected to a confidential VM
+  ("Confidential VMs always keep telemetry off"). Redaction helpers: telemetryRedaction,
+  SENSITIVE_URL_SEARCH_PARAMS (api_key, auth_token, token, prompt, page_url, ...), isSensitiveNoiseMethod
+  -> "[FILTERED]"; gateway traces record method name, latency and error class.
+  Sentry JavaScript SDK 10.29.0 is compiled in (captureHatchException / HATCH_SENTRY_SURFACES), but no DSN,
+  ingest host or tunnel was found in the bundle; whether any Sentry event is sent is undetermined.
+
+### 4c. Crash reporting
+  Crashpad (xplat/third-party/crashpad) with a separate EndoCrashpadHandler binary; URL string
+  https://www.facebook.com/mobile/ios_breakpad_crash_logs/; handler options --url, --annotation,
+  --no-upload-gzip, --no-rate-limit, --no-identify-client-via-url; "Crashpad uploads go to the launchd
+  agent's configured --url". Minidump writers include thread stacks and memory lists
+  (MinidumpMemoryListWriter, CalculateStackRegion, InitializeExtraMemory) and annotations. A minidump
+  therefore contains slices of process memory at crash time; the strings do not show any scrubbing, so
+  crash reports could contain whatever the process held (message text, file data) - not verified.
+  MetricKit.framework is linked (otool -L); no MX* class strings found, use undetermined.
+
+### 4d. User-initiated bug reports / help
+  https://api.meta.ai/hatch/bug_report multipart: description, screenshot ("Capture screen", full-screen
+  capture with app-window fallback), endo_debug_logs.txt, endo_performance.txt, hatch_connection.txt,
+  endo_app_info.txt - "Describe what went wrong and we'll file a Muse bug with logs attached."
+  Debug logs live in ~/Library/Caches/com.meta.endo/DebugLogs/. Log format strings that embed user content
+  exist (e.g. "[S2S] user said: ", "[Dictation] Inserting "); whether they reach that file is not shown.
+  https://hatch-api.meta.ai/hatch/help_ticket; web route bug_report_logs.create (VM-side logs).
+
+
+## 5. THIRD-PARTY SDK INVENTORY (macOS)
+  Component                 Evidence                                    What it can send
+  Sparkle 2.7.0-beta.1      Frameworks/Sparkle.framework, SUFeedURL     appcast GET to facebook.com (version, UA);
+                                                                        no system profile key
+  Crashpad (Google OSS)     static in Muse + EndoCrashpadHandler        minidumps to a facebook.com URL (Meta)
+  Fizz, mvfst, proxygen, folly, glog, mbedTLS, Rust crates   xplat/third-party paths   none on their own
+  Stripe.js                 W STRIPE_JS_URL js.stripe.com               loaded at checkout; Stripe receives
+                                                                        browser/device signals when it loads
+  PayPal linking            W usePayPalLinking                          via facebook.com callbacks
+  MapLibre GL + tile hosts  W (Bing, Esri, USDA NAIP, OSM)              tile requests reveal viewed map area + IP
+  dash.js                   W (time.akamai.com)                         time-sync request during DASH playback
+  Sentry JS SDK 10.29.0     W                                           no destination found statically
+  jsPDF/pdfobject, JSZip/PPTX, Lexical, chevrotain   W                 local rendering; cdnjs/unpkg URLs only in
+                                                                        optional code paths
+  KaTeX, Mermaid            W (bundled; no cdn.jsdelivr.net string)     local rendering (iOS/Android load them from jsDelivr)
+  noVNC RFB client          W (noVNC_mouse_capture_elem, RFB)           remote VM browser view, to the VM gateway
+  WebRTC (browser API)      W RTCPeerConnection                         media to whatever peer the page negotiates
+  NOT found in the native binary: Firebase, Crashlytics, Google Analytics, Amplitude, Mixpanel, Segment,
+  AppsFlyer, Adjust, Branch, Braze, Datadog, Bugsnag, PostHog, Statsig, LaunchDarkly (string counts 0 or
+  unrelated words). Web bundle: no googletagmanager/google-analytics/posthog/mixpanel/segment.io/firebase
+  strings; "amplitude" hits are audio waveform code.
+
+
+## 6. WHAT STATIC ANALYSIS CANNOT DETERMINE
+  - Which hosts are actually contacted, how often, and in what order; server-side MetaConfig/MobileConfig
+    values (attestation_enforce_mode, hatch_acs_ohai_enabled, falco_qpl_transport, map styles).
+  - Payload contents of client.invoke.result / client.data_source.publish / node.invoke.result / MediaSync
+    (Phase 2 test D3), and whether any field-level minimisation happens server-side.
+  - Whether Noise terminates inside the VM or at a Meta proxy, and whether SEV-SNP attestation is enforced.
+  - The actual pin set, and the role of the embedded Rootcanal root CA.
+  - The Chandra / Falco / FBAnalytics network endpoints (built at runtime, not string literals).
+  - Whether Sentry is initialised with a DSN at runtime; whether crash minidumps or bug-report logs contain
+    user content in practice.
+  - Ownership of multimango.com, pariscope.dev, willow606.com, exe.xyz, hatch.one.
+
+
+## APPENDIX A. Web client gateway routes (hatch/index.html HATCH_HTTP_ROUTE_SPECS)
+  columns: method, HTTP verb, path, VM service ("agent" = default), flags
+  chat.history                             GET    /chat/history                                              agent    
+  professional_consent.resume              POST   /api/professional-consent/resume                           agent    
+  chat.mark_seen                           POST   /api/chat/{thread_id}/seen                                 agent    
+  chat.sxs.select                          POST   /api/chat/sxs/select                                       agent    
+  sharing.eligibility                      GET    /api/sharing/eligibility                                   daemon   noise-only
+  sharing.attempt                          POST   /api/sharing/attempt                                       daemon   noise-only
+  activity.list                            GET    /activity                                                  agent    
+  activity.get                             GET    /activity/{id}                                             agent    
+  tasks.list                               GET    /tasks                                                     agent    
+  tasks.runs                               GET    /tasks/runs                                                agent    
+  tasks.delete                             DELETE /api/tasks/{job_id}                                        agent    
+  sessions.list                            GET    /api/session/list                                          agent    
+  sessions.get                             GET    /api/session/list/{id}                                     agent    
+  skills.list                              GET    /skills                                                    agent    
+  skills.disconnect                        POST   /skills/disconnect                                         agent    
+  skills.set_disabled                      POST   /skills/set-disabled                                       agent    
+  subagents.list                           GET    /subagents                                                 agent    
+  subagents.status                         GET    /subagents/status                                          agent    
+  config.get                               GET    /config                                                    agent    
+  config.update                            PATCH  /config                                                    agent    
+  vm.health                                GET    /health                                                    agent    
+  bug_report_logs.create                   POST   /api/debug/bug-report-logs                                 agent    noise-only
+  bug_report_logs.download                 GET    /api/debug/bug-report-logs/{file_id}                       agent    noise-only
+  dyi.export                               POST   /api/dyi/export                                            daemon   noise-only
+  product_improvements.get                 GET    /api/product-improvements                                  daemon   noise-only
+  product_improvements.set                 POST   /api/product-improvements                                  daemon   noise-only
+  email.mailbox.get                        GET    /api/email/mailbox                                         daemon   noise-only
+  email.mailbox.create                     POST   /api/email/mailbox                                         daemon   noise-only
+  email.messages.list                      GET    /api/email/messages                                        daemon   noise-only
+  email.attachment.get                     GET    /api/email/messages/{message_id}/attachments/{index}       daemon   noise-only
+  invite.badge.get                         GET    /api/invite/badge                                          daemon   noise-only
+  invite.badge.seen                        POST   /api/invite/badge/seen                                     daemon   noise-only
+  peers.status                             GET    /peers/status                                              daemon   noise-only
+  peers.list                               GET    /peers                                                     daemon   noise-only
+  peers.invites.list                       GET    /peers/invites                                             daemon   noise-only
+  grants.list                              GET    /grants                                                    daemon   noise-only
+  vm.enrollment_health                     GET    /health/enrollment                                         agent    
+  vault.luks_status                        GET    /luks/status                                               vault    noise-only
+  voice.user_speech_started                POST   /api/voice/user-speech-started                             agent    
+  voice.active_voice                       GET    /api/voice/active-voice                                    agent    
+  voice.available_voices                   GET    /api/voice/available-voices                                agent    
+  voice.pipeline_profiles                  GET    /api/voice/pipeline-profiles                               agent    
+  voice.select_pipeline_profile            POST   /api/voice/pipeline-profile                                agent    
+  voice.start_call                         POST   /api/voice/start-call                                      agent    
+  voice.end_call                           POST   /api/voice/end-call                                        agent    
+  voice.onboarding.reset                   POST   /api/voice/onboarding/reset                                agent    
+  messenger.fb-check                       GET    /api/messenger/fb-check                                    agent    
+  messenger.pin_status                     GET    /api/messenger_companion/pin-status                        agent    
+  messenger_companion.unlock               POST   /api/messenger_companion/unlock                            agent    
+  messenger-read.unlock                    POST   /api/messenger-read/unlock                                 agent    
+  foa.accounts                             GET    /api/foa/accounts                                          agent    
+  connectors.accounts                      GET    /connectors/{id}/accounts                                  agent    
+  connectors.accounts_unlink               POST   /connectors/{id}/accounts/{account_id}/unlink              agent    
+  connectors.accounts_link                 POST   /connectors/{id}/accounts/link                             agent    
+  foa_auth.callback                        POST   /api/foa_auth/callback                                     authd    
+  channels.status                          GET    /channels/status                                           agent    
+  channels.link                            POST   /channels/link                                             agent    
+  channels.unlink                          POST   /channels/unlink                                           agent    
+  shared_agents.list                       GET    /shared-agents                                             agent    
+  shared_agents.capabilities               GET    /shared-agents/capabilities                                agent    
+  shared_agents.detail                     GET    /shared-agents/{shared_agent_id}                           agent    
+  shared_agents.delete                     DELETE /shared-agents/{shared_agent_id}                           agent    
+  shared_agents.state.update               PATCH  /shared-agents/{shared_agent_id}/state                     agent    
+  shared_agents.identity.update            PATCH  /shared-agents/{shared_agent_id}/identity                  agent    
+  shared_agents.definition                 GET    /shared-agents/{shared_agent_id}/definition                agent    
+  shared_agents.create                     POST   /shared-agents/create-idempotent                           agent    
+  shared_agents.definition.update          PATCH  /shared-agents/{shared_agent_id}/definition                agent    
+  shared_agents.shares.list                GET    /shared-agents/{shared_agent_id}/shares                    agent    
+  shared_agents.shares.create              POST   /shared-agents/{shared_agent_id}/shares                    agent    
+  shared_agents.shares.conversation        GET    /shared-agents/{shared_agent_id}/shares/{share_id}/conversation agent    
+  shared_agents.shares.revoke              POST   /shared-agents/{shared_agent_id}/shares/{share_id}/revoke  agent    
+  shared_agents.remote.open                POST   /api/shared-agents/remote/open                             agent    noise-only stream:subscription
+  shared_agents.remote.send                POST   /api/shared-agents/remote/send                             agent    noise-only
+  memory.search                            POST   /memory/search                                             agent    
+  memory.get                               POST   /memory/get                                                agent    
+  memory.consolidate                       POST   /memory/consolidate                                        agent    
+  memory.reindex                           POST   /memory/reindex                                            agent    
+  bootstrap.reset                          POST   /bootstrap/reset                                           agent    
+  subscription.callback                    POST   /subscription/callback                                     agent    
+  reactions.toggle                         POST   /reactions/toggle                                          agent    
+  oauth.callback                           POST   /oauth/callback                                            authd    
+  ac_oauth.callback                        POST   /ac_oauth/callback                                         agent    
+  ?                                        POST   /share/callback                                            agent    
+  api_key_auth.callback                    POST   /api_key_auth/callback                                     authd    
+  custom_connectors.register               POST   /v1/custom-connectors/register                             authd    aliases:custom_oauth_connector.register
+  custom_connectors.list                   POST   /v1/custom-connectors/list                                 authd    
+  custom_connectors.delete                 POST   /v1/custom-connectors/delete                               authd    
+  connectors.list                          GET    /connectors                                                agent    
+  connectors.get                           GET    /connectors/{id}                                           agent    
+  connectors.connect_info                  GET    /connectors/{id}/connect/info                              agent    
+  connectors.permissions                   GET    /connectors/{id}/permissions                               agent    
+  connectors.scope_link                    POST   /connectors/{id}/scopes/{method}/link                      agent    
+  connectors.disconnect                    POST   /connectors/{id}/disconnect                                agent    
+  consent_auth.callback                    POST   /consent_auth/callback                                     agent    
+  username_password_auth.callback          POST   /username_password_auth/callback                           authd    
+  whatsapp.login                           POST   /whatsapp/login                                            agent    
+  whatsapp.install                         POST   /whatsapp/install                                          agent    
+  whatsapp_companion.link                  POST   /whatsapp_companion/link                                   agent    
+  whatsapp_companion.status                GET    /whatsapp_companion/status                                 agent    
+  browser_stream.attach                    POST   /api/browser-task/{task_id}/websockify?mode=attach         agent    noise-only
+  browser_activity.snapshot                GET    /api/browser-activity/actions/{action_id}/snapshot         agent    
+  voice.dictation                          POST   /api/voice/dictation?sample_rate_hz={sample_rate_hz}       agent    noise-only
+  browser_task.get                         GET    /api/browser-task/{task_id}                                agent    
+  browser_task.takeover                    POST   /api/browser-task/{task_id}/takeover                       agent    
+  browser_task.present                     POST   /api/browser-task/{task_id}/present                        agent    
+  browser_task.heartbeat                   POST   /api/browser-task/{task_id}/heartbeat                      agent    
+  browser_task.close                       POST   /api/browser-task/{task_id}/close                          agent    
+  browser_task.release                     POST   /api/browser-task/{task_id}/release                        agent    
+  browser_task.stop                        POST   /api/browser-task/{task_id}/stop                           agent    
+  browser_task.refresh_environment         POST   /api/browser-task/{task_id}/refresh-environment            agent    
+  browser.local_testing.get                GET    /api/browser/local-testing                                 agent    noise-only
+  browser.local_testing.set                PATCH  /api/browser/local-testing                                 agent    noise-only
+  identity                                 GET    /identity                                                  agent    
+  chat.themes                              GET    /api/chat/themes                                           agent    
+  chat.themes.set                          POST   /api/chat/themes/set                                       agent    
+  iframe.call                              POST   /call                                                      agent    
+  voice.calls.join                         POST   /voice/calls/join                                          agent    
+  artifacts.share                          POST   /artifacts/share                                           agent    
+  artifacts.remove                         POST   /artifacts/remove                                          agent    
+  artifacts.fetch_url                      GET    /artifacts/fetch_url                                       agent    
+  artifacts.list                           GET    /api/artifacts                                             agent    
+  artifacts.pin                            POST   /api/artifacts/pin                                         agent    noise-only
+  artifacts.slides.rebuild                 POST   /api/artifacts/slides/rebuild                              agent    noise-only
+  onboarding.variants                      GET    /api/onboarding/variants                                   agent    
+  onboarding.pages.start                   POST   /onboarding/pages                                          agent    
+  onboarding.complete                      POST   /onboarding/complete                                       agent    
+  onboarding.reset                         POST   /onboarding/reset                                          agent    
+  onboarding.tasks                         GET    /onboarding/tasks                                          agent    
+  onboarding.identity                      GET    /onboarding/identity                                       agent    
+  onboarding.identity.set                  POST   /onboarding/identity                                       agent    
+  goal_prompt                              POST   /goal_prompt                                               agent    
+  goals.list                               GET    /goals                                                     agent    
+  goals.get                                GET    /goals/{id}                                                agent    
+  goals.update                             PATCH  /goals/{id}                                                agent    
+  goals.delete                             DELETE /goals/{id}                                                agent    
+  podcasts.episodes.list                   GET    /api/podcasts/episodes                                     agent    
+  podcasts.feed.get                        GET    /api/podcasts/feed                                         agent    
+  podcasts.feeds.list                      GET    /api/podcasts/feeds                                        agent    
+  podcasts.episode.delete                  DELETE /api/podcasts/episodes/{slug}                              agent    
+  goals.suggestions.decide                 POST   /goals/{goal_id}/suggestions/{suggestion_id}/decision      agent    
+  api.idea-cards.list                      GET    /api/idea-cards                                            agent    
+  api.ideas.reset                          POST   /api/ideas/reset                                           agent    
+  api.ideas.engagement                     POST   /api/ideas/{id}/engagement                                 agent    
+  api.ideas.feedback                       POST   /api/ideas/{id}/feedback                                   agent    
+  api.idea-cards.detail                    GET    /api/idea-cards/{ideaCardId}                               agent    
+  api.idea-cards.execute                   POST   /api/idea-cards/{ideaCardId}/execute                       agent    
+  api.idea-cards.debug                     GET    /api/idea-cards/{ideaCardId}/debug                         agent    
+  shopping.product_details                 GET    /api/shopping                                              agent    
+  shopping.events                          POST   /api/shopping/events                                       agent    
+  feed.list                                GET    /api/feed                                                  agent    
+  feed.infinite                            GET    /api/feed/infinite                                         agent    noise-only stream:records
+  feed.status                              GET    /api/feed/status                                           agent    
+  feed.search                              GET    /api/feed/search                                           agent    
+  feed.unit                                GET    /api/feed/units/{unit_id}                                  agent    
+  feed.unit.delete                         DELETE /api/feed/units/{unit_id}                                  agent    
+  feed.unit.reaction                       POST   /api/feed/units/{unit_id}/reaction                         agent    
+  feed.unit.tap                            POST   /api/feed/units/{unit_id}/tap                              agent    
+  feed.units.seen                          POST   /api/feed/units/seen                                       agent    
+  feed.reorder                             POST   /api/feed/reorder                                          agent    
+  feed.regenerate                          POST   /api/feed/regenerate                                       agent    
+  feed.prompt.get                          GET    /api/feed/prompt                                           agent    
+  feed.prompt.update                       PATCH  /api/feed/prompt                                           agent    
+  feed.prompts.delete                      DELETE /api/feed/prompts/{prompt_id}                              agent    
+  feed.social_source_icon                  GET    /api/feed/social-source-icon/{source}                      agent    
+  feed.unit.media                          GET    /api/feed/units/{unit_id}/media/{handle}                   agent    
+  redteam.mocks.apply                      POST   /redteam/mocks                                             agent    
+  redteam.mocks.clear                      DELETE /redteam/mocks                                             agent    
+  redteam.mocks.get                        GET    /redteam/mocks                                             agent    
+  redteam.sidecar.tail                     GET    /redteam/mocks/sidecar                                     agent    
+  check                                    GET    /check                                                     agent    
+  session.start                            POST   /session/start                                             agent    
+  session.archive                          POST   /session/archive                                           agent    
+  session.unarchive                        POST   /session/unarchive                                         agent    
+  session.pin                              POST   /session/pin                                               agent    
+  session.unpin                            POST   /session/unpin                                             agent    
+  session.rename                           POST   /session/rename                                            agent    
+  session.delete                           POST   /session/delete                                            agent    
+  chat.unread_count                        GET    /chat/unread-count                                         agent    
+  chat.poke                                POST   /chat/poke                                                 agent    
+  onboarding.state                         GET    /onboarding                                                agent    
+  onboarding.questions                     GET    /onboarding/questions                                      agent    
+  spaces.list                              GET    /spaces/v2                                                 agent    
+  spaces.delete                            DELETE /spaces/v2/{slug}                                          agent    
+  spaces.saved.delete                      DELETE /spaces/v2/{slug}?source=saved_space                       agent    
+  spaces.save                              POST   /spaces/v2/{slug}/save                                     agent    
+  spaces.share.review                      GET    /spaces/share/{slug}/review                                agent    
+  spaces.share                             POST   /spaces/share/{slug}                                       agent    
+  spaces.share.status                      GET    /spaces/share/{slug}                                       agent    
+  spaces.unshare                           DELETE /spaces/share/{slug}                                       agent    
+  spaces.share.fix                         POST   /spaces/share/{slug}/fix                                   agent    
+  spaces.debug.summary                     GET    /spaces/{slug}/debug/summary                               agent    
+  spaces.debug.invocations                 GET    /spaces/{slug}/debug/invocations                           agent    
+  spaces.debug.invocation                  GET    /spaces/{slug}/debug/invocations/{invocation_id}           agent    
+  spaces.debug.log                         GET    /spaces/{slug}/debug/log                                   agent    
+  spaces.export_html                       GET    /spaces/{slug}/export.html                                 agent    
+  spaces.cvm.render                        GET    /spaces/cvm/{slug}/                                        agent    
+  spaces.cvm.get                           GET    /spaces/cvm/{slug}/{*subpath}                              agent    
+  spaces.cvm.post                          POST   /spaces/cvm/{slug}/{*subpath}                              agent    
+  fs.stats                                 POST   /fs/stats                                                  agent    
+  fs.list                                  POST   /fs/list                                                   agent    
+  fs.stat                                  POST   /fs/stat                                                   agent    
+  fs.read                                  POST   /fs/read                                                   agent    
+  fs.reads                                 POST   /fs/reads                                                  agent    
+  fs.write                                 POST   /fs/write                                                  agent    
+  fs.delete                                POST   /fs/delete                                                 agent    
+  fs.rename                                POST   /fs/rename                                                 agent    
+  fs.mkdir                                 POST   /fs/mkdir                                                  agent    
+  fs.library                               POST   /fs/library                                                agent    
+  fs.export                                POST   /fs/export                                                 agent    
+  fs.raw                                   GET    /fs/raw/{*path}                                            agent    
+  fs.thumbnail                             GET    /fs/thumbnail/{*path}                                      agent    
+  idea-cards.media                         GET    /api/idea-cards/media/{handle}                             agent    
+  fs.search                                POST   /fs/search                                                 agent    
+  git.log                                  POST   /git/log                                                   agent    
+  git.show_file                            POST   /git/show_file                                             agent    
+  nodes.invoke_result                      POST   /nodes/invoke-result                                       agent    
+  nodes.invoke_ack                         POST   /nodes/invoke-ack                                          agent    
+  nodes.sync                               POST   /nodes/sync                                                agent    
+  node.list                                POST   /api/nodes/list                                            agent    aliases:/nodes/list
+  node.register                            POST   /api/nodes/register                                        agent    aliases:/nodes/register
+  node.heartbeat                           POST   /api/nodes/heartbeat                                       agent    aliases:/nodes/heartbeat
+  node.unpair                              POST   /api/nodes/unpair                                          agent    aliases:/nodes/unpair
+  node.disconnect                          POST   /api/nodes/disconnect                                      agent    aliases:/nodes/disconnect
+  pin.update                               POST   /api/pin-reminder/update                                   agent    
+  pin.reminder_confirm                     POST   /api/pin-reminder/confirm                                  agent    
+  wallet.get                               GET    /wallet                                                    agent    
+  wallet.set                               POST   /wallet                                                    agent    
+  egress.approvals                         GET    /approvals                                                 sentinel 
+  egress.approval                          GET    /approvals/{approval_id}                                   sentinel 
+  egress.approval.decide                   POST   /approvals/{approval_id}/decide                            sentinel 
+  egress.approval.history                  GET    /approvals/history                                         sentinel 
+  egress.permissions                       GET    /permissions                                               sentinel 
+  permissions.settings                     GET    /permissions/settings                                      sentinel 
+  permissions.inventory                    GET    /permissions/inventory                                     daemon   
+  permissions.settings.update              PATCH  /permissions/settings                                      sentinel 
+  egress.permissions.hitl                  PATCH  /permissions/hitl                                          sentinel 
+  egress.permissions.hitl.snooze.delete    DELETE /permissions/hitl/snooze                                   sentinel 
+  egress.permissions.tproxy                PATCH  /permissions/tproxy                                        sentinel 
+  egress.permissions.mitm                  PATCH  /permissions/mitm                                          sentinel 
+  egress.permissions.sni_rejection         PATCH  /permissions/sni-rejection                                 sentinel 
+  egress.permissions.active                GET    /permissions/active                                        sentinel 
+  egress.permissions.active.update         PATCH  /permissions/active                                        sentinel 
+  egress.permissions.scoped                GET    /permissions/scopes/{scope_type}/{scope_id}                sentinel 
+  egress.permissions.scoped.update         PATCH  /permissions/scopes/{scope_type}/{scope_id}                sentinel 
+  egress.permissions.revoke                POST   /permissions/revoke                                        sentinel 
+  egress.permissions.reset                 POST   /permissions/reset                                         sentinel 
+  egress.permissions.network_rules         PATCH  /permissions/network-rules                                 sentinel 
+  egress.permissions.connector             PATCH  /permissions/connectors/{connector}                        sentinel 
+  egress.permissions.connector.reset       DELETE /permissions/connectors/{connector}                        sentinel 
+  credentials.list                         GET    /v1/credentials/list                                       authd    
+  credentials.catalog                      GET    /v1/credentials/catalog                                    authd    noise-only
+  credentials.catalog.details              GET    /v1/credentials/catalog/details                            authd    noise-only
+  credentials.catalog.update               POST   /v1/credentials/catalog/update                             authd    noise-only
+  credentials.catalog.delete               POST   /v1/credentials/catalog/delete                             authd    noise-only
+  credentials.register                     POST   /v1/credentials/register                                   authd    
+  credentials.capture                      POST   /v1/credentials/capture                                    authd    noise-only
+  credentials.delete                       POST   /v1/credentials/delete                                     authd    
+  chat.history_window                      GET    /chat/history-window                                       agent    noise-only
+  chat.cancel                              POST   /chat/cancel                                               agent    noise-only
+  chat.delete_turn                         POST   /api/chat/delete-turn                                      agent    noise-only
+  chat.message_get                         GET    /chat/message                                              agent    noise-only
+  chat.search                              GET    /chat/search                                               agent    noise-only
+  client.register_capabilities             POST   /client/register-capabilities                              agent    noise-only
+  client.invoke.result                     POST   /client/invoke-result                                      agent    noise-only
+  connection.ping                          POST   /api/ping                                                  agent    noise-only
+  model.get                                GET    /model                                                     agent    noise-only
+  model.set                                POST   /model                                                     agent    noise-only
+  widgets.state.set                        POST   /widgets/state                                             agent    noise-only
+  widgets.state.patch                      POST   /widgets/state/patch                                       agent    noise-only
+  navigation.subscribe                     POST   /navigation/subscribe                                      agent    noise-only stream:subscription
+  navigation.recents.touch                 POST   /navigation/recents/touch                                  agent    noise-only
+  navigation.pinned.set                    POST   /navigation/pinned/set                                     agent    noise-only
+  chat.stream                              POST   /chat/stream                                               agent    noise-only stream:subscription
+  chat.stream_events                       POST   /chat/stream-events                                        agent    noise-only stream:subscription
+  chat.subscribe                           POST   /chat/subscribe                                            agent    noise-only stream:subscription
+  activity.subscribe                       POST   /activity/subscribe                                        agent    noise-only stream:subscription
+  fs.subscribe                             POST   /api/fs/subscribe                                          agent    noise-only stream:subscription
+  identity.subscribe                       POST   /identity/subscribe                                        agent    noise-only stream:subscription
+  spaces.subscribe                         POST   /spaces/subscribe                                          agent    noise-only stream:subscription
+  artifacts.subscribe                      POST   /api/artifacts/subscribe                                   agent    noise-only stream:subscription
+  tasks.subscribe                          POST   /tasks/subscribe                                           agent    noise-only stream:subscription
+  theme.subscribe                          POST   /themes/subscribe                                          agent    noise-only stream:subscription

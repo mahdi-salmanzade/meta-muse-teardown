@@ -1,0 +1,418 @@
+16 - NETWORK & PROTOCOL MAP (iOS 8.1.0, com.facebook.hatch)  [S5, static only]
+==================================================================================
+
+Method: strings(1) of all five Mach-O binaries (HatchApp, Frameworks/MobileConfig.framework/MobileConfig,
+PlugIns/HatchNotificationServiceExtension.appex, HatchShareExtension.appex, WidgetExtension.appex);
+otool -L and nm -u on HatchApp; plutil on Info.plist files; CACerts.plist decoded with plistlib + openssl x509;
+MobileConfig parameter names read from params_maps/params_map.txt; bundled JS (novnc/, pptxviewer/) grepped.
+No disassembly, no execution, no network contact with any host listed here.
+
+Caveats:
+- The IPA is a FairPlay-decrypted dump whose code signature fails strict verification
+  (see evidence-ios/01-authenticity.txt). Treat every string as "present in this sample", not as
+  proven Meta-shipped code.
+- A hostname, path or method name shows that code refers to it. It does not show that the app
+  connects to it, when, or with what payload. Many strings come from shared Meta libraries.
+- The flat host list is in evidence-ios/09-endpoints.txt. This file reorganises it by role and adds
+  protocol, transport, telemetry and SDK findings. "NEW" marks items not in 09.
+
+------------------------------------------------------------------------------------------
+## 1. Host inventory by role
+------------------------------------------------------------------------------------------
+
+### 1a. Meta agent / API (Muse-specific)
+  agent.meta.ai            web app, /api/hatch/oauth/callback, /terms, /invite/[REDACTED]; applinks + webcredentials
+  hatch-api.meta.ai        HTTP API ("Stefi"). Examples: /hatch/auth/*, /hatch/fetch_vms,
+                           /hatch/destroy_and_release_vm, /hatch/checkout/*, /hatch/credit/*,
+                           /hatch/sharing/upload, /hatch/attribution/*, /hatch/latest_app_version/,
+                           /hatch/v1/acs/issue_token, /hatch/acs/lease_vm, /hatch/feedback
+  api.meta.ai              /hatch/bug_report, /hatch/onboarding/assets/cdn-urls, /proton/login,
+                           /proton/hatch/voice/tts/stream (TTS)
+  graph.meta.ai            /graphql
+  www.meta.ai, meta.ai     webcredentials
+  api.muse.ai              /muse/prompts/, /ssh-access/tokens (debug SSH access, see 10-notable G)
+  muse.ai, www.muse.ai, applink.muse.ai   associated domains; muse.ai/privacy
+  rupload.meta.ai          /gen_ai_document_gen_ai_tenant (resumable upload)
+  .s.ecto1usercontent.com  NEW - shared-content origin (HCHSharedContentRepository resolveSharedURL/saveSpace)
+  shortwave.facebook.com   NEW path detail - wss://.../voyager/v1/asr/duplex and wss://.../v2/transcription
+                           (streaming speech recognition)
+  genai-hatch-realtime / genai-kepler-realtime / genai-waveform-realtime / meta-ai-realtime /
+  wearable-ai-realtime / mo-realtime .facebook.com    realtime voice (WebRTC)
+  edge-stun.facebook.com   NEW detail - "stun:edge-stun.facebook.com:3478" (WebRTC STUN)
+
+### 1b. Agent VM gateway
+  hatch.metaaivm.com, *.metaaivm.com   outer WebSocket (WSS) to the per-user cloud VM ("CVM"), path /v1/noise,
+                                       plus HTTP-style gateway paths (section 2). Strings next to the host:
+                                       "Bearer", "Authorization", "Proxy-Authorization", "Cookie", "/v1/noise".
+  "MediaSync gateway vmURL: "          camera-roll upload goes to the VM file server (see 06-sync-upload.txt C)
+
+### 1c. Auth / account / payments
+  auth.meta.com (/oidc/callback/, /forgot_password, /settings/dyi), od.auth.meta.com, accounts.meta.com,
+  api.accounts.meta.com, accountscenter.meta.com (/info_and_permissions/dyi, /meta_pay_wallet/,
+  /connected_experiences/single_sign_on_dialog), my-od.accountscenter.meta.com, accountscenter.facebook.com,
+  www.meta.com/login, facebook.com/oauth_account_linking/login_redirect,
+  graph.facebook.com (/graphql), b-graph.facebook.com, api.facebook.com, b-api.facebook.com, lithium.facebook.com,
+  meta.graph.meta.com (/graphql, /oidc_callback_uri/), graph.meta.com, od.graph.meta.com,
+  secure.facebook.com/payments/generate_token, payments-graph.graph.meta.com/graphql
+
+### 1d. Analytics / telemetry / crash (all Meta first-party; details in section 4)
+  graph.facebook.com/logging_client_events            analytics batch upload (FBAnalytics / Falco)
+  graph.facebook.com/pigeon_health_metrics, /pigeon_nest   analytics pipeline health
+  graph.facebook.com/rl_push_send                      NEW (push-related; purpose not determinable)
+  www.facebook.com/mobile/ios_breakpad_crash_logs/     crash reports (main app and Notification Service Extension)
+  www.facebook.com/mobile/reliability_event_log_upload/   NEW - app-exit / termination reports (METAAppExitReporter)
+  b-www.facebook.com/mobile/extra_data_collector/      NEW - Apple MetricKit diagnostic "ping" upload
+  m.facebook.com/memory-tracing/upload/                NEW - memory allocation trace upload
+  api.meta.ai/hatch/bug_report (+ /bug_attachments)    user-initiated bug report (Flytrap)
+  www.facebook.com/frl/privacy/collection-schema?schema_ids=...   NEW - Reality Labs data-collection schema lookup
+  hatch-api.meta.ai/hatch/attribution/{report_events,skadnetwork_conversion,compliance_action}   NEW - install attribution
+  gateway.facebook.com/proxygen/health, www.facebook.com/status.php   connectivity probes
+
+### 1e. Update
+  No self-updater (App Store app). App Store / TestFlight links (apps.apple.com/app/id6760173601,
+  apps.apple.com/app/testflight/...). Server-driven minimum version: MobileConfig "ios_hatch_force_upgrade"
+  (min_app_version, appstore_min_app_version, testflight_min_app_version) and /hatch/latest_app_version/.
+  Internal-only: www.internalfb.com/intern/orchard/install/hatch_for_ios/... (employee builds).
+
+### 1f. CDN / media
+  scontent.xx / static.xx / video.xx / external.xx .fbcdn.net, xx/xy/xz.fbcdn.net, snr.fbcdn.net, fna.fbcdn.net,
+  s-external.ak.fbcdn.net/safe_image.php, lookaside.ar.meta.com, *-origincache-internal-services-all.fbcdn.net.
+  Map tiles: www.facebook.com/maps/vt/style/{dark,canterbury_1_0}/ (Meta's own tiles, HCHHatchMaps).
+
+### 1g. Privacy relay / OHTTP (details in section 3)
+  meta-ohttp-relay-prod.fastly-edge.com (/ and /chunked/), meta-ohttp-relay-dev.fastly-edge.com (/ and /chunked/),
+  meta.privacy-gateway.cloudflare.com/relay       = the 5 "Allowed proxy URLs" slots in TigonOhaiService
+  meta-ohttp-config-prod.fastly-edge.com/ohai_acs_config.json, /ohai_keyconfig.json, meta.hpke-keys.privacy-gateway.cloudflare.com
+
+### 1h. Push
+  api.push.apple.com (+ /liveactivity), api.development.push.apple.com, gateway.push.apple.com,
+  push.apple.com/pushkit/voip. FCM, Amazon, Windows, Mozilla, Samsung and Nokia push hosts appear only as
+  strings of a generic cross-platform push library (09).
+
+### 1i. Third party (runtime-relevant ones first)
+  cdn.jsdelivr.net      NEW detail - an HTML template in HatchApp loads KaTeX CSS AND JS at render time:
+                        <link ... href="https://cdn.jsdelivr.net/npm/katex@<ver>/dist/katex.min.css">
+                        <script defer src="https://cdn.jsdelivr.net/npm/katex@<ver>/dist/katex.min.js">
+                        No integrity= attribute appears in the template fragments.
+  www.google.com/s2/favicons?domain=   NEW - next to checkout-approval strings (lobster-checkout-approve, "Checkout preview");
+                        a favicon lookup would send the merchant domain to Google.
+  i.ytimg.com/vi/<id>/hqdefault.jpg, www.youtube.com   NEW detail - YouTube thumbnail in a rendered card (JS template)
+  api.mapbox.com, api.maptiler.com, demotiles.maplibre.org   MapLibre Native default URL templates
+                        ("mapbox://styles/...", "maplibre://maps/style"); api.mapbox.com also appears in a share-target list.
+                        www.openstreetmap.org/copyright = attribution link.
+  stripe.com/legal/consumer, link.com/terms   legal links for "Link by Stripe" checkout approval UI (no Stripe SDK, see 5)
+  rekor.sigstage.dev, log2025-alpha{1,2,3}.rekor.sigstage.dev, log2026-1.us-east4.rekor.sigstage.dev
+                        NEW detail - these are "baseUrl" fields of an embedded Sigstore trusted_root JSON used
+                        for offline verification (section 2c). No code path fetching them was identified.
+  CRL/OCSP URLs (crl3/crl4/ocsp.digicert.com, crl.comodoca.com, crl.globalsign.net) - embedded in certificates.
+  www.icloud.com/shortcuts/... (4 Shortcut install links), t.me/BotFather (Telegram channel set-up), wa.me/hatch/link.
+
+### 1j. Meta domain classifier list (not evidence of contact)
+  A contiguous list used by the network stack to decide "Meta domain or not" includes hosts never called
+  elsewhere: doh.facebook-dns.com, graph.fbpigeon.com, relay.fbpigeon.com, facebook-hardware.com, oculuscdn.com,
+  gateway.workplace.com, facebookvirtualassistant.com, "insecure.pinningtest.appspot.com", onion addresses.
+  Internal-only hosts: www.internalfb.com, interngraph.intern.facebook.com, fburl.com, www.pariscope.dev/hatchery.
+
+------------------------------------------------------------------------------------------
+## 2. Protocol / RPC map (device <-> Meta agent VM gateway)
+------------------------------------------------------------------------------------------
+
+### 2a. Method table
+The gateway method names sit in one block, each followed by its HTTP-style path, exactly as on macOS:
+  chat.subscribe /chat/subscribe | chat.stream /chat/stream | chat.send /chat/send | chat.cancel /chat/cancel |
+  chat.resume /chat/resume | chat.stream-events|chat.stream_events /chat/stream-events | chat.search /chat/search |
+  voice.calls.join /voice/calls/join | connection.ping /connection/ping |
+  client.register_capabilities /client/register-capabilities | client.invoke.result /client/invoke-result |
+  client.data_source.publish /client/data-source-publish | widgets.state.patch /widgets/state-patch | /activity/log |
+  node.register /nodes/register | node.invoke.result /nodes/invoke-result | node.heartbeat /nodes/heartbeat |
+  node.list /nodes/list | node.unpair /nodes/unpair | navigation.recents.touch api/navigation/recents/touch |
+  navigation.pinned.set /navigation/pinned/set | /activity/subscribe | files.subscribe /fs/subscribe |
+  /identity/subscribe | skills.subscribe /skills/subscribe | /spaces/subscribe | /themes/subscribe |
+  reset.subscribe /reset/subscribe | model.get /model | model.set
+Plus: sessions.subscribe, navigation.subscribe, theme.subscribe, spaces.subscribe, identity.subscribe,
+activity.subscribe ("Jarvis sending sessions.subscribe"), chat.message_get.
+"Jarvis" is the name the strings give the agent runtime on the VM.
+
+Direction: "dev->Meta" = request sent by the phone. "Meta->dev" = event or request pushed by the gateway.
+"User data" = whether the call can carry personal content (not just IDs or state).
+
+  Method / event                          Direction      User data?  Notes
+  connection.ping                         dev->Meta      no          keepalive
+  node.register                           dev->Meta      metadata    registers the phone as a node (command list, device info)
+  node.heartbeat                          dev->Meta      no          node_id
+  node.list / node.unpair                 dev->Meta      metadata    "[HomehubLink] raw node.list response"
+  node.invoke.request                     Meta->dev      maybe       agent asks the phone to run a device command (contacts,
+                                                                     calendar, health.samples, location, home.*, message.draft,
+                                                                     data_source.backfill|refresh, ...); params can hold user text
+  node.invoke.result                      dev->Meta      YES         result of that command = the personal data read on the phone
+  client.register_capabilities            dev->Meta      metadata    which sources/permissions are on; resent on permission change
+                                                                     ("Node data sync: permission ... changed, re-registering for
+                                                                     client.register_capabilities")
+  client.invoke.result                    dev->Meta      YES         result of a client-side tool call. A standalone "client.invoke"
+                                                                     request string was NOT found on iOS (it is on macOS).
+  client.data_source.publish              dev->Meta      YES         background/proactive sync and backfill chunks (contacts,
+                                                                     calendar, reminders, health, location; see 05/06)
+  data_source.backfill / .refresh         Meta->dev      no (cmd)    delivered as device commands; phone acks (BackfillAck,
+                                                                     "acking agent and initiating chunked upload") then uploads
+                                                                     via client.data_source.publish (sendBackfillChunkWS)
+  media_sync.check_asset_exists / media_sync.upload_asset, POST /fs/upload, /fs/upload/status
+                                          dev->Meta      YES         camera-roll photos to the VM file server (06-sync-upload C)
+  chat.send / chat.stream                 dev->Meta      YES         user prompts and attachment references
+  chat.subscribe / .resume / .stream_events / .cancel / chat.message_get
+                                          dev->Meta      control     replies carry the conversation back (Meta->dev)
+  chat.search                             dev->Meta      YES         search query over the user's chats
+  voice.calls.join                        dev->Meta      YES (voice) joins a realtime voice call; audio flows over WebRTC
+                                                                     to *-realtime.facebook.com, ASR over shortwave.facebook.com
+  widgets.state.patch                     dev->Meta      maybe       widget state
+  /activity/log                           dev->Meta      maybe       content not determinable
+  navigation.recents.touch / .pinned.set / tab-order  dev->Meta  behavioural  which items the user opens or pins
+  *.subscribe (activity, files/fs, identity, skills, spaces, theme, reset, sessions, navigation)
+                                          dev->Meta      no          then Meta->dev updates: identity.updated, activity.updated,
+                                                                     spaces.data_invalidated, navigation.items.updated|removed,
+                                                                     navigation.tab_order.updated (carry the user's own agent data)
+  model.get / model.set                   dev->Meta      preference  model picker
+  delta.message_start, delta.text_append, delta.thinking_append, delta.tool_start, delta.tool_progress,
+  delta.agent_start, delta.agent_status, delta.message_done, delta.message_removed, delta.status_narration,
+  delta.placeholder, delta.compaction, delta.block_done, delta.presentation, message.assistant,
+  widget.state_updated, reactions.updated, chat.user_turn_metadata_updated
+                                          Meta->dev      YES         streamed assistant output (can quote user data)
+  security.alert, service.notice          Meta->dev      no          "Jarvis security.alert event received"
+  ssh.operator.updated                    Meta->dev      no          "[SupportAccess]" state of Meta operator SSH into the VM
+  /v1/ssh/operator/{enable,disable,status} dev->VM       no          user-facing toggle for that access (10-notable G)
+  /v1/credentials/{capture,query,register,list,delete}, /v1/credentials/catalog[/details|/delete|/update],
+  /v1/custom-connectors/{register,list,delete}, /vault, /sentinel, /authd, /auth, /v1/oauth/callback,
+  /v1/api-key-auth/callback, /v1/username-password-auth/callback, /v1/foa-auth/callback
+                                          dev->VM        YES (secrets) credential vault and connector auth hosted on the VM
+  /api/recovery/storage/{status,list,download,delete}, /api/session/*, /api/voice/*, /api/debug/bug-report-logs,
+  api/artifacts/*, api/chat/delete-turn, /connect/<service>, /disconnect/<service>
+                                          dev->VM        mixed       REST-style VM routes (same transport)
+
+### 2b. Noise layer inside the WSS
+  Noise_XX_25519_AESGCM_SHA256 (same protocol string as macOS). Components: facebook::tigon::noise::NoiseChannel,
+  NoiseChannelManager, HCHNoiseGatewayCarrierBridge, HCHDuplexStreamNoiseChannel, TigonMNSWebSocket.
+  Handshake/"private auth" errors: noise.handshake.private_auth.{decode_failure,invalid_response,vm_proof_failed,
+  enrollment_required,key_required,invalid_ready_outcome,invalid_close_outcome}, noise.handshake.attestation_failed,
+  "private-auth notary token must be nonempty".
+  Notary tokens: vm_notary_tokens, notary_token=, notaryTokenExpirationTimestamp, x-hatch-notary-authorization,
+  "[LBR][CVM] no /v1/noise endorsement for vm_id=", "K_rv derivation failed", rv-key provider.
+  Headers the VM side sees: x-hatch-verified-uid, x-hatch-verified-media-path|version|variant,
+  x-hatch-verified-notary-spaces, x-hatch-noise-active, x-hatch-shared-space-id, x-hatch-auth-request-allowlist,
+  x-noise-connection-id.
+  Method signatures carry expectedChipIds, notaryTokensByPath, privateAuthConfig, rejectLegacyPeer, rvKey:
+    startWithURL:headers:notaryTokensByPath:...:privateAuthMode:notaryEndorsement:rvKey:expectedChipIds:reconnectAttempt:
+  Fail-closed strings: "Noise carrier has no active channel; failing closed (no plaintext send).",
+  "CVM replacement chip pinning engaged fail-closed".
+  NOT found on iOS (present on macOS): "Refusing a confidential VM that did not prove itself", "privateAuthVerified".
+  iOS instead has "expected_cvm_verified_regular".
+  Gates (MobileConfig): hatch_ios_reliability:enable_noise, wearables_hatch:noise_enabled,
+  hatch_ios:confidential_vm_enabled, append_notary_tokens_enabled, cvm_hard_replacement_enabled,
+  wearables_hatch:legacy_node_api_enabled.
+
+### 2c. Confidential-VM attestation (AMD SEV-SNP) - NEW
+  Rust verifier sources: xplat/TigonNoise/rust/sev_verifier/src/lib.rs, xplat/hatch/attestation/verifier/src/pipeline.rs,
+  xplat/hatch/attestation/verifier/src/transparency/bundle.rs.
+  - Checks an AMD SEV-SNP attestation report: VCEK -> ASK -> ARK chain for Milan / Genoa / Turin
+    (embedded "-----BEGIN CERTIFICATE-----" blocks), CRLs ("AMD ASK certificate is revoked"), TCB floors per chip
+    stepping, chip_id pinning ("SEV attestation rejected: the peer is not on a chip this device bid for"),
+    binding to the handshake ("binding hash does not match report_data", "challenge nonce does not match").
+  - Checks an image manifest via Sigstore: "application/vnd.dev.sigstore.bundle.hashedrekord0.0.2",
+    "manifest signer key is not pinned for this environment", Rekor inclusion proof and checkpoint, Fulcio anchors;
+    struct names SnpMeasurement, SnpMeasurementConfig, ImageManifest, CloudflareSignatureField.
+    Embedded hex launch-measurement values follow "AMD_SEV_SNP" (e.g. 2bbfbb39...; public values).
+  - The only embedded Sigstore trusted root lists the Sigstore STAGING instance (rekor.sigstage.dev and log20xx
+    shards). No production rekor.sigstore.dev entry was found.
+  - A no-op verifier class also exists: facebook::tigon::noise::NoiseAlwaysAcceptAttestationVerifier, alongside
+    NoiseSevSnpAttestationVerifier and -[HCHNoiseGatewayCarrierBridge initWithSevSnpVerifierEnabled:...].
+    MobileConfig gates: hatch_ios_reliability:enable_snp_attestation_verifier, hatch_ios:cvm_attestation_probe_enabled.
+    => whether attestation is enforced is server-configurable; the default value is not in the strings.
+  - Chip selection: /hatch/cvm-chip-selection, /hatch/cvm-replace-state,
+    /hatch/chip-allowlist?namespace=staging.hatch.chip_allowlist, hatch-cvm-chip-allowlist.
+  - A debug settings key "privateCloudDevFakeAttestation" exists in a shared assistant developer-settings block
+    (next to privateCloudDevRedirectEnabled, privateCloudDevNodeToken). Gating not determinable.
+
+### 2d. Anonymous-credential VM leasing over OHTTP (ACS) - NEW
+  Module HCHACS: HCHACSManager, HCHACSConfigFetcher (signed config; "ACS signed-config signature verification failed",
+  "invalid pinned public key"; pinned key hex [REDACTED], label HATCH_CVMProvisioning), HatchAcsCVMClient,
+  HatchAcsOhaiNetworker ("ACS requests must target the configured Hatch Stefi origin",
+  "OHTTP request completed without an HTTP response"), HatchAcsNotarySigner.
+  Endpoints: /hatch/v1/acs/issue_token, /hatch/acs/lease_vm. Fields: blinded_tokens, vm_list, vm_name, bind_proof,
+  hen_vm_bind_token, evaluation_data. Config: https://meta-ohttp-config-prod.fastly-edge.com/ohai_acs_config.json.
+  => The code is built so that the VM lease/bind step can go through the OHTTP relay with blinded (anonymous)
+     tokens. Whether that separates the VM from the account in practice cannot be determined statically: the same
+     app later connects to the VM gateway with a Bearer token and the gateway passes x-hatch-verified-uid to the VM.
+
+------------------------------------------------------------------------------------------
+## 3. Transport security
+------------------------------------------------------------------------------------------
+
+### 3a. App Transport Security
+  No NSAppTransportSecurity key in the main Info.plist or in any of the 3 extension Info.plists (all checked).
+  => default ATS for URLSession and WKWebView (HTTPS/TLS 1.2+). ATS does not govern Meta's own Tigon/MNS/Fizz
+     socket stack, which does most Meta traffic.
+  UIBackgroundModes: audio, fetch, location, remote-notification. BGTaskScheduler ids:
+  com.meta.hatch.cameraroll.sync.processingTask, com.meta.hatch.nodedata.sync.refreshTask.
+
+### 3b. Bundled trust store: CACerts.plist - NEW
+  Array of 143 DER certificates, all public WebPKI roots (COMODO/USERTrust, DigiCert G3/G4/G5, GlobalSign R3/R6/R46/E46,
+  ISRG X1/X2, GTS R1-R4, Amazon 1-4, Microsoft 2017, Sectigo R46/E46, Entrust, QuoVadis, SSL.com, HARICA, D-Trust,
+  TrustAsia, BJCA, emSign, NAVER, etc.). No Meta-private CA and no leaf certificates.
+  Strings: "CACerts", "Caught Exception loading CACerts:"; Security imports SecTrustSetAnchorCertificates and
+  SecTrustSetAnchorCertificatesOnly.
+  => Meta's network stack validates against its own bundled root list rather than only the iOS store. A user- or
+     MDM-installed root is therefore unlikely to be trusted by that stack (inference; matches pinning telemetry below).
+
+### 3c. Certificate pinning
+  proxygen::httpclient::PinningData, PinningSSLCallbacks, "_CalculateCertPin", "Pinning validation failed.",
+  "Certificate is revoked.", "No certificates in the chain.".
+  Pin telemetry fields: verified_pinning_{reason,required_hash,user_hash,excluded_hash,required_found,
+  user_installed_found,user_installed_count,excluded_found,time_pin,host,success}.
+  Bypass switch string: "FBWhitehatSSLPinningBypass" (Meta's bug-bounty "whitehat" setting; its availability in
+  this build is not determinable). Test hosts in classifier list: insecure.pinningtest.appspot.com, pinningtest.
+  No SPKI hash values were found as plain base64 strings (pins, if present, are not stored that way).
+
+### 3d. TLS stack and plaintext guards
+  Fizz TLS 1.3 ("TLS 1.3, client CertificateVerify", fizz::client::ECHPolicy, proxygen::httpclient::ProxygenECHPolicy,
+  fizz_ech_sni, fizz_ech_config_id, ech_configs) = Encrypted Client Hello support; HTTP/3 (proxygen HQSession);
+  mbedtls in the MNS WebSocket stack.
+  Plaintext tripwires: "Attempt to send a plaintext HTTP request to a Meta or Ohai domain",
+  "Attempt to send a plaintext HTTP request to a Meta AI VM domain", "Not a Meta or Ohai domain".
+  TigonRequestSanitizationInterceptor categories: plaintext, meta_ai_vm, clips_save_to_camera_roll_third_party,
+  (ohttp); fields query_parameter_would_be_stripped, header_stripped, redacted_url, sanitizedUserAgent, needsMetaAIVMAuth.
+  Only cleartext URL templates: "http://%@" (generic), WebRTC/XML namespace URIs, CRL/OCSP URLs in certificates.
+  Bundled noVNC connects to a placeholder "wss://bridge.invalid/" that the app bridges natively
+  (HCHGatewayVNCDuplexStream), so the VNC view makes no direct network connection of its own.
+  In-app auth WebView: "configureLabProxy(_:)" / "[AuthWebView] configured HTTP CONNECT proxy for web content",
+  driven by LAB_PROXY_HOST / LAB_TRANSPARENT_PROXY_HOST (test-lab variables; not a production proxy).
+  Payments: hatch_ios:skip_fbpay_cert_verification + "shouldSkipCertVerification" belong to the Meta Pay
+  payment-token (PTT) encryption-key trust chain, not TLS.
+
+### 3e. OHTTP ("OHAI")
+  Library: facebook::tigon::ohai::{TigonOhaiService, OhaiConfigManager, SignedOhaiConfigVerifier, TigonOhaiBodyProvider,
+  OhaiBridgingToken}, fizz::hpke, proxygen::ohai::ChunkedOhaiClientRequestEncoder; content types message/ohttp-req,
+  message/ohttp-chunked-req, message/bhttp; "decryptDeidentifiedTigonResponse".
+  Allow-lists: "Unallowed OHAI proxy url: {}. Allowed proxy URLs: [{}, {}, {}, {}, {}]" (5 relay URLs, 1g) and
+  "Unallowed OHAI GraphQL query: {}. Allowed GraphQL queries: [{}]" (query names are filled at runtime).
+  Fail-closed: "OHAI-intended request received while OHAI is disabled; failing closed to avoid sending an
+  un-deidentified request." Header "x-fb-ohttp-no-user-country-forwarding".
+  MobileConfig: fbios_ohai:ohai_relay_proxy_url, mios_ohttp_target_new_vip.
+  Traffic the strings tie to OHTTP: (1) ACS token issuance and CVM lease/bind (2d); (2) an allow-listed set of
+  GraphQL queries (DeidentifiedRequestOHAIConfig / DeidentifiedRequestACSToken); (3) possibly analytics:
+  OneFabric options attach_acs_claim_to_batches, deidentified_events, onefabric_enable_acs_claim_minting.
+  Nothing ties the VM gateway WSS, the Stefi HTTP API, chat, sync uploads or crash uploads to OHTTP; those strings
+  sit with Bearer / "ABRA access token" credentials that identify the account.
+
+### 3f. Device integrity
+  DCAppAttestService and attestKey:clientDataHash:completionHandler: are imported, but 03-entitlements lists no
+  App Attest entitlement; the nearby strings are MFA/passkey ("com.meta.mfa.attest."). Hatch device tokens come
+  from /hatch/device_token/mint|revoke (access_token/refresh_token).
+
+------------------------------------------------------------------------------------------
+## 4. Telemetry, analytics and crash reporting
+------------------------------------------------------------------------------------------
+
+### 4a. Pipelines present
+  FBAnalytics / Falco / FFLogger (OneFabric, unified_micro_batch, event streaming, dedup, zstd), upload endpoint
+  graph.facebook.com/logging_client_events. Options include falco_idfa_events_list, enable_idfa_tracking_domain,
+  fully_federated_events, deidentified_events, attach_acs_claim_to_batches (event.deidentified,
+  event.filters.privacy, event.federated.* counters).
+  QPL / perflogger (528 "QPL" strings), Loom/Profilo tracing (FBLoomTraceManager, FBLoomUploadGCDScheduler),
+  memory tracing upload, CocoaLumberjack file logs (DDFileLogger) in the app, widget and NSE.
+  MetricKit: MXMetricManager imported; "apple_metric_kit", call_stack_tree, hang_duration uploaded as
+  "apple_diagnostic_ping" to b-www.facebook.com/mobile/extra_data_collector/.
+  "Chandra" (macOS web-embed telemetry relay) is not present on iOS.
+
+### 4b. Hatch-specific loggers and what their fields name
+  hatch_node_operations_logger (HCHNodeOperationsLogger.submit):
+    eventType, command, commandCategory, triggerSource, datatype, syncMode, syncTrigger, permissionType,
+    permissionState, sharingMode, previousSharingMode, eventPhase, result, requestId, attempt, itemsAdded,
+    itemsUpdated, itemsRemoved, failureReason, errorCode, metadata; plus connection_state, data_source_count,
+    register_attempt, self_revoked, permission_checked.
+    => per-command and per-sync telemetry: which device command or data type ran, the trigger, permission state,
+       sharing mode and item counts. Field names do not include content fields.
+  Health connection funnel ("[LBR][TELEM]"): health_connection_initiated, health_consent_shown,
+    health_consent_granted, health_consent_denied (provider, consent_duration_ms, connectionAttemptId).
+  Sync events: sync_source_started|completed, sync_permission_denied, sync_skipped_unchanged,
+    health_initial_sync_started|chunk_completed|completed, health_sync_started|completed|failed,
+    health_query_started|completed|failed, calendar_backfill_chunk_completed, reminders_backfill_chunk_completed,
+    permission_requested|granted|enabled|state_changed, location.background_event, location_event_failed,
+    node_data_sync.coordinator.{geofences_changed,permission_changed,foreground_flush}.
+  hatch_interaction_logger: submitLog(eventType:surface:subsurface:screen:component:componentId:metadata:
+    includesVMIdentity:); nearby field names permission_key, location_mode, tap_origin, auth_flow_type, login_step,
+    sso_source_app, two_factor_type, is_paid_tier, theme_id.
+  hatch_client_cvm_event_logger: library_tab_click, runtime.voice_companion_result, connector_add_account,
+    credentials_vault.
+  hatch_app_event_logger, hatch_impression_logger, hatch_notification_events (hatch_notification_received|drop|click|
+    quick_decision|dismiss|impression|reply|marked_seen), hatch_os_notification_setting, hatch_install_events /
+    hatch_ios_install_logger, hatch_caa_{login,registration,account_recovery}_logger, hatch_session_start.
+  Survey endpoints: /hatch/survey/{start,next,dismiss}.
+
+### 4c. Ad / install attribution - NEW
+  HCHAttribution: /hatch/attribution/report_events, /hatch/attribution/skadnetwork_conversion,
+  /hatch/attribution/compliance_action; events FIRST_APP_LAUNCH, EXISTING_SESSION_LOGIN, hatch_session_start;
+  SKAdNetwork (reported_through_skad3/skad4), HCHAdServicesTokenProvider (AAAttribution attributionTokenWithError:).
+  IDFA: "reportIdfa is unsupported: no Stefi route for report_advertiser_id". ASIdentifierManager is imported
+  (10-notable B) but this Hatch path says it has no route. MobileConfig hatch_ios:paid_ads_attribution_enabled.
+
+### 4d. Crash / exit / bug reports
+  Crash: Breakpad + Crashpad (FBBreakpadExceptionHandler, CrashpadWrapper, MinidumpMemoryListWriter,
+  MinidumpThreadWriter, ProcessSnapshotMinidump::InitializeExtraMemory), upload to
+  www.facebook.com/mobile/ios_breakpad_crash_logs/ from the app and the Notification Service Extension.
+  Report parameters: BreakpadProduct, BreakpadVersion, BreakpadProcStartTime, BreakpadProcessUpTime,
+  BreakpadExtraFile, qpl_events, gwpasan_stack.
+  Termination/diagnostic schema: ...isJailBroken:appliedSamplingRate:userId:attributionId:..., memory and disk
+  counters, lastShareExtensionCall, lastNotificationServiceExtensionCall, isCleanInstall; app-exit reports to
+  www.facebook.com/mobile/reliability_event_log_upload/ (signal_based_stacktrace_gz_base64, crashed_session_id).
+  MobileConfig mwa_ios_termination_reporter_config: enable_crashpad, enable_extra_report_data,
+  extra_diagnostic_data_enabled, extra_diagnostic_data_env_variables_enabled, detailed_memory_usage_enabled,
+  gwp_asan_*, metrickit_diagnostics_correlation_enabled.
+  Can crash reports include user content? The strings show minidumps with thread and memory lists, extra files,
+  userId and optional environment variables. Crashpad sanitisation classes exist (ProcessSnapshotSanitized,
+  MemorySanitizer). Whether memory is sanitised in this app is not determinable.
+  User-initiated bug report (api.meta.ai/hatch/bug_report and Flytrap /bug_attachments): screenshots with an
+  annotation tool (text_detected / text_redacted / unredact), view hierarchy, "Connection State",
+  voice_config.json, hatchery_vm_link, treatPayloadAsConfidential flag; hatch_ios:cvm_filtered_bug_report_enabled.
+
+  Family Device ID and identifierForVendor logging: already covered in evidence-ios/10-notable.txt A.
+
+------------------------------------------------------------------------------------------
+## 5. Third-party SDK / library inventory
+------------------------------------------------------------------------------------------
+  Component               Evidence                                              Can send to a third party?
+  MapLibre Native         MLNOfflinePack/MLNOfflineStorage, mbgl::, maplibre://   Hatch maps use www.facebook.com/maps/vt;
+                          style URLs; mapbox/maptiler defaults                    library defaults point at mapbox/maptiler/
+                                                                                  demotiles if a style used them (not shown)
+  WebRTC                  webrtc:: classes (2,800+ strings), RTP header ext URIs  STUN to edge-stun.facebook.com (Meta)
+  KaTeX (runtime CDN)     HTML template loading katex.min.css/js from jsDelivr    YES - jsDelivr sees IP and timing when math renders
+  Google favicon service  www.google.com/s2/favicons?domain= near checkout UI     YES - merchant domain to Google, if used
+  YouTube thumbnails      i.ytimg.com/vi/<id>/hqdefault.jpg in JS template         YES - video ID to Google, if rendered
+  Sigstore (verifier)     sigstore protobuf-specs, DSSE, Rekor, embedded trusted   no fetch code found (offline verification)
+                          root (staging)
+  noVNC 1.5.0             novnc/novnc-rfb.js, vnc.html (wss://bridge.invalid)      no (bridged through the app)
+  PPTXjs, JSZip, filereader.js  pptxviewer/                                        no (local rendering)
+  CocoaLumberjack         DDFileLogger, DDOSLogger                                  no (local logs)
+  mbedtls, Fizz, proxygen, folly  strings/source paths                              n/a (Meta/OSS network libs)
+  Apple frameworks        MetricKit, AdServices (AAAttribution), SKAdNetwork,       to Apple / Meta endpoints as described
+                          AdSupport (ASIdentifierManager), DeviceCheck, HealthKit,  in 4c/4d
+                          HomeKit, CoreBluetooth (otool -L)
+  Stripe                  only UI classes (HCHHitlStripeLinkCheckoutApprovalView)   no Stripe SDK; checkout runs server-side
+                          and legal links
+  ABSENT (0 matches):     Firebase / FCM SDK (FIRApp etc.), GoogleSignIn, Crashlytics, Sentry SDK ("sentry_category"
+                          is a field name only), AppsFlyer, Adjust SDK, Branch, Braze, OneSignal, Mixpanel, Amplitude,
+                          Segment, PostHog, Datadog, Bugsnag, Instabug, Flurry, SDWebImage, Alamofire.
+                          AppTrackingTransparency is linked (otool -L) but ATTrackingManager is not in nm -u.
+  All analytics, crash and attribution uploads found go to Meta-owned hosts.
+
+------------------------------------------------------------------------------------------
+## 6. What static analysis cannot determine
+------------------------------------------------------------------------------------------
+  - Which hosts are actually contacted, how often, and whether any traffic goes to the third-party hosts in 1i.
+  - Payload contents of node.invoke.result, client.data_source.publish, chat.* and media_sync (see Phase 2 D3).
+  - Whether Noise and SEV-SNP attestation are ON for a given account: enable_noise, noise_enabled,
+    enable_snp_attestation_verifier and cvm_attestation_probe_enabled are server-side MobileConfig values, and an
+    always-accept verifier exists. Even when on, the VM is Meta-operated: attestation limits who can read traffic
+    in transit (the gateway), not what the agent software on the VM does with the data.
+  - Which GraphQL queries go through OHTTP (the allow-list is filled at runtime), and whether analytics batches
+    actually use ACS claims.
+  - The pin set, and whether the whitehat pinning bypass is reachable in this build.
+  - Whether crash minidumps are memory-sanitised, and default sampling and upload rates for any logger.
+  - Server-side retention or linkage of any of this data.

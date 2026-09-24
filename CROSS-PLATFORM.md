@@ -88,4 +88,40 @@ Meta's research post calls training-on "**a good default**". Its launch post say
 
 **Disconnecting doesn't delete what was already shared**, and deleting a chat message doesn't delete it from the agent's memory. The public posts say nothing about retention periods. The research post says *"Your VM data is backed up continuously so you can restore it if something goes wrong,"* while the reset option says *"Permanently deletes your {Muse} data, including chat history, files and active tasks"* (macOS and Android). That list doesn't name **agent memory** or **synced connector data**, though "including" isn't exhaustive. Whether a reset reaches memory, the continuous VM backups and any training copies isn't stated anywhere (test D6).
 
-*Network and telemetry findings (workstream S5) will be added below when complete.*
+## Network, protocol and telemetry
+
+From [`16-network-cross-platform.txt`](evidence/16-network-cross-platform.txt) and the per-platform files ([macOS](evidence/16-network-macos.txt) · [Android](evidence-android/16-network-android.txt) · [iOS](evidence-ios/16-network-ios.txt)). The headline items below were re-checked against the builds.
+
+### One pipe to a Meta VM
+
+All three apps keep a WebSocket to the user's Meta-hosted VM at `hatch.metaaivm.com/v1/noise`, carrying JSON inside an extra **Noise** encryption layer (`Noise_XX_25519_AESGCM_SHA256`). Two protocol generations coexist: `node.*` (Chrome extension; also in the macOS and iOS apps) and `client.*` (macOS app and Android).
+
+| Direction | Messages | Carries user data? |
+|---|---|---|
+| device → Meta | `client.invoke.result` / `node.invoke.result` | **yes**: results of every command (messages, SMS, contacts, calendar, call log, photos, files, screenshots, location, health, notifications, web pages) |
+| device → Meta | `client.data_source.publish` | **yes**: background sync and backfill. Android backfill streams up to **1 MiB × 256 chunks = 64 MiB** per request |
+| device → Meta | `chat.*`, photo sync | yes |
+| device → Meta | `client.register_capabilities`, `node.register` | metadata: device model, **which OS permissions you've granted** |
+| Meta → device | `client.invoke` / `node.invoke.request` | commands, including `data_source.backfill` |
+| Meta → device | `ssh.operator.updated` | status of **Meta operator SSH access** to your VM (`/v1/ssh/operator/enable`, `/disable`) |
+
+### Transport security
+
+| | macOS | Android | iOS |
+|---|---|---|---|
+| Certificate pinning | a "Facebook Rootcanal Prod Root CA" is embedded (role unclear) | platform config pins **only legacy Meta domains** (`facebook.com`, `meta.com`, `instagram.com`…; 18 pins, expire 2027-09-17). **`meta.ai`, `metaaivm.com` and `muse.ai` aren't pinned there**, and `base-config` allows cleartext. Meta's native HTTP stack may apply its own pins | ships its own trust store of 143 roots |
+| VM attestation (AMD SEV-SNP) | server-flagged; web default `attestation_enforce_mode = 0` ("Off"); an accept-all verifier class exists | server-flagged | server-flagged; accept-all verifier class exists; Sigstore trust root points at **`rekor.sigstage.dev` (Sigstore's staging instance)** |
+| Privacy relay (OHTTP) | anonymous VM lease only, behind a flag defaulting to off | same scope | same scope |
+
+The OHTTP relays Meta mentions cover **anonymous VM leasing only**. Chat, sync, commands and crash uploads go over account-authenticated connections.
+
+**TLS interception on the VM.** The VM's outbound-network settings have a switch (`mitmMode`). On: *"All TLS connections are always intercepted for inspection."* Off: *"TLS connections are only intercepted when required by policy."* So the HTTPS traffic the agent makes **from** Meta's VM (for example, logging into a site on your behalf) passes through an inspecting proxy always, or whenever policy requires.
+
+### Telemetry, ads and third parties
+
+- **Meta analytics on all three platforms** (Falco / FBAnalytics, QPL, per-command loggers). They log commands, permission states and connector-toggle changes with item counts. No logged field names suggest message text. The macOS web UI has **1,190 click-event names** and a "Client telemetry" setting that's on by default.
+- **Ad attribution:** Android reads the **Google Advertising ID** and sends it as `adid` to `/hatch/attribution/report_events`, gated by a server setting. iOS reports SKAdNetwork and AdServices tokens.
+- **Crash reports go to Meta** with thread stacks and process memory, and on Android also logcat and the granted-permission list. No content scrubbing was visible.
+- **Third parties:** Google (Firebase Messaging, Play services: Advertising ID, location, sign-in, ML Kit), Spotify sign-in (Android), Stripe.js at checkout and Bing/Esri/USDA map tiles (macOS web), Sparkle updates (macOS). KaTeX/Mermaid load from jsDelivr **without integrity checks** (iOS, Android). Not found anywhere: Crashlytics, Firebase Analytics, AppsFlyer, Adjust, Amplitude, Mixpanel, Segment.
+- **Unexplained domains:** `willow606.com`, `exe.xyz` (allowed VM gateway domains) and `www.multimango.com` (macOS). Ownership unknown.
+

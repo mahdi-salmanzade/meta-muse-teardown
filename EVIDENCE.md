@@ -12,9 +12,9 @@ shasum -a 256 -c evidence.sha256
 
 The app archives, full extracted binaries and full decompiled source are excluded; the repository publishes hashes, metadata, bounded extracts and commentary. See the [reproduction instructions](README.md#11-reproduce-it-yourself) for which extracts can be rebuilt automatically. The banner is editorial artwork, not a captured application screenshot or technical evidence.
 
-**Total: 41 evidence files.**
+**Total: 52 evidence files.**
 
-## iOS — 17 files
+## iOS — 19 files
 
 | Evidence file | Format |
 |---|---|
@@ -35,8 +35,10 @@ The app archives, full extracted binaries and full decompiled source are exclude
 | [10-notable.txt](evidence-ios/10-notable.txt) | TXT |
 | [11-health-import-count.txt](evidence-ios/11-health-import-count.txt) | TXT |
 | [12-extension-metadata.json](evidence-ios/12-extension-metadata.json) | JSON |
+| [15-consent-retention-ios.txt](evidence-ios/15-consent-retention-ios.txt) | TXT |
+| [16-network-ios.txt](evidence-ios/16-network-ios.txt) | TXT |
 
-## macOS — 13 files
+## macOS — 18 files
 
 | Evidence file | Format |
 |---|---|
@@ -53,8 +55,13 @@ The app archives, full extracted binaries and full decompiled source are exclude
 | [11-feature-flags.txt](evidence/11-feature-flags.txt) | TXT |
 | [12-permission-and-pairing-review.txt](evidence/12-permission-and-pairing-review.txt) | TXT |
 | [13-release-feed.json](evidence/13-release-feed.json) | JSON |
+| [14-extension-token-lifecycle.txt](evidence/14-extension-token-lifecycle.txt) | TXT |
+| [15-consent-retention-macos.txt](evidence/15-consent-retention-macos.txt) | TXT |
+| [15-public-statements-vs-app.txt](evidence/15-public-statements-vs-app.txt) | TXT |
+| [16-network-cross-platform.txt](evidence/16-network-cross-platform.txt) | TXT |
+| [16-network-macos.txt](evidence/16-network-macos.txt) | TXT |
 
-## Android — 11 files
+## Android — 15 files
 
 | Evidence file | Format |
 |---|---|
@@ -69,3 +76,7 @@ The app archives, full extracted binaries and full decompiled source are exclude
 | [09-notable.txt](evidence-android/09-notable.txt) | TXT |
 | [10-review-corrections.txt](evidence-android/10-review-corrections.txt) | TXT |
 | [11-health-permission-count.txt](evidence-android/11-health-permission-count.txt) | TXT |
+| [12-phone-id-provider.txt](evidence-android/12-phone-id-provider.txt) | TXT |
+| [13-publish-path-gating.txt](evidence-android/13-publish-path-gating.txt) | TXT |
+| [15-consent-retention-android.txt](evidence-android/15-consent-retention-android.txt) | TXT |
+| [16-network-android.txt](evidence-android/16-network-android.txt) | TXT |
