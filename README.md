@@ -20,7 +20,7 @@ This is the company that ran a VPN called Onavo to [decrypt Snapchat, YouTube an
 | Platform | Build | Report |
 |---|---|---|
 | macOS | Muse 3.0 (`com.meta.endo`) | this page |
-| Android | 8.0.0.21.168 (`com.facebook.aura`), Play-signed | **[ANDROID.md](ANDROID.md)**: SMS, call log, **every app's notifications (default: all apps, no 2FA filter)**, background location, 20+ Health Connect types published proactively |
+| Android | 8.0.0.21.168 (`com.facebook.aura`), Play-signed | **[ANDROID.md](ANDROID.md)**: SMS, call log, **every app's notifications (default: all apps, no 2FA filter)**, background location, 19 Health Connect types published proactively |
 | iOS | 8.1.0 (`com.facebook.hatch`), App Store binary, verified untampered | **[IOS.md](IOS.md)**: 110 HealthKit types, always-on location, **HomeKit lock/camera control bound to geofences**, camera-roll mirror, Shortcuts that forward iMessages to Meta ("type a single space") |
 
 > Every claim below points to a file in [`evidence/`](evidence/) and can be rebuilt from your own copy of the DMG with [`scripts/reproduce.sh`](scripts/reproduce.sh). This repo contains **no Meta binaries or source**, only hashes, `strings`/`grep` output and short excerpts for commentary.
@@ -176,7 +176,7 @@ It has resumable upload state (`BackfillResumeStore`, `NodeBackfillUploadState`)
 > **Keep notes up to date:** "New and edited notes are shared automatically."
 > **Keep calendar / reminders / contacts up to date:** "New and changed … are shared automatically."
 
-"Shared" means **uploaded to Meta**. Note the framing: the privacy-preserving choice is worded as the thing you have to *turn off*. Whether each switch starts on or off is decided **server-side** (`autoSync.enabled` arrives from Meta's config), so Meta can change the default without shipping a new app.
+"Shared" means **uploaded to Meta**. Note the framing: the privacy-preserving choice is worded as the thing you have to *turn off*. **The switch defaults to ON.** In the connector consent dialog, the initial state is `useState(Wi?.autoSync.enabled ?? !0)`, and `!0` is `true` in minified JavaScript. Unless Meta's config explicitly sends `false`, connecting a source (Messages, Notes, …) arms continuous sharing, and you have to notice and switch it off ([`12-permission-and-pairing-review.txt`](evidence/12-permission-and-pairing-review.txt)).
 
 **Photos (MediaSync)** runs as its own background uploader:
 

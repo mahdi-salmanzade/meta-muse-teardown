@@ -1,6 +1,6 @@
 # Muse for Android (`com.facebook.aura` 8.0.0.21.168)
 
-The Android build of Meta's Muse agent. On a phone it goes further than the Mac app: **SMS, call log, every app's notifications, background location and 20+ Health Connect data types**, with a "proactive sync" pipeline that publishes to Meta without you asking a question.
+The Android build of Meta's Muse agent. On a phone it goes further than the Mac app: **SMS, call log, every app's notifications, background location and 19 Health Connect data types**, with a "proactive sync" pipeline that publishes to Meta in the background once you allow a category.
 
 ← Back to the [main report](README.md) · Evidence: [`evidence-android/`](evidence-android/)
 
@@ -31,7 +31,7 @@ From the manifest ([`02-permissions.txt`](evidence-android/02-permissions.txt)):
 | **Location** | `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, **`ACCESS_BACKGROUND_LOCATION`**, `ACCESS_MEDIA_LOCATION` (GPS inside photos) |
 | **Contacts / Calendar** | `READ_CONTACTS`, `WRITE_CONTACTS`, `READ_CALENDAR`, `WRITE_CALENDAR` |
 | **Media** | `READ_MEDIA_IMAGES`, `CAMERA`, `RECORD_AUDIO`, `FOREGROUND_SERVICE_MICROPHONE` |
-| **Health Connect** | steps, heart rate, **heart-rate variability**, resting HR, **sleep**, exercise, distance, calories (active + total), elevation, floors, **weight, body fat, body water mass, bone mass, lean body mass, height, basal metabolic rate, VO2 max**, plus **`READ_HEALTH_DATA_HISTORY`** and **`READ_HEALTH_DATA_IN_BACKGROUND`** |
+| **Health Connect** (19 data types + 2 access, see [`11-health-permission-count.txt`](evidence-android/11-health-permission-count.txt)) | steps, heart rate, **heart-rate variability**, resting HR, **sleep**, exercise, distance, calories (active + total), elevation, floors, **weight, body fat, body water mass, bone mass, lean body mass, height, basal metabolic rate, VO2 max**, plus **`READ_HEALTH_DATA_HISTORY`** and **`READ_HEALTH_DATA_IN_BACKGROUND`** |
 | **Persistence** | `RECEIVE_BOOT_COMPLETED`, `FOREGROUND_SERVICE_SPECIAL_USE`, `WAKE_LOCK` |
 | **Tracking** | `com.google.android.gms.permission.AD_ID`, install-referrer |
 | **Other** | `BLUETOOTH_SCAN/CONNECT`, `ACCESS_WIFI_STATE`, `CHANGE_WIFI_MULTICAST_STATE`, `DETECT_SCREEN_CAPTURE`, `USE_BIOMETRIC`, `SET_ALARM` |
@@ -63,9 +63,9 @@ alarm.set / list / update / dismiss / dismiss_all      battery.get
 network.state          background.session
 ```
 
-Each category belongs to an approval ("human-in-the-loop") group in `nodes/core/NodeHitlGroup.java`: `SMS`, `SMS_SEND`, `CALL_LOG`, `PHONE_CALL`, `NOTIFICATIONS`, `LOCATION`, `HEALTH`, `PHOTOS`, `CONTACTS`, `CALENDAR`, … You approve by category, then the agent uses it. The **proactive sync** below is a separate path.
+Each category belongs to an approval ("human-in-the-loop") group in `nodes/core/NodeHitlGroup.java`: `SMS`, `SMS_SEND`, `CALL_LOG`, `PHONE_CALL`, `NOTIFICATIONS`, `LOCATION`, `HEALTH`, `PHOTOS`, `CONTACTS`, `CALENDAR`, … You approve by category, then the agent uses it. The **proactive sync** below goes through the same gate as `NodeHitlRequestKind.PROACTIVE_SYNC` (`nodes/datasource/ProactiveSyncRunner.java`). If no permission default is cached, `HatchNodeHitlGate` **fails closed to `ALWAYS_ASK`** ([`10-review-corrections.txt`](evidence-android/10-review-corrections.txt)). Once you pick "always allow" for a category, background publishing for it continues without further prompts.
 
-## 4. Proactive sync: data published without a command
+## 4. Proactive sync: data published in the background
 
 The files that publish directly to Meta's `client.data_source.publish` RPC ([`05-proactive-sync-and-backfill.txt`](evidence-android/05-proactive-sync-and-backfill.txt)):
 
@@ -89,7 +89,11 @@ When your health data changes, Muse notices and publishes it. `HealthSyncStartup
 > *"Current device location (lat, long, accuracy, address), read when the app is open, plus location pushes emitted when a user-registered geofence is crossed."*
 > *"geofence broadcast receivers call publishNow() with the crossing coordinates."*
 
+**Calendar:** `CalendarDataSource` sets `emitsProactively = true` and watches the calendar provider (`ProactiveTrigger.ContentObserver`, 5 s debounce), publishing events from 7 days back to 14 days ahead. Backfill runs in 30-day chunks.
+
 **Notifications:** see §5.
+
+**After reboot:** `HatchBootReceiver` enqueues a proactive-sync bootstrap, re-registers geofences, alarms and reminders, and logs `"Forced notification listener rebind via component-enabled toggle"`.
 
 **Backfill** (bulk history import) exists for **SMS, call log, contacts and health**: `SmsBackfillStrategy`, `CallLogBackfillStrategy`, `ContactsBackfillStrategy`, `HealthBackfillStrategy`. SMS and call log take a `start_date` window (`"start_date is required for sms backfill"`). SMS keeps sync cursors `last_synced_sms_date_ms` and `recently_published_message_ids` and has a `readProactiveMessages` path.
 
@@ -122,7 +126,7 @@ return strA01 != null ? PhoneNotificationsAccessMode.valueOf(strA01) : PhoneNoti
 
 The only per-app filter (`BlockedAppsNotificationFilter`) blocks nothing in `ALL` mode, and in `SELECTED` mode blocks only apps **you** add to the list. A separate `WorkAppNotificationFilter` (with `WorkDeviceDetector` and `WorkNotificationFilterConfig`) filters work-profile and managed-device notifications. Meta built a dedicated filter for **employer data**, while **personal** notifications default to `ALL`.
 
-**No 2FA protection.** A search for `otp`, `one-time`, `verification code`, `2fa`, `two-factor` across `commands/notifications` and `commands/sms` returns **no matches**. SMS and notification one-time codes aren't filtered out.
+**No 2FA protection.** A search for `otp`, `one-time`, `verification code`, `2fa`, `two-factor` across `commands/notifications` and `commands/sms` returns **no matches**. The app itself doesn't filter one-time codes. One mitigation: **Android 15+ can redact OTP content for untrusted notification listeners** at the OS level, so on newer phones some codes may reach Muse redacted. This keyword search doesn't cover obfuscated shared code or server-side filters.
 
 `NotificationsDataSource` keeps a sync cursor (`last_synced_post_time_ms`, `recently_shipped`, `dedup_key`) and publishes through `client.data_source.publish` (`"Failed to publish notifications payload"`). The only off-switch in that path is `"Skipping notification publish: disabled by managed configuration"`, which is for MDM-managed devices.
 
@@ -158,7 +162,7 @@ Unlike the Mac build's `MediaSync`, uploads here are agent-requested per batch, 
 | Read every notification from every app, reply as you | `NodeNotificationListenerService`, `NotificationSerializer`, `notifications.action`, default `ALL` |
 | No OTP/2FA filtering | no matches for otp/2fa/verification code |
 | Background location + geofence pushes | `ACCESS_BACKGROUND_LOCATION`, `LocationDataSource` publishNow on crossing |
-| 20+ health types, history >30 days, background, proactive publish | Health Connect perms, `HealthSyncManager` → `client.data_source.publish` |
+| 19 health data types, history >30 days, background, proactive publish | Health Connect perms, `HealthSyncManager` → `client.data_source.publish` |
 | Server-initiated commands | manifest: *"Execute server-initiated device commands…"* |
 | Survives reboot | exported `HatchBootReceiver` on `BOOT_COMPLETED` |
 | Cross-app Meta identity | exported `FoaPhoneIdProvider` (`com.facebook.GET_PHONE_ID`) |
