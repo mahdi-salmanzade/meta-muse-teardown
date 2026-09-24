@@ -1,0 +1,22 @@
+# assets/ of note
+    11402  01-01-1981 01:01   assets/fb_code_transparency_signed.jwt
+     1534  01-01-1981 01:01   assets/fbpermissions.json
+     2163  01-01-1981 01:01   assets/vmvnc/LICENSE.txt
+   293232  01-01-1981 01:01   assets/vmvnc/novnc-rfb.js
+    22448  01-01-1981 01:01   assets/vmvnc/vnc.html
+
+# native agent/MCP libs
+lib/arm64-v8a/libagentic_runtime_jni.so
+lib/arm64-v8a/libmcp_server_jni.so
+lib/arm64-v8a/librsysmergeddevxagent.so
+lib/arm64-v8a/libxplat_agentic_client_AgenticRemoteClientAndroid.so
+lib/arm64-v8a/libxplat_agentic_registry_MobileMCPRegistryAndroid.so
+lib/arm64-v8a/libxplat_agentic_runtime_AgenticRuntimeAndroid.so
+lib/arm64-v8a/libxplat_mcp-sdk_lib_error__2025-06-18__mobileAndroid.so
+lib/arm64-v8a/libxplat_mcp-sdk_lib_registry_MCPRegistry__2025-06-18__mobileAndroid.so
+lib/arm64-v8a/libxplat_mcp-sdk_lib_session_RequestSession__2025-06-18__mobileAndroid.so
+
+# FoaPhoneIdProvider (exported) columns
+"COL_ORIGIN"
+"COL_PHONE_ID"
+"COL_TIMESTAMP"

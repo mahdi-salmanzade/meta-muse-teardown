@@ -2,3 +2,7 @@
 *.dmg
 extracted/
 .DS_Store
+*.apk
+*.ipa
+extracted-apk/
+extracted-ipa/

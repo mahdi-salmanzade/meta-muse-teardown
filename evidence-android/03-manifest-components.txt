@@ -1,0 +1,113 @@
+## NodeCommandService
+          E: service (line=250)
+            A: name="com.facebook.aura.gateway.service.NodeCommandService"
+            A: exported=false
+            A: foregroundServiceType=0x40000000
+              E: property (line=251)
+                A: name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+          E: service (line=255)
+            A: name="com.facebook.aura.gateway.service.HatchForegroundService"
+            A: exported=false
+            A: foregroundServiceType=0x40000000
+              E: property (line=256)
+                A: name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+
+## HatchForegroundService
+          E: service (line=255)
+            A: name="com.facebook.aura.gateway.service.HatchForegroundService"
+            A: exported=false
+            A: foregroundServiceType=0x40000000
+              E: property (line=256)
+                A: name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+          E: provider (line=260)
+            A: name="androidx.core.content.FileProvider"
+            A: exported=false
+              E: meta-data (line=261)
+                A: name="android.support.FILE_PROVIDER_PATHS"
+
+## NodeNotificationListenerService
+          E: service (line=417)
+            A: name="com.facebook.aura.commands.notifications.NodeNotificationListenerService"
+            A: permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            A: exported=false
+              E: intent-filter (line=418)
+                  E: action (line=419)
+                    A: name="android.service.notification.NotificationListenerService"
+          E: receiver (line=423)
+            A: name="com.facebook.aura.startup.boot.HatchBootReceiver"
+            A: exported=true
+              E: intent-filter (line=424)
+                  E: action (line=425)
+                    A: name="android.intent.action.BOOT_COMPLETED"
+                  E: action (line=426)
+
+## HatchBootReceiver
+          E: receiver (line=423)
+            A: name="com.facebook.aura.startup.boot.HatchBootReceiver"
+            A: exported=true
+              E: intent-filter (line=424)
+                  E: action (line=425)
+                    A: name="android.intent.action.BOOT_COMPLETED"
+                  E: action (line=426)
+                    A: name="android.intent.action.MY_PACKAGE_REPLACED"
+          E: receiver (line=429)
+            A: name="com.facebook.aura.commands.geofence.HatchGeofenceBroadcastReceiver"
+            A: exported=false
+          E: activity (line=431)
+            A: name="com.facebook.aura.accountcenter.AuraAccountsCenter3PLinkActivity"
+
+## HatchGeofenceBroadcastReceiver
+          E: receiver (line=429)
+            A: name="com.facebook.aura.commands.geofence.HatchGeofenceBroadcastReceiver"
+            A: exported=false
+          E: activity (line=431)
+            A: name="com.facebook.aura.accountcenter.AuraAccountsCenter3PLinkActivity"
+            A: exported=false
+          E: activity (line=432)
+            A: name="com.facebook.oauthaccountlinking.OAuthAccountLinkingActivity"
+            A: exported=false
+          E: activity (line=434)
+
+## FoaPhoneIdProvider
+          E: provider (line=566)
+            A: name="com.meta.foa.infra.fdid.FoaPhoneIdProvider"
+            A: exported=true
+          E: receiver (line=568)
+            A: name="com.meta.foa.infra.fdid.FoaPhoneIdRequestReceiver"
+            A: exported=true
+              E: intent-filter (line=569)
+                  E: action (line=570)
+                    A: name="com.facebook.GET_PHONE_ID"
+          E: uses-library (line=574)
+            A: name="androidx.window.extensions"
+          E: uses-library (line=575)
+
+## FoaPhoneIdRequestReceiver
+          E: receiver (line=568)
+            A: name="com.meta.foa.infra.fdid.FoaPhoneIdRequestReceiver"
+            A: exported=true
+              E: intent-filter (line=569)
+                  E: action (line=570)
+                    A: name="com.facebook.GET_PHONE_ID"
+          E: uses-library (line=574)
+            A: name="androidx.window.extensions"
+          E: uses-library (line=575)
+            A: name="androidx.window.sidecar"
+          E: provider (line=577)
+            A: name="androidx.startup.InitializationProvider"
+
+## HatchVoiceInteractionService
+          E: service (line=167)
+            A: name="com.facebook.aura.assist.HatchVoiceInteractionService"
+            A: permission="android.permission.BIND_VOICE_INTERACTION"
+            A: exported=true
+              E: intent-filter (line=168)
+                  E: action (line=169)
+                    A: name="android.service.voice.VoiceInteractionService"
+              E: meta-data (line=172)
+                A: name="android.voice_interaction"
+          E: service (line=174)
+            A: name="com.facebook.aura.assist.HatchVoiceInteractionSessionService"
+            A: permission="android.permission.BIND_VOICE_INTERACTION"
+            A: exported=true
+

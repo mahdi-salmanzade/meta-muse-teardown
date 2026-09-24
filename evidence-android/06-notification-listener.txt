@@ -1,0 +1,72 @@
+# commands/notifications/NotificationSerializer.java: fields extracted from every notification
+"0123456789abcdef"
+"SHA-1"
+"android"
+"android.bigText"
+"android.callType"
+"android.messagingStyleUser"
+"android.picture"
+"android.pictureIcon"
+"android.selfDisplayName"
+"android.template"
+"android.text"
+"android.textLines"
+"android.title"
+"androidx.core.app.NotificationCompat$BigPictureStyle"
+"androidx.core.app.NotificationCompat$BigTextStyle"
+"androidx.core.app.NotificationCompat$CallStyle"
+"androidx.core.app.NotificationCompat$DecoratedCustomViewStyle"
+"androidx.core.app.NotificationCompat$InboxStyle"
+"androidx.core.app.NotificationCompat$MessagingStyle"
+"androidx.core.app.extra.COMPAT_TEMPLATE"
+"app_package"
+"body"
+"call"
+"category"
+"dedup_key"
+"email"
+"key"
+"missed_call"
+"msg"
+"progress"
+"sender"
+"service"
+"social"
+"sys"
+"timestamp"
+"title"
+"yyyy-MM-dd'T'HH:mm:ss'Z'"
+
+# commands/notifications/BlockedAppsNotificationFilter.java (only filter; user-controlled)
+    public boolean shouldBlock(StatusBarNotification statusBarNotification) {
+        C9Q.A0s(statusBarNotification, 0);
+        String packageName = statusBarNotification.getPackageName();
+        C64G currentUserSession = AuraUserSessionStore.INSTANCE.getCurrentUserSession();
+        if (currentUserSession == null) {
+            return false;
+        }
+        HatchGatewayPrefsStore hatchGatewayPrefsStoreA06 = C3NG.A06(currentUserSession);
+        int iOrdinal = hatchGatewayPrefsStoreA06.getPhoneNotificationsAccessMode().ordinal();
+        if (iOrdinal == 0) {
+            return false;
+        }
+        if (iOrdinal == 1) {
+            return hatchGatewayPrefsStoreA06.getPhoneNotificationsAccessBlockedApps().contains(packageName);
+        }
+        throw AnonymousClass001.A12();
+    }
+
+# gateway/store/HatchGatewayPrefsStore.java: default access mode
+    }
+
+    public final PhoneNotificationsAccessMode getPhoneNotificationsAccessMode() {
+        String strA01 = C5xd.A01(getPrefs(), KEY_PHONE_NOTIFICATIONS_ACCESS_MODE);
+        try {
+            return strA01 != null ? PhoneNotificationsAccessMode.valueOf(strA01) : PhoneNotificationsAccessMode.ALL;
+        } catch (IllegalArgumentException unused) {
+            return PhoneNotificationsAccessMode.ALL;
+        }
+    }
+
+# grep for OTP / 2FA / verification-code filtering in commands/notifications and commands/sms:
+(no matches)

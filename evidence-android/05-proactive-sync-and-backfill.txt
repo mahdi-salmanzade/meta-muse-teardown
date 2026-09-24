@@ -1,0 +1,148 @@
+# Files that publish to client.data_source.publish (proactive sync)
+com/facebook/aura/nodes/datasource/BackfillAckJson.java
+com/facebook/aura/nodes/HatchNodeClient.java
+com/facebook/aura/nodes/datasource/DataSourcePublishPipeline.java
+com/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$2$1.java
+com/facebook/aura/nodes/datasource/HatchProactiveTriggerManager$createHost$onFire$1.java
+com/facebook/aura/nodes/datasource/ProactiveSyncRunnerKt.java
+com/facebook/aura/nodes/datasource/ProactiveSyncRunner.java
+com/facebook/aura/network/api/RpcMethod.java
+com/facebook/aura/commands/location/LocationDataSource.java
+com/facebook/aura/commands/health/HealthDataSource.java
+com/facebook/aura/commands/notifications/NotificationsDataSource.java
+com/facebook/aura/startup/gateway/HatchProactiveSyncCatchUpJob.java
+
+# BackfillStrategy classes
+./com/facebook/aura/commands/calendar/CalendarDataSource
+./com/facebook/aura/commands/calllogs/CallLogDataSource
+./com/facebook/aura/commands/contacts/ContactsDataSource
+./com/facebook/aura/commands/health/HealthDataSource
+./com/facebook/aura/commands/sms/SmsDataSource
+./com/facebook/aura/nodes/datasource/BackfillStrategy.java
+./com/facebook/aura/nodes/datasource/BackfillStrategyKt.java
+./com/facebook/aura/nodes/datasource/PagedBackfillStrategy.java
+
+## strings: commands/health/HealthDataSource.java
+" (never an IANA region name); use it to place a record in the user's local day rather than reading the epoch value as UTC."
+" or \"
+"@health_connect"
+"Could not parse end_date"
+"Could not parse start_date"
+"Health Connect data (aggregates, workouts, sleep, events) pushed via observer-driven background sync. Time fields on these rows are epoch SECONDS, not milliseconds — `start_epoch_sec`/`end_epoch_sec`, and `start_ts`/`end_ts` on raw samples, which are the same unit despite the shorter name. Every other Hatch data source sends milliseconds, so do not compare these to another source's timestamps without accounting for the 1000x difference. Rows also carry `timezone`, a UTC OFFSET such as \"
+"Health Connect is not enabled"
+"Health Connect permissions not granted"
+"Health Connect provider not found"
+"Health backfill completed without a result"
+"Health backfill failed: "
+"Health backfill was replaced by a newer run"
+"MetaHealthQuery observer polls Health Connect Changes API; HealthSyncManager debounces fires and drives the sync through ProactiveSyncRunner onto the client.data_source.publish sink."
+"backfill_cancelled"
+"backfill_failed"
+"bundle_id"
+"data"
+"end_epoch_sec"
+"end_ts"
+"full"
+"google_health_connect"
+"health backfill window read failed "
+"health"
+"health_disabled"
+"invalid_end_date"
+"invalid_range"
+"invalid_start_date"
+"metric"
+"numeric_val"
+"permission_denied"
+"provider_id"
+"provider_unavailable"
+"providers"
+"query_failed"
+"raw_samples"
+"runBackfill"
+"samples"
+"start_date is required for health backfill"
+"start_date must be before end_date"
+"start_epoch_sec"
+"start_ts"
+"type_bounds"
+"unexpected_error"
+"unit"
+"values"
+
+## strings: commands/location/LocationDataSource.java
+"Could not determine current location."
+"Current device location (lat, long, accuracy, address), read when the app is open, plus location pushes emitted when a user-registered geofence is crossed."
+"Failed to publish location payload"
+"Failed to publish location: "
+"accuracy_meters"
+"android.permission.ACCESS_COARSE_LOCATION"
+"client.data_source.publish failed for source="
+"geofence broadcast receivers call publishNow() with the crossing coordinates. Sites: GeofenceEventWorker, NodeCommandService geofence path."
+"geofence_name"
+"location"
+"location_unavailable"
+"publishNow"
+"publish_failed"
+"syncedAt"
+"timestamp"
+"yyyy-MM-dd'T'HH:mm:ss'Z'"
+
+## strings: commands/notifications/NotificationsDataSource.java
+"@notification_listener"
+"Failed to publish notifications payload"
+"Failed to publish notifications: "
+"Notification listener service is not available."
+"NotificationRepo not available"
+"NotificationRepo not available; skipping publishNow"
+"Skipping notification publish: disabled by managed configuration"
+"client.data_source.publish failed for source="
+"dedup_key"
+"notifications"
+"publish_failed"
+"service_unavailable"
+"syncedAt"
+
+## strings: commands/sms/SmsDataSource.java
+"Failed to publish sms payload"
+"android"
+"android.permission.READ_SMS"
+"buildPayload"
+"end_date must be ISO-8601: "
+"invalid_end_date"
+"invalid_start_date"
+"messages"
+"missing_start_date"
+"platform"
+"publish_failed"
+"readAndUpload"
+"readEnriched"
+"readProactiveMessages"
+"sms backfill window read failed "
+"start_date is required for sms backfill"
+"start_date must be ISO-8601 (e.g. '2025-01-15T00:00:00Z'): "
+"syncedAtMs"
+
+## strings: commands/calllogs/CallLogDataSource.java
+"android"
+"android.permission.READ_CALL_LOG"
+"call_log backfill window read failed "
+"call_log"
+"end_date must be ISO-8601: "
+"invalid_end_date"
+"invalid_start_date"
+"missing_start_date"
+"platform"
+"readSnapshot"
+"start_date is required for call_log backfill"
+"start_date must be ISO-8601: "
+"syncedAt"
+
+## strings: commands/sms/SmsSyncPrefsKt.java
+"last_synced_sms_date_ms"
+"recently_published_message_ids"
+"sms_sync"
+
+## strings: commands/notifications/NotificationSyncPrefsKt.java
+"last_synced_post_time_ms"
+"notification_sync"
+"recently_shipped"

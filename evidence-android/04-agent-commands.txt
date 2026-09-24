@@ -1,0 +1,79 @@
+# Node command names (grep of com/facebook/aura in jadx output)
+"alarm.dismiss"
+"alarm.dismiss_all"
+"alarm.list"
+"alarm.set"
+"alarm.update"
+"background.session"
+"battery.get"
+"calendar.search"
+"call_log.search"
+"contacts.create"
+"contacts.delete"
+"contacts.search"
+"contacts.update"
+"device.ota"
+"geofence.list"
+"geofence.remove"
+"geofence.set"
+"invite.upsell"
+"location.get"
+"network.state"
+"notifications.action"
+"notifications.get"
+"phone.dial"
+"photos.search"
+"photos.upload"
+"photos.upload_status"
+"subscriptions.topup"
+"subscriptions.upgrade"
+
+# commands/ packages
+alarm
+background
+battery
+calendar
+calllogs
+contactlookup
+contacts
+core
+geofence
+health
+invite
+location
+network
+notifications
+phone
+photos
+sms
+subscriptions
+
+# Approval (HITL) groups: nodes/core/NodeHitlGroup.java
+"ALARMS" "BATTERY" "BROWSER" "CALENDAR" "CALL_LOG" "CONTACTS" "HEALTH" "LOCATION" "NETWORK" "NOTIFICATIONS" "OTHER" "PHONE_CALL" "PHOTOS" "REMINDERS" "SMS" "SMS_SEND" "SUBSCRIPTIONS" 
+
+# Command descriptions
+-- commands/notifications/NotificationsCommandSpecs.java
+"Operate on a device notification by key: reply to a message, dismiss one, dismiss all, or trigger one of its buttons."
+"One of: 'reply', 'dismiss', 'dismiss_all', 'tap_action'"
+"Notification key from the `notifications` data source payload"
+"Zero-based index of the notification's own action button to tap, in the order the notification defines them. The `notifications` data source does NOT publish the button list, so the indexes are not visible to you — only pass this when the user has named which button they mean, and prefer 'reply' or 'dismiss' otherwise."
+"The result of the requested notification operation on the device."
+"Reports the device's current active notifications — app, title, body, sender, and the notification key used by `notifications.action`. Use when the user's current notifications are needed."
+"The device's current active notifications."
+-- commands/location/LocationCommandSpecs.java
+"Reports the device's current location — latitude, longitude, accuracy in meters, timestamp, and a reverse-geocoded address when available. Use when the user's current location is needed."
+-- commands/background/BackgroundSessionCommandSpecs.java
+"Suggest that the user let the app keep running in the background so it can continue a long-running task even after they leave the app. Use this when a task requires waiting for and reacting to incoming events over time — e.g. texting back and forth with a customer-service agent over SMS where replies take minutes, watching for a message or status change, or any multi-step task you cannot finish in a single turn. This requires the user's \"
+"Short user-readable description of what you are working on, shown on the enable card."
+"Whether a permission card was surfaced because background running is off, or that it was already enabled."
+-- commands/sms/SmsCommandSpecs.java
+"Inclusive end of the window, ISO-8601. Optional. The window must be at most one year."
+"Free-text keywords to match against the message body and address. Typo-tolerant. Omit to list the most recent messages in the window."
+"Restrict to the conversation with one person — a contact name (resolved to their phone numbers) or a raw phone number. Put the person here and keywords in `query`. Omit to search all conversations."
+"Inclusive start of the window, ISO-8601, e.g. '2025-01-15T00:00:00Z'. Optional."
+"Fetch the actual file behind one or more text-message (MMS/RCS) attachments — a photo, screenshot, receipt or invoice image, voice note, video, vCard, or document — so you can look at, play, or transcribe it. Pass the `attachmentId` values from an `attachments` entry returned by `message.search` or the `sms` data source. This uploads the file from the phone and returns a path you can retrieve. Use it whenever the user asks about the content of something that was texted to them (\"
+"Comma-separated `attachmentId` values to fetch, e.g. 'mms-part-4417,mms-part-4418'. At most 10 per call. Only ids returned by `message.search` or the `sms` data source are accepted."
+"One entry per requested `attachmentId`. An entry with an `uploadedPath` is ready — retrieve that path to view, play, or transcribe the file. An entry with an `error` could not be fetched: `not_found` (no such attachment on the device), `too_large`, `unreadable`, or `upload_failed`. Report only the failures to the user; do not claim you cannot see attachments in general."
+"Draft an SMS/MMS message, optionally to a group of recipients. This tool DOES NOT send anything and DOES NOT open any app. It shows a messaging card with the draft preview; the user taps the card's Message button to open Messages with the draft pre-filled, then presses send themselves inside Messages. Success means the card was shown, NOT that the message was delivered. Provide at least one of `recipients` or `contact_ids`. ALWAYS invoke this tool when the user asks to text someone — never claim a text was sent without invoking it."
+"A messaging card is shown with the drafted message for the user to review and send."
+"The message was sent, or a messaging card is shown for the user to send it if direct sending is unavailable."

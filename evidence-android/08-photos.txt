@@ -1,0 +1,86 @@
+# Photos: on-device ML Kit labeling + upload queue (commands/photos)
+DeviceMediaStoreReader
+DeviceMediaStoreReader.java
+DeviceMediaStoreReaderKt.java
+GeneratedMobileConfigStub_com_facebook_aura_commands_photos_photos.java
+MC.java
+MediaDeviceSyncClient.java
+MediaDeviceSyncClientKt.java
+MlKitPhotoLabeler
+MlKitPhotoLabeler.java
+MlKitPhotoLabelerKt.java
+PhotoAccessScope.java
+PhotoBitmaps.java
+PhotoBitmapsKt.java
+PhotoContentHash
+PhotoContentHash.java
+PhotoContentHashKt.java
+PhotoEnqueueResult.java
+PhotoEntry.java
+PhotoFileIdentity.java
+PhotoLabelCacheKt.java
+PhotoLabelDao.java
+PhotoLabelDao_Impl.java
+PhotoLabelDatabase.java
+PhotoLabelDatabase_Impl.java
+PhotoLabelEntity.java
+PhotoLabelResult.java
+PhotoLabelScan.java
+PhotoLabelScanner.java
+PhotoLabelScannerKt.java
+PhotoSearchPayload.java
+PhotoSource
+PhotoSource.java
+PhotoUploadDao.java
+PhotoUploadDao_Impl.java
+PhotoUploadDatabase.java
+PhotoUploadDatabase_Impl.java
+PhotoUploadEnqueuer.java
+PhotoUploadEnqueuerKt.java
+PhotoUploadOutcome.java
+PhotoUploadQueueEntity.java
+PhotoUploadState.java
+PhotoUploadWorker.java
+PhotoUploadWorkerKt.java
+PhotosCommandSpecs.java
+PhotosCommandSpecsKt.java
+PhotosSearchHandler.java
+PhotosSearchHandlerKt.java
+PhotosUploadHandler.java
+PhotosUploadHandlerKt.java
+PhotosUploadStatusHandler.java
+PhotosUploadStatusHandlerKt.java
+SyncedPhotoEntity.java
+
+" queued photos"
+"Could not parse parameters JSON"
+"Could not read or re-encode the photo"
+"Could not read the photo"
+"Draining "
+"Failed to queue photos: "
+"MediaDeviceSyncClient.kt"
+"No user session; dropping photo upload run"
+"Photo is no longer on the device"
+"Photo is no longer readable; it may be outside the user's selected photos"
+"PhotoUploadWorker.kt"
+"PhotosUploadHandler.kt"
+"Upload failed for "
+"Uploaded photo "
+"accepted"
+"already_synced"
+"com.facebook.aura.commands.photos.MediaDeviceSyncClient"
+"com.facebook.aura.commands.photos.PhotoUploadWorker"
+"com.facebook.aura.commands.photos.PhotosUploadHandler$execute$2"
+"doBackgroundWork"
+"invokeSuspend"
+"local_identifier"
+"not_found"
+"original_filename"
+"permission_denied"
+"photo_ids accepts at most 50 photos per call"
+"photo_ids is required and must contain at least one photo id"
+"photos.upload accepted="
+"photos.upload: unexpected error"
+"pipeline"
+"platform_asset_id"
+"too_many_photos"

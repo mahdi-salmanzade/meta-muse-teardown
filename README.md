@@ -15,6 +15,13 @@ The "brain" of the agent doesn't run on your computer. It runs in a **Meta-hoste
 
 This is the company that ran a VPN called Onavo to [decrypt Snapchat, YouTube and Amazon traffic from its own users](#metas-track-record) and paid teenagers $20 a month to install a root-certificate "research" app. Read what Muse does before you click "Allow".
 
+### Platforms covered
+
+| Platform | Build | Report |
+|---|---|---|
+| macOS | Muse 3.0 (`com.meta.endo`) | this page |
+| Android | 8.0.0.21.168 (`com.facebook.aura`), Play-signed | **[ANDROID.md](ANDROID.md)**: SMS, call log, **every app's notifications (default: all apps, no 2FA filter)**, background location, 20+ Health Connect types published proactively |
+
 > Every claim below points to a file in [`evidence/`](evidence/) and can be rebuilt from your own copy of the DMG with [`scripts/reproduce.sh`](scripts/reproduce.sh). This repo contains **no Meta binaries or source**, only hashes, `strings`/`grep` output and short excerpts for commentary.
 
 ---

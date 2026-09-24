@@ -1,0 +1,32 @@
+# health permissions requested
+uses-permission: name='android.permission.health.READ_STEPS'
+uses-permission: name='android.permission.health.READ_HEART_RATE'
+uses-permission: name='android.permission.health.READ_ACTIVE_CALORIES_BURNED'
+uses-permission: name='android.permission.health.READ_TOTAL_CALORIES_BURNED'
+uses-permission: name='android.permission.health.READ_DISTANCE'
+uses-permission: name='android.permission.health.READ_EXERCISE'
+uses-permission: name='android.permission.health.READ_SLEEP'
+uses-permission: name='android.permission.health.READ_ELEVATION_GAINED'
+uses-permission: name='android.permission.health.READ_FLOORS_CLIMBED'
+uses-permission: name='android.permission.health.READ_WEIGHT'
+uses-permission: name='android.permission.health.READ_BODY_FAT'
+uses-permission: name='android.permission.health.READ_BODY_WATER_MASS'
+uses-permission: name='android.permission.health.READ_BONE_MASS'
+uses-permission: name='android.permission.health.READ_LEAN_BODY_MASS'
+uses-permission: name='android.permission.health.READ_VO2_MAX'
+uses-permission: name='android.permission.health.READ_RESTING_HEART_RATE'
+uses-permission: name='android.permission.health.READ_HEIGHT'
+uses-permission: name='android.permission.health.READ_BASAL_METABOLIC_RATE'
+uses-permission: name='android.permission.health.READ_HEART_RATE_VARIABILITY'
+uses-permission: name='android.permission.health.READ_HEALTH_DATA_HISTORY'
+uses-permission: name='android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND'
+
+# location
+uses-permission: name='android.permission.ACCESS_FINE_LOCATION'
+uses-permission: name='android.permission.ACCESS_COARSE_LOCATION'
+uses-permission: name='android.permission.ACCESS_BACKGROUND_LOCATION'
+uses-permission: name='android.permission.ACCESS_MEDIA_LOCATION'
+
+"Current device location (lat, long, accuracy, address), read when the app is open, plus location pushes emitted when a user-registered geofence is crossed."
+"Failed to publish location payload"
+"Could not determine current location."
