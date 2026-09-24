@@ -1,0 +1,80 @@
+10 - NOTABLE EXTRAS
+===================
+
+## A. Cross-app Meta device identity ("Family Device ID") and shared containers   [PROVEN by config+strings]
+  Entitlements: app groups group.com.facebook.family, group.com.metaplatforms.family (shared with other
+  Meta apps), keychain group T84QZS65DQ.platformFamily (Info.plist FBKeychainAccessGroup same).
+  FBFamilyDeviceID
+  NO PLUGIN FOR FB_FAMILY_DEVICE_ID_APP_GROUP_SOCKET
+  com.facebook.familydeviceid
+  com.facebook.familydeviceid.backup.vendordeviceid
+  com.facebook.familydeviceid.logger
+  com.facebook.hatch.familydeviceid
+  fbobjc/express/Hatch/Library/HatchProviders/HatchFamilyDeviceIdProvider/HatchFamilyDeviceIdProvider.m
+  group.com.facebook.family.appgrouptokenshare
+  kFBFamilyDeviceIDBackupKey
+  kMobileConfigFamilyDeviceId
+  logFDIDAccessWithFamilyDeviceIDBeforeAccess:familyDeviceIDAfterAccess:appDeviceID:backupAppDeviceID:isRegeneratedByClientDetection:isOnTreatment:originalAppDeviceID:idForVendor:bundleIdentifier:fdidAccessFailed:fdidSynchronizationFailed:backupReadFailed:callerLabel:
+  => Muse accesses the Meta cross-app Family Device ID (FDID) shared with other installed Meta apps (FB/IG/Messenger/WA/Threads
+     from team V9WTTPBFK9 sharing these groups) and logs identifierForVendor alongside it; an app-group
+     "appgrouptokenshare" container name is present (cross-app token sharing; exact contents not observable).
+  Also: FOA (Family of Apps) account linking ("FOAAccountsFetchFailed", "no top view controller to present FOA account linking").
+
+## B. Other device identifiers / ad attribution   [PROVEN imports]
+  nm -u: ASIdentifierManager (IDFA) and "advertisingIdentifier" string; SKAdNetwork; identifierForVendor.
+  Info.plist has NO NSUserTrackingUsageDescription and AppTrackingTransparency is not imported
+  => on iOS 14.5+ IDFA reads return all-zeros without ATT (inferred from OS behaviour).
+
+## C. Attestation / jailbreak
+  DCAppAttestService imported; "attestKey:clientDataHash:completionHandler:" present (App Attest).
+  No jailbreak-detection logic strings (no Cydia paths/cydia://, /etc/apt, etc.); only an
+  "isJailBroken" field in the crash/diagnostic report schema.
+
+## D. Third-party trackers / SDKs
+  NOT found: Firebase, Crashlytics, AppsFlyer, Adjust SDK, Branch, Sentry, Mixpanel, Amplitude SDK,
+  Segment SDK, Braze, OneSignal (the "Adjust"/"Segment"/"Amplitude" hits are UIKit/WebRTC/audio words).
+  Analytics are Meta-internal (FBAnalytics, QPL, Falco/FF upload, Loom traces, MobileConfig).
+  Third-party: Mapbox/MapLibre/MapTiler map tiles; Stripe "Link by Stripe" checkout; Sigstore/Rekor
+  verification library; noVNC; PPTXjs/JSZip.
+
+## E. Bundled JavaScript
+  - PlugIns/HatchShareExtension.appex/GetPageContent.js   Safari share preprocessing (see 04).
+  - novnc/novnc-rfb.js + vnc.html (noVNC v1.5.0; README: "render the live VM browser framebuffer inside a
+    WKWebView", served from hatch-vnc:// by HCHVMBrowserSchemeHandler). Strings: HCHVMBrowserVNCSocket,
+    HCHGatewayVNCDuplexStream, "[HCHVMBrowser] VNC Noise stream connecting via dedicated browser carrier".
+    => the phone shows the agent's remote (VM) browser; it is not screen-sharing the phone.
+  - pptxviewer/ (pptxjs, jszip, filereader, hatch_pptx_viewer.js; Meta header) local PPTX render.
+  - In-binary injected WebAuthn bridge "[MFA]" (window.meta_credentials, messageHandlers.MfaJsBridge) for
+    passkeys in the in-app browser; a WKWebView height-reporting script; "=== Hatch Spaces Web Console ===".
+  - No stealth / bot-evasion / navigator.webdriver-spoofing scripts found on iOS.
+
+## F. Agent-initiated purchases / browser tasks require approval   [PROVEN strings]
+  HCHHitlBrowserCheckoutApprovalView
+  HCHHitlBrowserCheckoutDetailsView
+  HCHHitlBrowserTaskConfirmationApprovalView
+  HCHHitlCheckoutSpendingLimitRow
+  HCHHitlStripeLinkCheckoutApprovalView
+  Stripe Link connect/complete callback intercepted 
+  browser_checkout
+  browser_task_confirmation
+  stripe_link_checkout
+
+## G. Debug/internal settings shipped in the build
+  Give temporary access
+  Meta SSH access
+  Node Debug
+  Open access to your CVM for debugging purposes.
+  https://api.muse.ai/ssh-access/tokens
+  lobster-settings-node-debug
+  => A setting to grant temporary SSH access to the user's agent VM ("CVM") exists in the binary
+     (api.muse.ai/ssh-access/tokens). INFERRED: it sits among internal debug rows (Node Debug,
+     Loading Spinner Gallery) and is likely employee/dogfood-gated; gating not provable statically.
+     Build metadata: FBBuildBranchName "dev".
+
+## H. Other sensitive capabilities (imports)
+  CBCentralManager (bluetooth.scan: nearby BLE devices + RSSI), HMHomeManager (HomeKit incl. locks,
+  home.security.sweep), CTTelephonyNetworkInfo, NEHotspotNetwork (no wifi-info entitlement => SSID
+  unavailable), UIPasteboard, MFMessageComposeViewController (message.draft opens Apple's composer;
+  user taps send), CMMotionManager, LAContext; speech recognition declared (NSSpeechRecognitionUsageDescription) but SFSpeech not imported.
+  Connectors besides device data: instagram_messages, threads_messages (/connect/…, /disconnect/…),
+  Stripe, OAuth connectors.

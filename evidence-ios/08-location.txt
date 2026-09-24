@@ -1,0 +1,60 @@
+08 - LOCATION
+=============
+Info.plist:
+  NSLocationWhenInUseUsageDescription          "This lets Muse answer questions relevant to where you are."
+  NSLocationAlwaysAndWhenInUseUsageDescription "This lets Muse proactively provide you suggestions relevant to where you are."
+  UIBackgroundModes includes "location".
+
+## CoreLocation API usage (strings / imports in Payload/HatchApp.app/HatchApp)
+     1 allowsBackgroundLocationUpdates
+     1 pausesLocationUpdatesAutomatically
+     3 requestAlwaysAuthorization
+     1 requestTemporaryFullAccuracyAuthorizationWithPurposeKey:
+     1 requestTemporaryFullAccuracyAuthorizationWithPurposeKey:completion:
+     1 requestTemporaryFullAccuracyAuthorizationWithUsageDescriptionKey:withCompletion:
+     1 showsBackgroundLocationIndicator
+     1 startMonitoringForRegion:
+     2 startMonitoringSignificantLocationChanges
+     1 startMonitoringVisits
+     4 startUpdatingLocation
+  imports (nm -u): CLLocationManager, CLLocation, CLCircularRegion, CLGeocoder, kCLLocationAccuracyNearestTenMeters, kCLLocationAccuracyHundredMeters, kCLLocationAccuracyKilometer, kCLLocationAccuracyThreeKilometers
+  import: CLGeocoder
+  import: CLLocation
+  import: CLLocationManager
+  import: _kCLLocationAccuracyHundredMeters
+  import: _kCLLocationAccuracyKilometer
+  import: _kCLLocationAccuracyNearestTenMeters
+  import: _kCLLocationAccuracyThreeKilometers
+  (startMonitoringVisits string also belongs to shared FB location code, e.g. '@"<FBCLVisitHandler>"'; attribution to Muse node path not proven)
+
+## Node location / geofence strings
+   request 'when_chatting' first, then retry with 'always'. - 'never': direct the user to iOS Settings to revoke an existing location grant. Revoking access or downgrading 'always' to 'when_chatting' requires user action in iOS Settings; this command reports the actual tier and cannot revoke or downgrade it. The response 'payload_json' reports the resolved 'sharing_mode' and whether 'proactive_tracking_active'. Check the response 'message' field for guidance on errors.
+  Always authorization required for significant location monitoring (status=
+  Background geofences require Always location access. Call location.set_sharing_mode with mode 'always' before geofence.set.
+  Create a geofence-triggered HomeKit bridge. When the user enters or exits the specified location, the configured HomeKit actions execute automatically. Requires both homekit and Always location permissions.
+  Geofence monitoring requires Precise Location. Enable it for Hatch in iOS Settings, then retry.
+  Geofence radius in meters (default 150)
+  HCHLobster.locationEventFlush
+  Location sharing tier: 'when_chatting' (foreground), 'always' (background/continuous 
+  Register a geofence so the device can proactively react when the user arrives at or leaves a place. Requires background location access to already be granted via `location.set_sharing_mode(mode: "always")`. Use this for location-based reminders like "remind me when I get to the office". Give the place EITHER as latitude and longitude, or as a free-text address the device will look up. Returns a geofence ID that can be used with `geofence.remove`.
+  Started monitoring significant location changes
+  Stopped monitoring significant location changes
+  [LBR] Auto-removing one-time geofence 
+  [LBR] Location change detected, sending location update
+  [LBR] Skipping SLC upload 
+  homekit_bridge.geofence_fired
+  location.background_event
+  location_event_dropped
+  location_event_failed
+  node_data_sync.coordinator.sync_location
+  proactive_tracking_active
+  sync location
+  {FBTParam|assistant} wants to refresh your location data.
+   to read the current position, call `location.get`. Choose 'mode' based on the user's intent: - 'when_chatting': foreground access, enough for one-off or conversational location queries (which you then answer via `location.get`; that command reads the position but never grants access, so call this first if `location.get` reports it is not shared). - 'always': background access. Use ONLY when the user explicitly asks for continuous or background monitoring, e.g. "always track my location" or "not
+   latitude, longitude, accuracy in meters, timestamp, and a reverse-geocoded address when available. Use when the user's current location is needed.
+=> PROVEN: with 'always' sharing mode the app starts significant-location-change monitoring and
+   uploads location events ("sending location update", "location.background_event"), with a
+   movement threshold ("Skipping SLC upload ... movement below threshold"); agent-registered geofences
+   (CLCircularRegion, default radius 150 m) fire background events and can execute HomeKit actions
+   (home.bind_geofence) automatically. The agent spec says 'always' is to be used ONLY when the user
+   explicitly asks, and the OS 'Always' grant still requires user action.

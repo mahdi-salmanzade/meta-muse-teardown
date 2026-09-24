@@ -1,0 +1,37 @@
+# IPA sha256
+70c3cfe5bde49e31eecd087fdbb6749703d2dd74f124c7c464866884d72603b2  com.facebook.hatch_8.1_und3fined.ipa
+
+# codesign -dvvv (metadata display, NOT integrity verification)
+Identifier=com.facebook.hatch
+Format=app bundle with Mach-O thin (arm64)
+CodeDirectory v=20500 size=1287838 flags=0x0(none) hashes=20117+7 location=embedded
+Hash type=sha256 size=32
+CandidateCDHash sha1=e30a53562b319b1f244287e5b34a8627e1e781d7
+CandidateCDHashFull sha1=e30a53562b319b1f244287e5b34a8627e1e781d7
+CandidateCDHash sha256=8dbe895b040b27063bdd85394e768dbc07b042e3
+CandidateCDHashFull sha256=8dbe895b040b27063bdd85394e768dbc07b042e3c0de15a5519a7366e1da7328
+Hash choices=sha1,sha256
+CMSDigest=6443ebd2d125977e3b172888833d7170040a54b9e9b7d497694a4ed488e31d85
+CMSDigestType=2
+CDHash=8dbe895b040b27063bdd85394e768dbc07b042e3
+Signature size=4384
+Authority=Apple iPhone OS Application Signing
+Authority=Apple iPhone Certification Authority
+Authority=Apple Root CA
+Info.plist entries=64
+TeamIdentifier=V9WTTPBFK9
+Sealed Resources version=2 rules=15 files=473
+Internal requirements count=1 size=100
+
+# codesign --verify --deep --strict
+exit_code=1
+HatchApp.app: invalid signature (code or signature have been modified)
+In architecture: arm64
+
+# Mach-O encryption load command
+          cmd LC_ENCRYPTION_INFO_64
+      cmdsize 24
+     cryptoff 16384
+    cryptsize 72089600
+      cryptid 0
+          pad 0

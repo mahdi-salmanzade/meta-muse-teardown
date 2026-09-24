@@ -1,0 +1,13 @@
+# Selected tool descriptions and UI copy from strings -n 8; not runtime observations.
+Cancel the currently running camera roll sync. Does NOT disable the user's Camera Roll Sync toggle or stop future automatic syncs 
+Create a geofence-triggered HomeKit bridge. When the user enters or exits the specified location, the configured HomeKit actions execute automatically. Requires both homekit and Always location permissions.
+Incoming messages forwarded by a user-created Apple Shortcuts automation. No message history access. iOS cannot detect removal of the automation; disconnect in the iMessage connector to stop forwarding.
+List HomeKit accessories the user has paired, including each accessory's room, category, reachability, and the characteristics it exposes. Optionally filter by room name, home_id, or accessory category (e.g. 'lightbulb', 'lock', 'thermostat').
+Scan all reachable HomeKit accessories and report their lock states, sensor readings, and contact/motion/leak status. Useful for a 'goodnight' or 'leaving home' safety check.
+Share a text copy of all your Apple Notes with Muse whenever your shortcut runs. Turning this off stops future exports from your automations.
+To stop iMessage reads when the user asks to disconnect or stop syncing messages, set `disable_forwarding: true`. This discards queued messages and blocks future forwarding on this device. Previously uploaded messages are not deleted. The user can also disable or delete the automation in Apple's Shortcuts app.
+Trigger a sync of the user's camera roll to the server. The sync runs in the background; the command returns immediately once the work is enqueued. Use when the assistant needs up-to-date photo context or the user asks to share recent photos.
+Turn on to back up your camera roll. Only this setting fully enables or disables sync. Pausing is temporary and clears the next time you open the app.
+Turning this off fully disables camera roll sync. Only this setting lasts beyond the current app session. Pausing sync is temporary and clears the next time you open the app.
+When true, enable the persistent full-library override so this run AND future automatic catch-up syncs drain the entire camera roll. Defaults to false. Pass true only when the user explicitly asks to sync ALL their photos.
+[LBR][SYNC] HealthKit provider unavailable during configure

@@ -1,0 +1,195 @@
+07 - HEALTH (HealthKit)
+=======================
+Entitlements: com.apple.developer.healthkit=true, healthkit.background-delivery=true,
+  healthkit.access=[] (NO clinical health-records entitlement).
+Info.plist:
+  NSHealthShareUsageDescription  "Muse would like access to your health data to support questions you may have."
+  NSHealthUpdateUsageDescription "Muse can import health data to ensure your Health app has the full picture."
+No NSHealthClinicalHealthRecordsShareUsageDescription; strings contain no HKClinical*/FHIR types.
+
+## HealthKit type identifiers imported by Payload/HatchApp.app/HatchApp (nm -u; these are the
+## types the code can reference/query — imported symbols, so presence = referenced by code)
+  HKCategoryTypeIdentifierMindfulSession
+  HKCategoryTypeIdentifierSleepAnalysis
+  HKCorrelationTypeIdentifierFood
+  HKQuantityTypeIdentifierActiveEnergyBurned
+  HKQuantityTypeIdentifierAppleExerciseTime
+  HKQuantityTypeIdentifierAppleMoveTime
+  HKQuantityTypeIdentifierAppleSleepingWristTemperature
+  HKQuantityTypeIdentifierAppleStandTime
+  HKQuantityTypeIdentifierAppleWalkingSteadiness
+  HKQuantityTypeIdentifierAtrialFibrillationBurden
+  HKQuantityTypeIdentifierBasalBodyTemperature
+  HKQuantityTypeIdentifierBasalEnergyBurned
+  HKQuantityTypeIdentifierBloodAlcoholContent
+  HKQuantityTypeIdentifierBloodGlucose
+  HKQuantityTypeIdentifierBloodPressureDiastolic
+  HKQuantityTypeIdentifierBloodPressureSystolic
+  HKQuantityTypeIdentifierBodyFatPercentage
+  HKQuantityTypeIdentifierBodyMass
+  HKQuantityTypeIdentifierBodyMassIndex
+  HKQuantityTypeIdentifierBodyTemperature
+  HKQuantityTypeIdentifierCyclingCadence
+  HKQuantityTypeIdentifierCyclingFunctionalThresholdPower
+  HKQuantityTypeIdentifierCyclingPower
+  HKQuantityTypeIdentifierCyclingSpeed
+  HKQuantityTypeIdentifierDietaryBiotin
+  HKQuantityTypeIdentifierDietaryCaffeine
+  HKQuantityTypeIdentifierDietaryCalcium
+  HKQuantityTypeIdentifierDietaryCarbohydrates
+  HKQuantityTypeIdentifierDietaryChloride
+  HKQuantityTypeIdentifierDietaryCholesterol
+  HKQuantityTypeIdentifierDietaryChromium
+  HKQuantityTypeIdentifierDietaryCopper
+  HKQuantityTypeIdentifierDietaryEnergyConsumed
+  HKQuantityTypeIdentifierDietaryFatMonounsaturated
+  HKQuantityTypeIdentifierDietaryFatPolyunsaturated
+  HKQuantityTypeIdentifierDietaryFatSaturated
+  HKQuantityTypeIdentifierDietaryFatTotal
+  HKQuantityTypeIdentifierDietaryFiber
+  HKQuantityTypeIdentifierDietaryFolate
+  HKQuantityTypeIdentifierDietaryIodine
+  HKQuantityTypeIdentifierDietaryIron
+  HKQuantityTypeIdentifierDietaryMagnesium
+  HKQuantityTypeIdentifierDietaryManganese
+  HKQuantityTypeIdentifierDietaryMolybdenum
+  HKQuantityTypeIdentifierDietaryNiacin
+  HKQuantityTypeIdentifierDietaryPantothenicAcid
+  HKQuantityTypeIdentifierDietaryPhosphorus
+  HKQuantityTypeIdentifierDietaryPotassium
+  HKQuantityTypeIdentifierDietaryProtein
+  HKQuantityTypeIdentifierDietaryRiboflavin
+  HKQuantityTypeIdentifierDietarySelenium
+  HKQuantityTypeIdentifierDietarySodium
+  HKQuantityTypeIdentifierDietarySugar
+  HKQuantityTypeIdentifierDietaryThiamin
+  HKQuantityTypeIdentifierDietaryVitaminA
+  HKQuantityTypeIdentifierDietaryVitaminB12
+  HKQuantityTypeIdentifierDietaryVitaminB6
+  HKQuantityTypeIdentifierDietaryVitaminC
+  HKQuantityTypeIdentifierDietaryVitaminD
+  HKQuantityTypeIdentifierDietaryVitaminE
+  HKQuantityTypeIdentifierDietaryVitaminK
+  HKQuantityTypeIdentifierDietaryWater
+  HKQuantityTypeIdentifierDietaryZinc
+  HKQuantityTypeIdentifierDistanceCycling
+  HKQuantityTypeIdentifierDistanceDownhillSnowSports
+  HKQuantityTypeIdentifierDistanceSwimming
+  HKQuantityTypeIdentifierDistanceWalkingRunning
+  HKQuantityTypeIdentifierDistanceWheelchair
+  HKQuantityTypeIdentifierElectrodermalActivity
+  HKQuantityTypeIdentifierEnvironmentalAudioExposure
+  HKQuantityTypeIdentifierEnvironmentalSoundReduction
+  HKQuantityTypeIdentifierFlightsClimbed
+  HKQuantityTypeIdentifierForcedExpiratoryVolume1
+  HKQuantityTypeIdentifierForcedVitalCapacity
+  HKQuantityTypeIdentifierHeadphoneAudioExposure
+  HKQuantityTypeIdentifierHeartRate
+  HKQuantityTypeIdentifierHeartRateRecoveryOneMinute
+  HKQuantityTypeIdentifierHeartRateVariabilitySDNN
+  HKQuantityTypeIdentifierHeight
+  HKQuantityTypeIdentifierInhalerUsage
+  HKQuantityTypeIdentifierInsulinDelivery
+  HKQuantityTypeIdentifierLeanBodyMass
+  HKQuantityTypeIdentifierNumberOfTimesFallen
+  HKQuantityTypeIdentifierOxygenSaturation
+  HKQuantityTypeIdentifierPeakExpiratoryFlowRate
+  HKQuantityTypeIdentifierPeripheralPerfusionIndex
+  HKQuantityTypeIdentifierPhysicalEffort
+  HKQuantityTypeIdentifierPushCount
+  HKQuantityTypeIdentifierRespiratoryRate
+  HKQuantityTypeIdentifierRestingHeartRate
+  HKQuantityTypeIdentifierRunningGroundContactTime
+  HKQuantityTypeIdentifierRunningPower
+  HKQuantityTypeIdentifierRunningSpeed
+  HKQuantityTypeIdentifierRunningStrideLength
+  HKQuantityTypeIdentifierRunningVerticalOscillation
+  HKQuantityTypeIdentifierSixMinuteWalkTestDistance
+  HKQuantityTypeIdentifierStairAscentSpeed
+  HKQuantityTypeIdentifierStairDescentSpeed
+  HKQuantityTypeIdentifierStepCount
+  HKQuantityTypeIdentifierSwimmingStrokeCount
+  HKQuantityTypeIdentifierUVExposure
+  HKQuantityTypeIdentifierUnderwaterDepth
+  HKQuantityTypeIdentifierVO2Max
+  HKQuantityTypeIdentifierWaistCircumference
+  HKQuantityTypeIdentifierWalkingAsymmetryPercentage
+  HKQuantityTypeIdentifierWalkingDoubleSupportPercentage
+  HKQuantityTypeIdentifierWalkingHeartRateAverage
+  HKQuantityTypeIdentifierWalkingSpeed
+  HKQuantityTypeIdentifierWalkingStepLength
+  HKQuantityTypeIdentifierWaterTemperature
+  count: 110
+
+  Classes/queries imported:
+  HKAnchoredObjectQuery HKCategorySample HKCategoryType HKCorrelation HKCorrelationQuery HKCorrelationType HKDel
+  etedObject HKHealthStore HKObjectType HKObserverQuery HKQuantity HKQuantitySample HKQuantityType HKQuery HKQue
+  ryAnchor HKSample HKSampleQuery HKSampleType HKSeriesType HKStateOfMind HKStatisticsCollection HKStatisticsCol
+  lectionQuery HKUnit HKWorkout HKWorkoutEvent HKWorkoutRoute HKWorkoutRouteQuery HKWorkoutType 
+  enableBackgroundDeliveryForType:frequency:withCompletion: (string present)
+  Notable sensitive types: HeartRate, HRV SDNN, RestingHeartRate, AtrialFibrillationBurden, OxygenSaturation,
+  RespiratoryRate, BloodPressure, BloodGlucose, InsulinDelivery, InhalerUsage, BloodAlcoholContent,
+  BodyTemperature, BasalBodyTemperature, AppleSleepingWristTemperature, SleepAnalysis, MindfulSession,
+  HKStateOfMind (mood), NumberOfTimesFallen, ElectrodermalActivity, full dietary/nutrition set,
+  CorrelationTypeIdentifierFood, workouts + HKWorkoutRoute (GPS route of workouts; MetaHealthRouteLocation).
+  NOT imported: menstrual/reproductive, sexual activity, symptoms category types, ECG, audiogram,
+  medications, clinical records.
+
+## Health node tools and sync
+  Category of health data: general, sleep, or workout
+  Health data provider to query. Omit to query all available providers
+  Query health samples from the device. Use `category` to select the type of data. Date range must not exceed 1 day. Response uses payload_json format with a samples field containing a type-keyed map of bundled sample entries.
+  HCHLobsterNodeService/HealthSyncSource.swift
+  HealthSyncSource
+  [LBR][SYNC] health trailing resync failed: 
+  [LBR][SYNC] health trailing resync: device locked 
+  _TtC21HCHLobsterNodeService16HealthSyncSource
+  google_health_connect
+  health.background_update
+  health_observation_batch
+  health_observation_sync
+  health_sync_completed
+  health_sync_failed
+  health_sync_started
+  performTrailingWindowResyncIfNeeded(trigger:)
+  record_count_aggregates
+  record_count_events
+  record_count_meals
+  record_count_samples
+  record_count_sleep
+  record_count_workouts
+  sync health data
+  uploadSnapshot(_:syncMode:includeRawSamples:sampleCount:)
+  {FBTParam|assistant} wants to read detailed samples from your Health app.
+  {FBTParam|assistant} wants to refresh data from your Health app.
+  MetaHealthBackgroundDeliveryFrequency
+  MetaHealthMeal
+  MetaHealthMealItem
+  MetaHealthMealQueryParams
+  MetaHealthObserver
+  MetaHealthObserverBatch
+  MetaHealthObserverImpl
+  MetaHealthObserverParams
+  MetaHealthObserverResumeState
+  MetaHealthQuery
+  MetaHealthQueryAllResult
+  MetaHealthQueryClient
+  MetaHealthQueryHealthKitProvider
+  MetaHealthQueryObservationSession
+  MetaHealthQueryProviderPlugin
+  MetaHealthRouteLocation
+  MetaHealthSleepSampleQueryParams
+  MetaHealthSleepSession
+  MetaHealthSleepSessionQueryParams
+  MetaHealthSleepStatisticsQueryParams
+  MetaHealthWorkoutQueryParams
+  MetaHealthWorkoutSamplesQueryParams
+  MetaHealthWorkoutSamplesResult
+  MetaHealthWorkoutSegmentSummary
+  MetaHealthWorkoutSegmentType
+  MetaHealthWorkoutSummary
+=> PROVEN: HealthKit observer/anchored queries with background delivery feed a HealthSyncSource that
+   uploads snapshots ("uploadSnapshot(...includeRawSamples...)", counts of aggregates, workouts,
+   sleep, events, meals, samples) to the agent side, including a background path
+   ("health.background_update"), gated by node HITL ("sync health data" prompt).
+   The same MetaHealthQuery library also has a Google Health Connect provider (shared cross-platform code).

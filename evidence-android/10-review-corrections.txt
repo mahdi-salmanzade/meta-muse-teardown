@@ -1,0 +1,43 @@
+# Selected static excerpts; line numbers refer to the supplied extracted files.
+# JADX output may contain incorrect control flow; these are not runtime tests.
+
+## com/facebook/aura/nodes/datasource/ProactiveSyncRunner.java
+246: NodeHitlRequest nodeHitlRequest = new NodeHitlRequest(NodeHitlRequestKind.PROACTIVE_SYNC, dataSource2.getSourceId(), null, false, null, null);
+256: objCheck = nodeHitlGate.check(nodeHitlSpecForDataSource, nodeHitlRequest, c108281);
+328: if (!(objCheck instanceof NodeHitlResult.Denied)) {
+
+## com/facebook/aura/commands/notifications/NotificationsDataSource.java
+505: if (AuraManagedConfig.INSTANCE.isNotificationIngestionDisabled(contextA00)) {
+521: NodeHitlRequest nodeHitlRequest = new NodeHitlRequest(NodeHitlRequestKind.PROACTIVE_SYNC, notificationsDataSource2.getSourceId(), null, false, null, null);
+530: objCheck = companion.check(nodeHitlSpecForDataSource, nodeHitlRequest, this);
+
+## com/facebook/aura/gateway/HatchNodeHitlGate.java
+170: if (nodeHitlRequest2.kind != NodeHitlRequestKind.PROACTIVE_SYNC) {
+187: return denied(nodeHitlRequest2);
+209: return denied(nodeHitlRequest2);
+358: return denied(nodeHitlRequest2);
+478: if (nodeHitlRequest.kind != NodeHitlRequestKind.PROACTIVE_SYNC && HatchGatewayConnection.Companion.getInstance(this.userSession).isConnected()) {
+488: return PermissionDefaultMode.ALWAYS_ASK;
+497: C7m8.A06(HatchNodeHitlGateKt.TAG, "Connector baseline fetch failed; failing closed");
+498: return PermissionDefaultMode.ALWAYS_ASK;
+
+## com/facebook/aura/commands/calendar/CalendarDataSource.java
+58: public static final long BACKFILL_CHUNK_DAYS = 30;
+60: public static final long DEFAULT_BACKFILL_WINDOW_MS = 2592000000L;
+61: public static final long PROACTIVE_DEBOUNCE_MS = 5000;
+62: public static final long PROACTIVE_FUTURE_DAYS = 14;
+63: public static final long PROACTIVE_PAST_DAYS = 7;
+65: public static final boolean emitsProactively = true;
+68: public static final boolean supportsBackfill = true;
+338: proactiveTrigger = new ProactiveTrigger.ContentObserver(uri, true, 5000L);
+
+## com/facebook/aura/commands/notifications/HatchNotificationFilterManager.java
+25: this.filters = AbstractC12392c5.A03(new NotificationFilter[]{new WorkAppNotificationFilter(context), new BlockedAppsNotificationFilter()});
+
+## com/facebook/aura/startup/boot/HatchBootReceiver.java
+70: X.C3NG.A1J("Failed to enqueue proactive sync bootstrap: ", r0.getMessage(), com.facebook.aura.startup.boot.HatchBootReceiver.TAG);
+100: if (hatchGeofenceManager.reregisterAll(context2, this) == c94n) {
+127: if (hatchAlarmScheduler.reregisterAll(context, this) == c94n) {
+143: if (hatchReminderScheduler.reregisterAll(context4, this) == c94n) {
+149: if (hatchAlarmScheduler.reregisterAll(context, this) == c94n) {
+191: C7m8.A05(TAG, "Forced notification listener rebind via component-enabled toggle");

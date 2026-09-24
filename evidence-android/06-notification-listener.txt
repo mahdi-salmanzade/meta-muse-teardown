@@ -1,4 +1,4 @@
-# commands/notifications/NotificationSerializer.java: fields extracted from every notification
+# commands/notifications/NotificationSerializer.java: candidate fields (presence and OS delivery vary)
 "0123456789abcdef"
 "SHA-1"
 "android"
@@ -37,7 +37,7 @@
 "title"
 "yyyy-MM-dd'T'HH:mm:ss'Z'"
 
-# commands/notifications/BlockedAppsNotificationFilter.java (only filter; user-controlled)
+# commands/notifications/BlockedAppsNotificationFilter.java (user-controlled; WorkAppNotificationFilter also exists)
     public boolean shouldBlock(StatusBarNotification statusBarNotification) {
         C9Q.A0s(statusBarNotification, 0);
         String packageName = statusBarNotification.getPackageName();
@@ -70,3 +70,5 @@
 
 # grep for OTP / 2FA / verification-code filtering in commands/notifications and commands/sms:
 (no matches)
+# Scope limitation: this keyword search does not cover OS redaction, obfuscated/shared code or server-side filters.
+# Android 15+ can redact OTP notification content for untrusted notification listeners.

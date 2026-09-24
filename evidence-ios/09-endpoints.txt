@@ -1,0 +1,193 @@
+09 - ENDPOINTS / DOMAINS
+========================
+Method: strings of all 5 Mach-O binaries; (a) hosts in http(s)/ws(s) URLs, (b) bare hostnames under
+Meta-owned / relay domains. Many are shared Meta-SDK or 3rd-party-license references, not live traffic.
+Unique hosts in URLs: 104;  bare Meta/relay hostnames: 80;  union: 151
+
+## Muse / agent-specific (highest relevance)
+  hatch.metaaivm.com, .metaaivm.com / metaaivm.com   agent VM ("CVM") gateway; "MediaSync gateway vmURL: "
+  agent.meta.ai            web app, applinks, /api/hatch/oauth/callback, /terms, /invite/[REDACTED]
+  hatch-api.meta.ai        /hatch/feedback
+  api.muse.ai              /muse/prompts/ , /ssh-access/tokens  ("Meta SSH access" debug setting, see 10)
+  muse.ai, www.muse.ai, applink.muse.ai  (associated domains)
+  genai-hatch-realtime.facebook.com, genai-kepler-realtime.facebook.com, genai-waveform-realtime.facebook.com,
+  meta-ai-realtime.facebook.com, wearable-ai-realtime.facebook.com   realtime voice (WebRTC)
+  rupload.meta.ai/gen_ai_document_gen_ai_tenant   resumable upload
+  api.meta.ai, graph.meta.ai, www.meta.ai
+  Node gateway paths: /nodes/register /nodes/invoke-result /nodes/heartbeat /nodes/list /nodes/unpair
+    /fs/subscribe /activity/subscribe /identity/subscribe /skills/subscribe /spaces/subscribe /themes/subscribe
+    /reset/subscribe /model ; connectors: /connect/<id>, /disconnect/<id>, permissions/connectors/
+
+## Oblivious HTTP (privacy relay) infrastructure
+  meta-ohttp-relay-prod.fastly-edge.com (/ and /chunked/), meta-ohttp-relay-dev.fastly-edge.com,
+  meta-ohttp-config-prod.fastly-edge.com/ohai_acs_config.json, meta.privacy-gateway.cloudflare.com/relay
+  (content types message/ohttp-req, message/ohttp-chunked-req). Which requests use OHTTP is not
+  determinable statically.
+
+## Meta account / graph / shared infra
+  graph.facebook.com, b-graph.facebook.com, graph.meta.com, meta.graph.meta.com, ar.graph.meta.com,
+  ar-genai.graph.meta.com, payments-graph.graph.meta.com, auth.meta.com, accounts.meta.com,
+  api.accounts.meta.com, accountscenter.meta.com, gateway.facebook.com, gateway-edge.meta.com,
+  gateway-fallback.facebook.com, edge-stun.facebook.com, *.fbcdn.net, connect.facebook.net,
+  www.instagram.com, www.threads.net/.com, www.whatsapp.com, od.* (on-demand), help.meta.com
+  Internal-only references also present: www.internalfb.com, interngraph.intern.facebook.com,
+  www.intern.facebook.com, fburl.com (normal in Meta builds; employee-gated).
+
+## Third-party
+  api.mapbox.com, api.maptiler.com, demotiles.maplibre.org, www.openstreetmap.org (maps);
+  stripe.com / "Link by Stripe" (agent checkout approval); cdn.jsdelivr.net; rekor.sigstage.dev
+  (Sigstore verification lib); APNs (api.push.apple.com); FCM/Samsung/Windows push hosts appear
+  only as generic push-library strings.
+
+## Full host list (union)
+  accounts.meta.com
+  accountscenter.facebook.com
+  accountscenter.meta.com
+  adsmanager.facebook.com
+  agent.meta.ai
+  android.googleapis.com
+  aomediacodec.github.io
+  api.accounts.meta.com
+  api.amazon.com
+  api.development.push.apple.com
+  api.facebook.com
+  api.mapbox.com
+  api.maptiler.com
+  api.meta.ai
+  api.meta.com
+  api.muse.ai
+  api.push.apple.com
+  api2.ar.meta.com
+  apps.apple.com
+  ar-genai.graph.meta.com
+  ar.graph.meta.com
+  auth.meta.com
+  b-api.facebook.com
+  b-graph.facebook.com
+  b-www.facebook.com
+  cdn.jsdelivr.net
+  chat-e2ee-mini.facebook.com
+  chrome.googleapis.com
+  cloud.notify.windows.com
+  connect.facebook.net
+  crbug.com
+  crl.comodo.net
+  crl.comodoca.com
+  crl.globalsign.net
+  crl3.digicert.com
+  crl4.digicert.com
+  demotiles.maplibre.org
+  developer.mozilla.org
+  developers.google.com
+  dm3p.notify.windows.com
+  docs.google.com
+  docs.python.org
+  edge-stun.facebook.com
+  example.com
+  external-origincache-internal-services-all.fbcdn.net
+  external.xx.fbcdn.net
+  facebook.com
+  fburl.com
+  fcm.googleapis.com
+  fna.fbcdn.net
+  gateway-edge.meta.com
+  gateway-fallback.facebook.com
+  gateway.facebook.com
+  gateway.push.apple.com
+  gateway.workplace.com
+  genai-hatch-realtime.facebook.com
+  genai-kepler-realtime.facebook.com
+  genai-waveform-realtime.facebook.com
+  github.com
+  graph.facebook.com
+  graph.meta.ai
+  graph.meta.com
+  hatch-api.meta.ai
+  hatch-chat-widget.local
+  hatch.metaaivm.com
+  help.meta.com
+  helpx.adobe.com
+  i.ytimg.com
+  intern.facebook.com
+  internalfb.com
+  interngraph.intern.facebook.com
+  joda-time.sourceforge.net
+  link.com
+  lithium.facebook.com
+  log2025-alpha1.rekor.sigstage.dev
+  log2025-alpha2.rekor.sigstage.dev
+  log2025-alpha3.rekor.sigstage.dev
+  log2026-1.us-east4.rekor.sigstage.dev
+  lookaside.ar.meta.com
+  m.facebook.com
+  meta-ai-realtime.facebook.com
+  meta-ohttp-config-prod.fastly-edge.com
+  meta-ohttp-relay-dev.fastly-edge.com
+  meta-ohttp-relay-prod.fastly-edge.com
+  meta.com
+  meta.graph.meta.com
+  meta.hpke-keys.privacy-gateway.cloudflare.com
+  meta.privacy-gateway.cloudflare.com
+  mo-realtime.facebook.com
+  mobile.facebook.com
+  mqtt.parse.com
+  muse.ai
+  my-od.accountscenter.meta.com
+  nnapi.ovi.com
+  ns.adobe.com
+  ns.google.com
+  nvlpubs.nist.gov
+  od.auth.meta.com
+  od.graph.meta.com
+  od.instagram.com
+  od.whatsapp.com
+  payments-graph.graph.meta.com
+  protobuf.dev
+  push.apple.com
+  raw.githubusercontent.com
+  rekor.sigstage.dev
+  rupload.meta.ai
+  s-external.ak.fbcdn.net
+  sb.facebook.com
+  sb.instagram.com
+  scontent.xx.fbcdn.net
+  secure.facebook.com
+  shortwave.facebook.com
+  snr.fbcdn.net
+  static.xx.fbcdn.net
+  stripe.com
+  swiftpackageindex.com
+  t.me
+  updates.push.services.mozilla.com
+  video.xx.fbcdn.net
+  wa.me
+  wacdn-origincache-internal-services-all.fbcdn.net
+  wearable-ai-realtime.facebook.com
+  webrtc.googlesource.com
+  www.apache.org
+  www.digicert.com
+  www.facebook.com
+  www.google.com
+  www.icloud.com
+  www.ietf.org
+  www.instagram.com
+  www.intern.facebook.com
+  www.internalfb.com
+  www.messenger.com
+  www.meta.ai
+  www.meta.com
+  www.oculus.com
+  www.openstreetmap.org
+  www.pariscope.dev
+  www.prod.facebook.com
+  www.rfc-editor.org
+  www.threads.com
+  www.threads.net
+  www.webrtc.org
+  www.whatsapp.com
+  www.workplace.com
+  www.youtube.com
+  xx.fbcdn.net
+  xy.fbcdn.net
+  xz.fbcdn.net
+  {0}.push.samsungosp.com

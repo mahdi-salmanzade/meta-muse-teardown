@@ -1,0 +1,33 @@
+# Selected static excerpts; line numbers refer to the supplied extracted files.
+# JADX output may contain incorrect control flow; these are not runtime tests.
+
+## chrome/lib/pairing-security.js
+10: 'https://hatch.meta.ai',
+11: 'https://agent.meta.ai',
+63: if (!event || event.source !== expectedSource) {
+66: if (event.isTrusted !== true) {
+69: if (event.origin !== expectedOrigin || !isAllowedHatchWebOrigin(event.origin)) {
+106: if (!isAllowedHatchWebGatewayHost(url.hostname)) return null;
+126: if (!isAllowedHatchWebGatewayHost(url.hostname)) return null;
+127: if (url.protocol !== 'wss:') return null;
+128: } else if (url.protocol !== 'ws:' && url.protocol !== 'wss:') {
+
+## chrome/background.js
+22: if (!hatchPairingSecurity.isAllowedHatchWebSender(sender)) {
+23: throw new Error('Unauthorized Muse pairing sender');
+31: const endpoint = new URL('/api/hatch/extension-pairing', sender.url).toString();
+644: if (!hatchPairingSecurity.isAllowedHatchWebSender(sender)) {
+645: sendResponse({ error: 'Unauthorized Muse pairing sender' });
+
+## chrome/lib/blocked-sites.js
+20: *   • a malformed http(s) URL fails closed,
+83: function isNonWebScheme(urlString) {
+93: return scheme !== 'http' && scheme !== 'https';
+
+## hatch/index.html (bounded minified snippets)
+||Ri}),[Ki,ea]=(0,import_react$636.useState)(Wi?.autoSync.enabled??!0),ta=()=>{if(!$r&&!Ri&&o!=null){let e=zi.find(e=>e.action===`openSettings`);if(e!=null){o(e.id,e.action);return}}Wi?.onChange(Ki),Ri?r():n()},na=!$r&&!Ri,ra=t==null?null:getLocalConnecto
+n}),setAutoSync:(e,t)=>postToNative({action:`setLocalConnectorAutoSync`,id:e,enabled:t})},sharedSpace:{resolveFrameUrl:e=>buildCloudflareSharedSpaceUrl(e)},spaceBootstrapFrame:{mint:mintEmbedCvmBootstrapFrame,ownsFrame:embedCvmBootstrapFrameOwns,revoke:re
+torHitlLabel(e.iconKey,`read`,n.label)}:null}function localConnectorAutoSyncRowProps(e,t,n,{accessResolvedByConnect:r=!1}={}){let i=e.autoSync;return i==null||t==null?null:{connectorId:e.id,iconKey:e.iconKey,autoSync:i,blockedBy:autoSyncBlock(e,r),analyti
+
+## Literal onMessageExternal occurrences in chrome/**/*.js
+No matches; this is a bounded literal search, not proof about future builds.

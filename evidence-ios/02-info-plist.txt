@@ -1,0 +1,73 @@
+02 - INFO.PLIST (Payload/HatchApp.app/Info.plist; hash matches signed CodeDirectory slot)
+==========================================================================================
+
+## Identity
+  "ApplicationIdentifier" => "T84QZS65DQ.com.facebook.hatch"
+  "CFBundleDisplayName" => "Muse"
+  "CFBundleIdentifier" => "com.facebook.hatch"
+  "CFBundleShortVersionString" => "8.1.0"
+  "CFBundleVersion" => "1074192126"
+  "FacebookAppID" => "1408214714122653"
+  "FBAppVersion" => "8.1.0.8.136"
+  "FBBuildBranchName" => "dev"
+  "FBKeychainAccessGroup" => "T84QZS65DQ.platformFamily"
+  "ITSAppUsesNonExemptEncryption" => false
+  "MinimumOSVersion" => "18.0"
+  "NSSupportsLiveActivities" => true
+  "PHPhotoLibraryPreventAutomaticLimitedAccessAlert" => true
+
+## Usage descriptions (verbatim) — 16 keys
+  "NSBluetoothAlwaysUsageDescription" => "Muse uses Bluetooth to search for and provide information on nearby devices and peripherals found."
+  "NSCalendarsFullAccessUsageDescription" => "Muse would like to access your calendar events to help answer questions about your schedule."
+  "NSCalendarsUsageDescription" => "Muse would like to access your calendar events to help answer questions about your schedule."
+  "NSCameraUsageDescription" => "Capture and send photos to ask Muse questions or edit them with AI."
+  "NSContactsUsageDescription" => "Muse can help you draft messages to your contacts if it has access."
+  "NSHealthShareUsageDescription" => "Muse would like access to your health data to support questions you may have."
+  "NSHealthUpdateUsageDescription" => "Muse can import health data to ensure your Health app has the full picture."
+  "NSHomeKitUsageDescription" => "Muse can control your smart-home accessories — lights, locks, scenes — when you ask it to."
+  "NSLocationAlwaysAndWhenInUseUsageDescription" => "This lets Muse proactively provide you suggestions relevant to where you are."
+  "NSLocationWhenInUseUsageDescription" => "This lets Muse answer questions relevant to where you are."
+  "NSMicrophoneUsageDescription" => "This allows you to talk to Muse and ask questions with your voice."
+  "NSPhotoLibraryUsageDescription" => "Muse needs access to your photo library to sync media to your agent."
+  "NSRemindersFullAccessUsageDescription" => "Muse would like to access your reminders to help manage your tasks and to-do lists."
+  "NSRemindersUsageDescription" => "Muse would like to access your reminders to help manage your tasks and to-do lists."
+  "NSSpeechRecognitionUsageDescription" => "Muse uses speech recognition to transcribe audio you record."
+   NOT present: NSUserTrackingUsageDescription (no ATT prompt), NSMotionUsageDescription,
+   NSFaceIDUsageDescription, NSLocalNetworkUsageDescription, NSHealthClinicalHealthRecordsShareUsageDescription,
+   NSAppleMusicUsageDescription, NSPhotoLibraryAddUsageDescription.
+
+## UIBackgroundModes
+["audio","fetch","location","remote-notification"]
+
+## BGTaskSchedulerPermittedIdentifiers
+["com.meta.hatch.cameraroll.sync.processingTask","com.meta.hatch.nodedata.sync.refreshTask"]
+
+## CFBundleURLTypes (own URL schemes)
+[{"CFBundleURLSchemes":["hatch"]}]
+
+## LSApplicationQueriesSchemes (15 entries; apps it can probe for with canOpenURL)
+["barcelona","fb","fb-messenger","fb-messenger-share-api","facebook-stories","instagram","instagram-secure-share","twitter","whatsapp","comgooglemaps","waze","duo","googleauthenticator","http","https"]
+   Notable: barcelona (=Threads), fb, fb-messenger, fb-messenger-share-api, facebook-stories,
+   instagram, instagram-secure-share, whatsapp (Meta family); twitter; comgooglemaps, waze;
+   duo; googleauthenticator. Short list — not a broad app-inventory probe.
+
+## NSUserActivityTypes
+["INSendMessageIntent"]
+
+## Associated domains -> see 03-entitlements.txt (applinks:agent.meta.ai, *.muse.ai, webcredentials:meta.ai ...)
+
+## App Intents (Metadata.appintents/extract.actionsdata)
+  Payload/HatchApp.app/Metadata.appintents
+    HatchVoiceEndCallIntent                  title='End call' openAppWhenRun=False params=[]
+    HatchVoiceToggleMuteIntent               title='Mute or unmute microphone' openAppWhenRun=False params=[]
+    HatchDictateToMuseAppIntent              title='Dictate and send' openAppWhenRun=True params=[]
+    HatchOpenMuseAppIntent                   title='Open Muse' openAppWhenRun=True params=[]
+    HCHDictateToHatchAppIntent               title='Dictate and send' openAppWhenRun=True params=[]
+    HCHForwardEmailToHatchAppIntent          title='Forward email to your assistant' openAppWhenRun=False params=['subject', 'emailContent', 'sender']
+    HCHForwardIMessageToHatchAppIntent       title='Forward iMessage to your assistant' openAppWhenRun=False params=['content', 'sender', 'senderName', 'recipients']
+  PlugIns/WidgetExtension.appex/Metadata.appintents
+    HatchDictateToMuseAppIntent              title='Dictate and send' openAppWhenRun=True params=[]
+    HatchOpenMuseAppIntent                   title='Open Muse' openAppWhenRun=True params=[]
+    HatchLockScreenChatConfiguration         title='Chat widget' openAppWhenRun=False params=['icon']
+   -> HCHForwardIMessageToHatchAppIntent / HCHForwardEmailToHatchAppIntent run WITHOUT opening the app;
+      they are the Shortcuts-automation hooks used to forward incoming iMessages / emails (see 06).

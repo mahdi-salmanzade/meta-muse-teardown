@@ -1,0 +1,33 @@
+04 - APP EXTENSIONS (Payload/HatchApp.app/PlugIns; no Extensions/ dir)
+=======================================================================
+Count: 3. No keyboard extension. No network extension (VPN / packet tunnel / content filter / DNS proxy).
+No Message Filter, Call Directory, Intents(legacy) or iMessage app extension.
+
+1) PlugIns/HatchNotificationServiceExtension.appex
+   CFBundleIdentifier  com.facebook.hatch.NotificationServiceExtension
+   NSExtensionPointIdentifier  com.apple.usernotifications.service
+   NSExtensionPrincipalClass   FBNotificationService
+   Entitlements: aps-environment production, usernotifications.communication, app groups
+   group.com.facebook.hatch / group.com.facebook.family / group.com.metaplatforms.family,
+   keychain T84QZS65DQ.platformFamily. Links @rpath/MobileConfig.framework.
+   Purpose (strings): rewrites incoming pushes (HatchChatPushNotificationPayload,
+   HatchHitlApprovalNotificationPayload, "Hatch comm notif donate failed"). No node/sync/location/
+   health strings found in its binary.
+
+2) PlugIns/HatchShareExtension.appex
+   CFBundleIdentifier  com.facebook.hatch.ShareExtension   (display name "Muse")
+   NSExtensionPointIdentifier  com.apple.share-services
+   NSExtensionPrincipalClass   HatchShareExtensionLib.HCHShareViewController
+   Activation: URLs, images, file URLs, public.data
+   NSExtensionJavaScriptPreprocessingFile = GetPageContent  (PlugIns/HatchShareExtension.appex/GetPageContent.js)
+   GetPageContent.js (Meta copyright header) runs in Safari only when the user taps Share->Muse; it returns
+   {url, pageTitle, description, thumbnailUrl, iconUrl, contentText} where contentText = current text
+   selection, else meta description, else first <p> (500 chars). No cookies/forms/storage access.
+
+3) PlugIns/WidgetExtension.appex
+   CFBundleIdentifier  com.facebook.hatch.WidgetExtension
+   NSExtensionPointIdentifier  com.apple.widgetkit-extension
+   App Intents: HatchDictateToMuseAppIntent, HatchOpenMuseAppIntent, HatchLockScreenChatConfiguration
+   (home/lock-screen chat & dictate widgets; Info.plist NSSupportsLiveActivities=true in main app).
+
+Keyboard with RequestsOpenAccess: NOT PRESENT.

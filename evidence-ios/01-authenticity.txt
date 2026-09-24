@@ -1,0 +1,95 @@
+01 - AUTHENTICITY (static only; nothing installed or run)
+===========================================================
+Input: com.facebook.hatch_8.1_und3fined.ipa
+sha256 70c3cfe5bde49e31eecd087fdbb6749703d2dd74f124c7c464866884d72603b2 (re-verified)
+
+VERDICT: GENUINE META APP STORE BINARY, FAIRPLAY-DECRYPTED ("cracked" dump), NOT RE-SIGNED,
+NO EVIDENCE OF MODIFICATION / TROJANING. The only byte-level differences from Apple's signed
+original are (a) the decrypted __TEXT pages and (b) the 4-byte cryptid field set 1 -> 0 in each
+Mach-O. One extra 9-byte marker file sits OUTSIDE the .app bundle.
+
+1. Payload layout
+   Payload/HatchApp.app/          the app
+   Payload/decrypt.day            9 bytes, ASCII "und3fined"  <- dumper/uploader tag, OUTSIDE the
+                                  .app bundle, not referenced by anything, not executable.
+   No iTunesMetadata.plist, no embedded.mobileprovision (normal for an App Store-sourced dump).
+   SC_Info/ (HatchApp.sinf/.supf/.supp/.supx/.v4.supp/.v5.supf, Manifest.plist) present in app and
+   every nested bundle = FairPlay DRM info from an App Store download.
+
+2. Code signatures (codesign -dvvv), all 5 Mach-O binaries
+   binary                                                         Identifier                                    Team
+   HatchApp                                                       com.facebook.hatch                            V9WTTPBFK9
+   Frameworks/MobileConfig.framework/MobileConfig                 com.facebook.MobileConfig                     V9WTTPBFK9
+   PlugIns/HatchNotificationServiceExtension.appex/...            com.facebook.hatch.NotificationServiceExtension V9WTTPBFK9
+   PlugIns/HatchShareExtension.appex/...                          com.facebook.hatch.ShareExtension             V9WTTPBFK9
+   PlugIns/WidgetExtension.appex/...                              com.facebook.hatch.WidgetExtension            V9WTTPBFK9
+   Authority chain on every binary:
+       Authority=Apple iPhone OS Application Signing
+       Authority=Apple iPhone Certification Authority
+       Authority=Apple Root CA
+   => Apple's App Store distribution re-signature (what Apple applies to every App Store
+      download). Not an ad-hoc signature, not a random developer/enterprise cert, not re-signed.
+   Designated requirement: anchor apple generic and certificate leaf[field.1.2.840.113635.100.6.1.3]
+      /* exists */ and identifier "com.facebook.hatch"   (App Store leaf OID)
+   application-identifier prefix T84QZS65DQ (Facebook's legacy App ID prefix), team-identifier
+   V9WTTPBFK9 (Meta Platforms, Inc. — same team seen on the macOS build).
+
+3. FairPlay encryption (otool -l, LC_ENCRYPTION_INFO_64)
+   HatchApp            cryptoff 16384 cryptsize 72089600 cryptid 0
+   MobileConfig        cryptoff 16384 cryptsize 557056   cryptid 0
+   NotificationSvcExt  cryptoff 16384 cryptsize 917504   cryptid 0
+   ShareExtension      cryptoff 16384 cryptsize 147456   cryptid 0
+   WidgetExtension     cryptoff 16384 cryptsize 442368   cryptid 0
+   cryptid 0 everywhere = decrypted memory dump (App Store binaries ship cryptid 1).
+
+4. `codesign --verify --deep --strict` => "invalid signature (code or signature have been modified)".
+   Expected for a decrypted dump. To determine WHAT changed, every 4 KiB page of every binary
+   was re-hashed (SHA-256) and compared with the page hashes in Apple's signed CodeDirectory:
+
+   binary              mismatching pages   = FairPlay range pages   + page holding cryptid   other
+   HatchApp            17601               17600 (pages 4-17603)    1 (page 1)               0
+   MobileConfig        137                 136   (pages 4-139)      1 (page 0)               0
+   WidgetExtension     109                 108   (pages 4-111)      1 (page 1)               0
+   ShareExtension      37                  36    (pages 4-39)       1 (page 0)               0
+   NotificationSvcExt  225                 224   (pages 4-227)      1 (page 1)               0
+
+   Restoring the cryptid field to 1 makes the header page hash match Apple's signed hash EXACTLY
+   in all 5 binaries. => Load commands (incl. every LC_LOAD_DYLIB) are byte-identical to what Apple
+   signed; no dylib was inserted. All pages outside the encrypted range (including __DATA /
+   __LINKEDIT regions covered by the CodeDirectory) match Apple's signature.
+   (Signed hashes cover ciphertext, so the decrypted __TEXT pages cannot be verified against the
+   signature by construction; that residual is inherent to any decrypted IPA.)
+
+   Special slots (main + all appex): Info.plist hash, CodeResources hash, entitlements (XML and
+   DER) hash all MATCH the signed CodeDirectory => Info.plist and entitlements are original.
+
+   Resource seal (_CodeSignature/CodeResources files2), main app: 473 entries, 0 missing,
+   0 unsealed extra files. Only mismatches = the 4 nested Mach-O executables (decrypted, as above).
+   Nested bundles MobileConfig.framework (2 entries), WidgetExtension (92), ShareExtension (87),
+   NotificationServiceExtension (44): 0 mismatches, 0 missing, 0 unsealed files.
+   => No resource (JS, plist, json, metallib, etc.) was added or altered inside the bundle.
+
+5. Dylib load list (otool -L)
+   HatchApp: 128 load entries; the ONLY non-/System, non-/usr/lib entry is
+       @rpath/MobileConfig.framework/MobileConfig
+   NotificationServiceExtension: same single @rpath entry. Share/Widget ext: none.
+   No *.dylib file anywhere in the bundle. No Substrate/ElleKit/Substitute/libhooker/
+   TweakInject/"und3fined"/"decrypt"/iGameGod/Flex/Satella strings or files.
+   Frameworks/ contains only MobileConfig.framework (Meta's config SDK); Meta ships its code
+   statically linked, so a single framework is consistent with a Meta build.
+
+6. Info.plist identity (hash-verified against signature)
+   CFBundleIdentifier        com.facebook.hatch
+   CFBundleDisplayName/Name  Muse
+   CFBundleShortVersionString 8.1.0     CFBundleVersion 1074192126
+   FBAppVersion 8.1.0.8.136   FBBuildBranchName dev   FBBuildRevision 09e9d43fb5bc3d90ecbd6c387945823937235a85
+   CFBuildDate 2026-09-22T07:00:13   MinimumOSVersion 18.0   DTSDKName iphoneos27.0  DTXcode 2700
+   UIDeviceFamily [1] (iPhone only)   FacebookAppID 1408214714122653
+
+7. Zip timestamps: bulk of entries dated 2026-09-22 (Meta build date); the 5 decrypted
+   executables + SC_Info-adjacent entries dated 2026-09-23/24 and decrypt.day 2026-09-24 —
+   consistent with a dump-and-repack after App Store download.
+
+Caveat: static verification can prove header/resources/signature-covered data are original;
+it cannot cryptographically prove the decrypted code bytes equal the encrypted originals.
+Nothing observed (load commands, resources, strings) suggests code patching.

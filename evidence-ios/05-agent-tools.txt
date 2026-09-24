@@ -1,0 +1,178 @@
+05 - AGENT (NODE) TOOLS exposed by the iPhone to the Meta-hosted agent VM
+==========================================================================
+Source: strings of Payload/HatchApp.app/HatchApp (module HCHLobsterNodeService, "Lobster" = node codename).
+Protocol strings: node.register (/nodes/register), node.invoke.request, node.invoke.result
+(/nodes/invoke-result), node.heartbeat (/nodes/heartbeat), node.list, node.unpair; register response
+field "accepted_hatch_app_commands"; log "Node execute: node HITL denied".
+
+## A. Contiguous command table in the binary (verbatim, in order)
+location.set_sharing_mode
+location.get
+geofence.remove
+geofence.list
+calendar.search
+calendar.events.create
+calendar.events.update
+calendar.events.delete
+health.samples
+contacts.search
+contacts.create
+contacts.update
+contacts.delete
+reminders.list
+reminders.create
+reminders.update
+reminders.complete
+reminders.delete
+photo.sync
+photo.sync_stop
+media.delete
+media.favorite
+album.create
+album.add
+home.list
+home.accessories.list
+home.accessory.get
+home.accessory.set
+home.scene.run
+home.bind_geofence
+home.bridge.list
+home.bridge.remove
+home.scene.synthesize
+home.security.sweep
+subscriptions.upgrade
+invite.upsell
+device.find
+message.shortcut_setup
+message.draft
+shortcut_notifications.forward
+data_source.backfill
+data_source.refresh
+ui.navigate.thread.create
+ui.navigate.chat.session
+ui.navigate.chat
+ui.navigate.thread.search
+ui.navigate.library
+ui.navigate.library.item
+ui.navigate.explore
+ui.navigate.feed
+ui.navigate.goals
+ui.navigate.invite_friends
+ui.navigate.settings
+ui.navigate.settings.identity
+ui.navigate.profile
+ui.navigate.activity.item
+ui.navigate.scheduled.tasks
+ui.navigate.scheduled.task
+ui.navigate.space
+ui.navigate.space.tab
+ui.navigate.memory
+ui.navigate.memory.item
+ui.navigate.voice.select_voice
+ui.get.navigation.tab_order
+ui.set.navigation.tab_order
+ui.set.appearance.chat_theme
+ui.set.voice.select_voice
+ui.set.voice.set_mute
+ui.set.voice.end_call
+pin.reminder
+(also elsewhere: geofence.set, bluetooth.scan, health.query, photo.sync_status, files.subscribe [gateway fs
+subscription], home.scene.list)
+
+Grouped:
+  Location  : location.get, location.set_sharing_mode (when_chatting | always | never), geofence.set/list/remove
+  Calendar  : calendar.search, calendar.events.create/update/delete
+  Health    : health.samples, health.query
+  Contacts  : contacts.search/create/update/delete
+  Reminders : reminders.list/create/update/complete/delete, pin.reminder
+  Photos    : photo.sync, photo.sync_stop, photo.sync_status, media.delete, media.favorite, album.create, album.add
+  HomeKit   : home.list, home.accessories.list, home.accessory.get/set, home.scene.list/run, home.scene.synthesize,
+              home.choreograph, home.bind_geofence, home.bridge.list/remove, home.security.sweep
+  Bluetooth : bluetooth.scan
+  Messaging : message.draft (composer card, user sends), message.shortcut_setup, shortcut_notifications.forward
+  Wearables : device.find (Ray-Ban Meta / smart glasses, deep link metaai://find-my)
+  Sync      : data_source.backfill, data_source.refresh
+  App UI    : ui.navigate.* (19), ui.get/set.navigation.tab_order, ui.set.appearance.chat_theme, ui.set.voice.*
+  Commerce  : subscriptions.upgrade, invite.upsell
+NOT FOUND as node commands: sms send, phone call, camera capture, screen capture/recording, clipboard read,
+  files.* local filesystem read, alarms/timers, notification reading, keyboard/text read, app list.
+
+## B. Selected embedded tool descriptions (verbatim excerpts; these are the agent-facing specs)
+  * Cancel the currently running camera roll sync. Does NOT disable the user's Camera Roll Sync toggle or stop future automatic syncs 
+  * Create a geofence-triggered HomeKit bridge. When the user enters or exits the specified location, the configured HomeKit actions execute automatically. Requires both homekit and Always location permissions.
+  * Create one or more contacts in Apple Contacts silently after user approval. Use this only when the user asks to save people or businesses to contacts. Always pass contacts_json as a JSON array string, even for one contact. Each object must include display_name and may include phones, emails, organization, or job_title. Give a contact several phone numbers or email addresses with phones:[{value,label?}] and emails:[{value,label?}], in the order they should be saved; labels may repeat and the first entry becomes the primary one, but the same number or address twice in one list is rejected. The legacy phone_number/phone_label and email/email_label scalar pairs still work for a single value, but
+  * Creates a message draft card with `body` + recipients. **Use when the user wants to send a text message.** Returns ok=true with `result: "draft_presented"` once the card is ready in chat, plus `recipients_count`, `resolved_recipients` (so you can confirm e.g. "Bob" 
+  * Delete one or more existing contacts from Apple Contacts silently after user approval. Use this only when the user explicitly asks to remove saved contacts. Always pass targets_json as a JSON array string, even for one contact. Each target object must include platform_id (the contact identifier from the contacts data source's platformId field). Do NOT call contacts.delete once per contact when the user asks to delete multiple contacts; batching keeps this as one user-approved action. This writes directly to Apple Contacts; it does not open the Contacts app.
+  * Delete photos or videos from the user's photo library by their local asset identifiers. The device will show a native iOS confirmation dialog that the user must approve before deletion occurs. Use after analyzing synced photos to remove duplicates, similar photos, or unwanted items the user has agreed to clean up.
+  * Device calendars and events (id, title, start/end time, location, calendar). Each event's own `start_date`/`end_date` (the response fields, not the window arguments) are UTC and internal 
+  * Discover the iMessage shortcut setup link and forwarding state. This does not read message history or install an automation. Use when the user asks to connect or read messages and no incoming message data is available.
+  * Find one of the user's connected wearable devices (Ray-Ban Meta or other smart glasses). Use this when the user asks "where are my glasses?", "find my glasses", "locate my Ray-Bans", or similar. Also use when the user wants to set up Find Device 
+  * Incoming messages forwarded by a user-created Apple Shortcuts automation. No message history access. iOS cannot detect removal of the automation; disconnect in the iMessage connector to stop forwarding.
+  * Pass `full_sync: true` ONLY when the user explicitly asks to sync ALL their photos (e.g. "back up my entire library", "sync everything"). This flips a persistent override so subsequent automatic catch-up syncs also drain the full backlog instead of stopping at the conditions-based per-run cap (~500 on Wi-Fi). The override stays on until the user disables it in settings 
+  * Prefer this over syncing the whole address book when the user is asking about specific people; it returns only the relevant contacts.
+  * Query health samples from the device. Use `category` to select the type of data. Date range must not exceed 1 day. Response uses payload_json format with a samples field containing a type-keyed map of bundled sample entries.
+  * Register a geofence so the device can proactively react when the user arrives at or leaves a place. Requires background location access to already be granted via `location.set_sharing_mode(mode: "always")`. Use this for location-based reminders like "remind me when I get to the office". Give the place EITHER as latitude and longitude, or as a free-text address the device will look up. Returns a geofence ID that can be used with `geofence.remove`.
+  * Scan for Bluetooth Low Energy devices broadcasting near the user's phone and return them ranked by signal strength. Use when the user asks what Bluetooth devices are around them, which ones are closest, or wants to find a specific advertising accessory. `payload_json` holds `devices` (each with `id`, `name` when the device broadcasts one, `rssi` in dBm, `best_rssi`, a coarse `signal` bucket of excellent/good/fair/weak, `samples`, `connectable`, `tx_power`, `service_uuids`, `company_id`, `company` when the id is a known vendor, `first_seen_ms_ago`, `last_seen_ms_ago`), plus `device_count`, `returned`, `named_count`, `truncated` and `scanned_ms`. Beacons are NOT decoded: iBeacons are invisible
+  * To stop iMessage reads when the user asks to disconnect or stop syncing messages, set `disable_forwarding: true`. This discards queued messages and blocks future forwarding on this device. Previously uploaded messages are not deleted. The user can also disable or delete the automation in Apple's Shortcuts app.
+  * Trigger a sync of the user's camera roll to the server. The sync runs in the background; the command returns immediately once the work is enqueued. Use when the assistant needs up-to-date photo context or the user asks to share recent photos.
+  * Update one or more existing contacts in Apple Contacts silently after user approval. Use this only when the user explicitly asks to change saved contacts. Always pass updates_json as a JSON array string, even for one contact. Each update object must include platform_id (the contact identifier from the contacts data source's platformId field) plus at least one field: display_name, phones, emails, organization, or job_title. Fields you omit are left alone. display_name sets the first and last name only, so a rename is rejected when the saved name also has a prefix, middle name or suffix 
+  * [location.set_sharing_mode] ... to read the current position, call `location.get`. Choose 'mode' based on the user's intent: - 'when_chatting': foreground access, enough for one-off or conversational location queries (which you then answer via `location.get`; that command reads the position but never grants access, so call this first if `location.get` reports it is not shared). - 'always': background access. Use ONLY when the user explicitly asks for continuous or background monitoring, e.g. "always track my location" or "notify me when I'm near a coffee shop". Enabling it starts proactive location updates and is required before `geofence.set`. iOS cannot grant 'always' directly: if foreground access is not yet held, this returns error 'requires_when_in_use' 
+  * Background geofences require Always location access. Call location.set_sharing_mode with mode 'always' before geofence.set.
+  * Geofence bridges require Always location access. Call location.set_sharing_mode with mode 'always' before home.bind_geofence.
+  * Location sharing tier: 'when_chatting' (foreground), 'always' (background/continuous 
+
+## C. Human-in-the-loop (HITL) gate on node commands
+Permission prompts (verbatim, {FBTParam|assistant} = assistant name):
+  {FBTParam|assistant} wants to refresh data from your Health app.
+  {FBTParam|assistant} wants to refresh photos from your library.
+  {FBTParam|assistant} wants to refresh your location data.
+  {FBTParam|assistant} wants to refresh your reminders.
+  {FBTParam|assistant} wants to refresh events from your calendar.
+  {FBTParam|assistant} wants to refresh contacts from your phone.
+  {FBTParam|assistant} wants to check your HomeKit security accessories.
+  {FBTParam|assistant} wants to create a new HomeKit scene.
+  {FBTParam|assistant} wants to run a coordinated sequence across HomeKit accessories.
+  {FBTParam|assistant} wants to remove a HomeKit bridge.
+  {FBTParam|assistant} wants to read your HomeKit bridges.
+  {FBTParam|assistant} wants to trigger a HomeKit action based on your location.
+  {FBTParam|assistant} wants to activate a HomeKit scene.
+  {FBTParam|assistant} wants to read your HomeKit scenes.
+  {FBTParam|assistant} wants to change the state of a HomeKit accessory.
+  {FBTParam|assistant} wants to read the state of a HomeKit accessory.
+  {FBTParam|assistant} wants to read your HomeKit accessories.
+  {FBTParam|assistant} wants to read your HomeKit homes.
+  {FBTParam|assistant} wants to add photos to an album in your library.
+  {FBTParam|assistant} wants to create a new album in your photo library.
+  {FBTParam|assistant} wants to mark a photo or video as a favorite.
+  {FBTParam|assistant} wants to remove a photo or video from your library.
+  {FBTParam|assistant} wants to read photos from your library.
+  {FBTParam|assistant} wants to delete a reminder.
+  {FBTParam|assistant} wants to mark a reminder as completed.
+  {FBTParam|assistant} wants to update an existing reminder.
+  {FBTParam|assistant} wants to add a new reminder.
+  {FBTParam|assistant} wants to read your reminders.
+  {FBTParam|assistant} wants to delete a saved contact from your phone.
+  {FBTParam|assistant} wants to update a saved contact on your phone.
+  {FBTParam|assistant} wants to save a new contact to your phone.
+  {FBTParam|assistant} wants to search contacts on your phone.
+  {FBTParam|assistant} wants to list the Bluetooth devices broadcasting around you and how strong their signal is.
+  {FBTParam|assistant} wants to read detailed samples from your Health app.
+  {FBTParam|assistant} wants to remove an event from your calendar.
+  {FBTParam|assistant} wants to update an event on your calendar.
+  {FBTParam|assistant} wants to add an event to your calendar.
+  {FBTParam|assistant} wants to read events from your calendar.
+  {FBTParam|assistant} wants to delete a location-based alert.
+  {FBTParam|assistant} wants to create a location-based alert.
+  {FBTParam|assistant} wants to read your saved location alerts.
+  {FBTParam|assistant} wants to change how your location is shared.
+  {FBTParam|assistant} wants to make a change on your phone.
+  {FBTParam|assistant} wants to read data from your phone.
+  {FBTParam|assistant} wants to perform an action on your device.
+Per-command permission states shown in UI: "Always denied" / "Auto allowed" / "Always allowed"; button "Always allow".
+Decision enum strings: allow_once, allow_session, allow_today, allow_always, auto_allow, deny_always, always_ask.
+Denial log lines: "Node HITL denied: reason=mode_deny|choice_deny|choice_deny_always|server_decision|server_timeout|
+  cannot_prompt|unknown_command|build_failed ..."; "Node data sync: node HITL denied proactive sync";
+  "MediaSync: catch-up sync denied by node HITL gate"; "MediaSync: reactive drain denied by node HITL gate".
+=> PROVEN: node commands and proactive syncs pass through a per-command approval gate with
+   persistent "always allow"/"auto_allow" options. INFERRED (not provable statically): once a
+   command/sync is set to Always/Auto allowed, the VM can invoke it without a fresh prompt.

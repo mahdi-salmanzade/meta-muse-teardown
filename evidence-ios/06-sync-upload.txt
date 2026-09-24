@@ -1,0 +1,141 @@
+06 - BACKGROUND SYNC / BACKFILL / UPLOAD (iOS equivalents of macOS sync + MediaSync)
+=====================================================================================
+Source: strings of Payload/HatchApp.app/HatchApp unless noted.
+
+## A. Node data sync sources (Swift classes in module HCHLobsterNodeService)
+  CalendarSyncSource, ContactsSyncSource, RemindersSyncSource, HealthSyncSource, LocationSyncSource,
+  NotesSyncSource, EmailContextSyncSource, IMessageContextSyncSource, HomeKitBridgeSource
+  protocols: NodeDataSyncSource, IncrementalNodeDataSyncSource, DataSyncSource
+  infrastructure: HCHNodeDataSyncCoordinator, HCHNodeDataSyncWorker, HCHNodeDataSyncSingleFlight,
+  NodeSyncDeltaTracker, NodeSyncSerializer, HCHChunkedSnapshotUploader, NodeBackgroundTaskLease,
+  BackfillAck, BackfillCommandStateKey, BackfillCommandStateProvider, BackfillSourceKeys
+  data source keys seen: calendar, contacts, reminders, health, photos, homekit, location, imessage, email, notes
+  Coordinator events:
+  node_data_sync.coordinator.foreground_flush
+  node_data_sync.coordinator.geofences_changed
+  node_data_sync.coordinator.permission_changed
+  node_data_sync.coordinator.register_background_sources
+  node_data_sync.coordinator.sync_all_sources
+  node_data_sync.coordinator.sync_location
+  Backfill / chunked upload log strings:
+   Force Full Sync
+   backfill chunk encode failed: 
+   backfill chunk: gateway lost (invoke=
+   call data_source.backfill with start_date.
+   chunked backfill complete chunks=
+   chunked backfill starting fresh=
+   incremental upload trigger=
+   reconciliation page 
+   silent baseline committed trigger=
+   silent baseline snapshot failed trigger=
+  supports_backfill
+  uploadChunk(payload:recordCount:windowStart:windowEnd:chunkIndex:isFirstChunk:onUploadAccepted:onChunkCommitted:)
+  uploadRange(backfillFloor:upperBound:isFreshStart:queryWindow:)
+  window_end_epoch
+  window_start_epoch
+  Per-source upload logs:
+  Node data sync already running, skipping BG task
+  Node data sync: email upload accepted itemCount=
+  Node data sync: email upload failed itemCount=
+  Node data sync: imessage upload accepted itemCount=
+  Node data sync: imessage upload failed itemCount=
+  Node data sync: node HITL denied proactive sync 
+
+## B. Background execution that drives sync
+  Info.plist BGTaskSchedulerPermittedIdentifiers:
+    com.meta.hatch.nodedata.sync.refreshTask     (BGAppRefreshTask -> node data sync)
+    com.meta.hatch.cameraroll.sync.processingTask (BGProcessingTask -> camera-roll upload)
+  UIBackgroundModes: audio, fetch, location, remote-notification
+  Failed to register node data BG refresh task
+  Failed to submit node data BG refresh task: 
+  Node data BG refresh complete via coordinator
+  Node data BG refresh not available via MC, completing BG task
+  Registered node data BG refresh task
+  Scheduled node data BG refresh task
+  nodedata.background_refresh.complete
+  nodedata.background_refresh.trigger
+  [HatchAppDelegateCoordinator] Headless background launch detected - running minimal path
+  [HatchAppDelegateCoordinator] Pre-warm launch detected - deferring all init to foreground
+  Silent push -> background reconnect of the node to the VM gateway (PROVEN by strings):
+  HatchAppDelegateCoordinator/HatchVmLockedSilentPushHandler.swift
+  [HatchAppDelegateCoordinator] Received silent push type=
+  [HatchVmLockedSilentPushHandler] CVM runtime gate off, ignoring push
+  [HatchVmLockedSilentPushHandler] Handling hatch_node_vm_locked push, vm_id=
+  [HatchVmLockedSilentPushHandler] No session available, ignoring hatch_node_vm_locked push
+  [HatchVmLockedSilentPushHandler] connect already in progress; skipping reconnect
+  [HatchVmLockedSilentPushHandler] connectWithBootstrap failed: 
+  [HatchVmLockedSilentPushHandler] vm_id mismatch (push=
+  [HatchVmLockedSilentPushHandler] vm_locked_push_enabled disabled, ignoring push
+  hatch_node_vm_locked
+  (application(_:didReceiveRemoteNotification:fetchCompletionHandler:) is implemented.)
+  INFERRED: a server-sent silent push ("hatch_node_vm_locked") can wake the app and have it
+  connectWithBootstrap to the gateway in the background, after which queued node commands could be
+  delivered; the actual server behaviour is not observable statically.
+
+## C. Camera-roll MediaSync (iOS equivalent of macOS MediaSync)
+  Module HCHHatchMediaSync: HCHMediaSyncOrchestrator, HCHMediaSyncClient, HCHMediaSyncAssetExporter,
+  HCHMediaSyncConditions, HCHMediaSyncManifestStore (media_sync_manifest.sqlite: synced_assets,
+  pending_retries), HCHCameraRollBGTaskScheduler, HatchFOAMediaUploader
+  Gateway ops: media_sync.check_asset_exists, media_sync.upload_asset; "MediaSync upload: POST ",
+  "MediaSync gateway vmURL: ", "MediaSync file server baseURL: "
+  Info.plist: NSPhotoLibraryUsageDescription = "Muse needs access to your photo library to sync media to your agent."
+               PHPhotoLibraryPreventAutomaticLimitedAccessAlert = true
+   exceeds 100 MiB limit
+  Catch-up sync complete 
+  MediaSync conditions updated: wifi=
+  MediaSync conditions: Low Power Mode, budget=
+  MediaSync conditions: Wi-Fi became available, kicking off catch-up
+  MediaSync conditions: Wi-Fi, budget=
+  MediaSync conditions: cameraRollSyncBypassLimit is on, returning unlimited budget
+  MediaSync conditions: cellular + good battery (
+  MediaSync conditions: cellular + low battery (
+  MediaSync conditions: cellular sync disabled by user, budget=0
+  MediaSync conditions: memory pressure 
+  MediaSync conditions: thermal state 
+  MediaSync: PHChange ignored, syncs paused
+  MediaSync: Wi-Fi arrival ignored, sync already running
+  MediaSync: Wi-Fi arrival ignored, sync is paused
+  MediaSync: Wi-Fi arrived, starting catch-up sync
+  MediaSync: catch-up skipped, syncs paused
+  MediaSync: catch-up sync denied by node HITL gate
+  MediaSync: reactive drain denied by node HITL gate
+  MediaSync: reactive drain skipped, syncs paused
+  Registered for photo library change notifications (bypassLimit: 
+  Scheduled camera roll sync BG task
+  Skipping automatic camera roll sync for limited photo access; manual sync required
+  Tool-spec text:
+   does NOT trigger a new sync. Returns `sync_enabled` (user's Camera Roll Sync toggle), `is_syncing` (whether a sync is currently running, including background and reactive syncs), `synced_count` (lifetime number of photos already uploaded), `total_photos_count` (total images currently in the camera roll), and `photos_access` (one of 'authorized', 'limited', 'denied', 'restricted', 'not_determined'). Use when the user asks "how many photos have synced?", "is the sync still running?", or "how far along is the photo upload?" 
+  Cancel the currently running camera roll sync. Does NOT disable the user's Camera Roll Sync toggle or stop future automatic syncs 
+  Pass `full_sync: true` ONLY when the user explicitly asks to sync ALL their photos (e.g. "back up my entire library", "sync everything"). This flips a persistent override so subsequent automatic catch-up syncs also drain the full backlog instead of stopping at the conditions-based per-run cap (~500 on Wi-Fi). The override stays on until the user disables it in settings 
+  Trigger a sync of the user's camera roll to the server. The sync runs in the background; the command returns immediately once the work is enqueued. Use when the assistant needs up-to-date photo context or the user asks to share recent photos.
+  When true, enable the persistent full-library override so this run AND future automatic catch-up syncs drain the entire camera roll. Defaults to false. Pass true only when the user explicitly asks to sync ALL their photos.
+  => PROVEN: automatic camera-roll upload to the agent VM on launch, foreground, Wi-Fi arrival,
+     photo-library change (reactive) and a BGProcessingTask; per-run cap ~500 on Wi-Fi unless a
+     persistent "full-library" override (cameraRollSyncBypassLimit) is set; files >100 MiB skipped;
+     skips when only Limited photo access; gated by node HITL + a user "Camera Roll Sync" toggle.
+
+## D. iMessage / Email / Apple Notes ingestion (no private API; via user-built Shortcuts automations)
+  App Intents (Metadata.appintents): HCHForwardIMessageToHatchAppIntent(content, sender, senderName,
+  recipients) and HCHForwardEmailToHatchAppIntent(subject, emailContent, sender), openAppWhenRun=false.
+  - Almost anyone: leave "Sender" empty and type a single space into "Message Contains". Shortcuts will not save a trigger with no criteria, and nearly every message has a space 
+  Apple iMessage (Beta)
+  Forward new messages with an Apple Shortcuts automation.
+  HCHCapturedIMessageStore
+  Incoming messages forwarded by a user-created Apple Shortcuts automation. No message history access. iOS cannot detect removal of the automation; disconnect in the iMessage connector to stop forwarding.
+  Install the shortcut, then create a Messages automation. You choose which messages it forwards.
+  Notes exports will stay on this device until Notes sync is available for your account.
+  Set up Mail shortcut
+  Share a text copy of all your Apple Notes with Muse whenever your shortcut runs. Turning this off stops future exports from your automations.
+  This prototype needs the Notes export shortcut installed separately, named {FBTParam|shortcutName}. Run it manually, or add a Time of Day or Notes app Is Closed automation in Shortcuts. Choose Run Immediately when available. Exports upload when Muse can connect; open Muse if an export is waiting.
+  To stop iMessage reads when the user asks to disconnect or stop syncing messages, set `disable_forwarding: true`. This discards queued messages and blocks future forwarding on this device. Previously uploaded messages are not deleted. The user can also disable or delete the automation in Apple's Shortcuts app.
+  You decide which messages the automation forwards when you build it. Turn forwarding off here or delete the automation in Shortcuts at any time. Messages already shared are not deleted.
+  => PROVEN: iMessages/emails are captured only if the user builds a Shortcuts "Message"/"Email"
+     automation that calls the intent; the agent-facing guidance tells the model how to walk users
+     through a catch-all trigger (single space in "Message Contains" = nearly all messages).
+     Apple Notes: a "Notes export" shortcut sends a text copy of ALL notes each run.
+     Uploaded messages are "not deleted" when forwarding is disabled (verbatim).
+
+## E. Other uploaders present (Meta shared infra)
+  FBMediaUploadKit, FOAMediaUploader / FOAPlatformMediaUploader, HCHChatAttachmentUploader,
+  rupload.meta.ai/gen_ai_document_gen_ai_tenant, FBLoomUploader (perf traces), FBExceptionUploadController,
+  lifestyleInsightsLastUploadTimestamp, remindersUploadId.

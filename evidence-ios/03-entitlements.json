@@ -1,0 +1,31 @@
+{
+  "application-identifier": "T84QZS65DQ.com.facebook.hatch",
+  "aps-environment": "production",
+  "com.apple.developer.associated-domains": [
+    "applinks:agent.meta.ai",
+    "applinks:applink.muse.ai",
+    "applinks:muse.ai",
+    "applinks:www.muse.ai",
+    "webcredentials:meta.ai",
+    "webcredentials:agent.meta.ai",
+    "webcredentials:auth.meta.com",
+    "webcredentials:accounts.meta.com",
+    "webcredentials:muse.ai",
+    "webcredentials:www.muse.ai"
+  ],
+  "com.apple.developer.healthkit": true,
+  "com.apple.developer.healthkit.access": [],
+  "com.apple.developer.healthkit.background-delivery": true,
+  "com.apple.developer.homekit": true,
+  "com.apple.developer.storekit.request-data": true,
+  "com.apple.developer.team-identifier": "V9WTTPBFK9",
+  "com.apple.developer.usernotifications.communication": true,
+  "com.apple.security.application-groups": [
+    "group.com.facebook.hatch",
+    "group.com.facebook.family",
+    "group.com.metaplatforms.family"
+  ],
+  "keychain-access-groups": [
+    "T84QZS65DQ.platformFamily"
+  ]
+}

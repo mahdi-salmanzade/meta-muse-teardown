@@ -1,0 +1,14 @@
+{
+  "source": "https://www.facebook.com/endo/release/appcast.xml?channel=production",
+  "checked_at_utc": "2026-09-24T17:49:14.268213+00:00",
+  "note": "Normalized metadata only; CDN query strings omitted. This does not verify the downloaded DMG against the feed signature.",
+  "items": [
+    {
+      "title": "Version 3.0",
+      "published": "Wed, 23 Sep 2026 17:50:37 -0700",
+      "version": "3.0",
+      "build": "1075746581",
+      "length": "35378915"
+    }
+  ]
+}

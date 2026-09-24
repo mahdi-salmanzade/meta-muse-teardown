@@ -1,0 +1,100 @@
+03 - ENTITLEMENTS (codesign -d --entitlements; hash-verified against signed CodeDirectory slots 5/7)
+===================================================================================================
+
+### Payload/HatchApp.app (main)
+{
+  "application-identifier" => "T84QZS65DQ.com.facebook.hatch"
+  "aps-environment" => "production"
+  "com.apple.developer.associated-domains" => [
+    0 => "applinks:agent.meta.ai"
+    1 => "applinks:applink.muse.ai"
+    2 => "applinks:muse.ai"
+    3 => "applinks:www.muse.ai"
+    4 => "webcredentials:meta.ai"
+    5 => "webcredentials:agent.meta.ai"
+    6 => "webcredentials:auth.meta.com"
+    7 => "webcredentials:accounts.meta.com"
+    8 => "webcredentials:muse.ai"
+    9 => "webcredentials:www.muse.ai"
+  ]
+  "com.apple.developer.healthkit" => true
+  "com.apple.developer.healthkit.access" => [
+  ]
+  "com.apple.developer.healthkit.background-delivery" => true
+  "com.apple.developer.homekit" => true
+  "com.apple.developer.storekit.request-data" => true
+  "com.apple.developer.team-identifier" => "V9WTTPBFK9"
+  "com.apple.developer.usernotifications.communication" => true
+  "com.apple.security.application-groups" => [
+    0 => "group.com.facebook.hatch"
+    1 => "group.com.facebook.family"
+    2 => "group.com.metaplatforms.family"
+  ]
+  "keychain-access-groups" => [
+    0 => "T84QZS65DQ.platformFamily"
+  ]
+}
+
+### Payload/HatchApp.app/PlugIns/HatchNotificationServiceExtension.appex
+{
+  "application-identifier" => "T84QZS65DQ.com.facebook.hatch.NotificationServiceExtension"
+  "aps-environment" => "production"
+  "com.apple.developer.team-identifier" => "V9WTTPBFK9"
+  "com.apple.developer.usernotifications.communication" => true
+  "com.apple.security.application-groups" => [
+    0 => "group.com.facebook.hatch"
+    1 => "group.com.facebook.family"
+    2 => "group.com.metaplatforms.family"
+  ]
+  "keychain-access-groups" => [
+    0 => "T84QZS65DQ.platformFamily"
+  ]
+}
+
+### Payload/HatchApp.app/PlugIns/HatchShareExtension.appex
+{
+  "application-identifier" => "T84QZS65DQ.com.facebook.hatch.ShareExtension"
+  "com.apple.developer.team-identifier" => "V9WTTPBFK9"
+  "com.apple.security.application-groups" => [
+    0 => "group.com.facebook.hatch"
+    1 => "group.com.facebook.family"
+    2 => "group.com.metaplatforms.family"
+  ]
+  "keychain-access-groups" => [
+    0 => "T84QZS65DQ.platformFamily"
+  ]
+}
+
+### Payload/HatchApp.app/PlugIns/WidgetExtension.appex
+{
+  "application-identifier" => "T84QZS65DQ.com.facebook.hatch.WidgetExtension"
+  "com.apple.developer.team-identifier" => "V9WTTPBFK9"
+  "com.apple.security.application-groups" => [
+    0 => "group.com.facebook.hatch"
+    1 => "group.com.facebook.family"
+    2 => "group.com.metaplatforms.family"
+  ]
+  "keychain-access-groups" => [
+    0 => "T84QZS65DQ.platformFamily"
+  ]
+}
+
+### Frameworks/MobileConfig.framework: no entitlements (normal for a framework)
+
+## Analysis
+- com.apple.developer.healthkit = true; healthkit.access = [] (EMPTY => NO "health-records"/clinical
+  records entitlement); healthkit.background-delivery = true  (HKObserverQuery wakeups in background).
+- com.apple.developer.homekit = true (control locks/lights/scenes; plus geofence-triggered bridges, see 05/08).
+- aps-environment = production (push) on main + Notification Service Extension.
+- com.apple.developer.usernotifications.communication = true (communication-notification styling / INSendMessageIntent donation).
+- com.apple.developer.storekit.request-data = true.
+- App groups: group.com.facebook.hatch (own) AND group.com.facebook.family + group.com.metaplatforms.family
+  (Meta cross-app "family" groups shared with other Meta apps from the same team => shared container for
+  Family Device ID and token sharing; see 10-notable).
+- keychain-access-groups: T84QZS65DQ.platformFamily (Meta cross-app shared keychain group).
+- Associated domains: applinks agent.meta.ai, applink.muse.ai, muse.ai, www.muse.ai;
+  webcredentials meta.ai, agent.meta.ai, auth.meta.com, accounts.meta.com, muse.ai, www.muse.ai.
+- ABSENT (checked): network-extension / packet-tunnel / VPN, personal-vpn, family-controls,
+  critical-alerts, time-sensitive, location.push / push-to-talk, contacts.notes, siri, CarPlay,
+  NFC, weatherkit, device-check/app-attest entitlement, com.apple.developer.kernel.*, get-task-allow
+  (App Store build), multipath, wifi-info, sensorkit, messages filter, call-directory.
