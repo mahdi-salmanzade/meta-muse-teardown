@@ -6,3 +6,12 @@ extracted/
 *.ipa
 extracted-apk/
 extracted-ipa/
+
+# Video project and rendered video files
+video/
+*.mp4
+*.mov
+*.webm
+*.m4v
+*.avi
+*.mkv
