@@ -80,6 +80,14 @@ The sample declares foreground/Always location prompts and a location background
 
 `home.accessory.set` and scene commands can request changes to supported accessories. `home.security.sweep` describes reading reachable accessories’ states/sensor values. `home.bind_geofence` describes automatic HomeKit actions on entering or leaving a location, requiring both HomeKit and Always location permissions. These are consequential capabilities; they do not prove that any particular lock can be opened, or that camera video is available. [Tool text](evidence-ios/05-agent-tools.txt).
 
+## Retention wording in the app
+
+- On disconnect: *"Previous data shared with {app} won't be removed unless you choose to delete it."*
+- iMessage forwarding: *"Messages already shared are not deleted."*
+- Consent footer: *"The info used for your tasks is part of your interactions with {appName}, which we use to improve AI at Meta."*
+
+Details: [CROSS-PLATFORM.md](CROSS-PLATFORM.md#consent-defaults-and-retention-what-the-apps-say) · [`15-consent-retention-ios.txt`](evidence-ios/15-consent-retention-ios.txt).
+
 ## 7. iMessage, Mail and Notes through user-created Shortcuts
 
 The sample contains `HCHForwardIMessageToHatchAppIntent` and `HCHForwardEmailToHatchAppIntent`. Its guidance asks the user to create a Shortcuts automation that forwards matching new content. It explicitly states **no message-history access**, and describes disabling forwarding or deleting the automation. Previously uploaded messages are not deleted merely by turning forwarding off. [Sync/Shortcuts evidence](evidence-ios/06-sync-upload.txt).

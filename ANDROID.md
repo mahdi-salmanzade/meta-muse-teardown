@@ -161,6 +161,16 @@ return strA01 != null ? PhoneNotificationsAccessMode.valueOf(strA01) : PhoneNoti
 
 `NotificationsDataSource` has a sync cursor and publishes through `client.data_source.publish`. **Its `publishNow` path checks both managed configuration and `HatchNodeHitlGate` with `PROACTIVE_SYNC`.** The previous claim that MDM was its only off-switch was incorrect. Revoking Android Notification access is another control. [Code excerpts](evidence-android/10-review-corrections.txt).
 
+### Training, deletion and support access (app text)
+
+- AI training defaults to on: `HatchAiTrainingApi.DEFAULT_ENABLED = true`.
+- Every connector footer: *"Info from this connector is part of your AI interactions, which we use to improve AI at Meta."* This includes Health Connect.
+- Deleting a message: *"Messages you delete are removed from the conversation but may stay in the agent's memory."*
+- Support access: *"Allowing access means your chats, memory, and files will be visible to support and your data will no longer be confidential."*
+- The consent sheets for SMS, notifications, health and location describe sharing **after** you connect. The code still declares `supportsBackfill = true` for SMS, call log and health.
+
+Details: [CROSS-PLATFORM.md](CROSS-PLATFORM.md#consent-defaults-and-retention-what-the-apps-say) · [`15-consent-retention-android.txt`](evidence-android/15-consent-retention-android.txt).
+
 ## 6. Photos
 
 `commands/photos` ([`08-photos.txt`](evidence-android/08-photos.txt)) contains:

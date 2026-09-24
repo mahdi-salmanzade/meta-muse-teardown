@@ -1,0 +1,249 @@
+# S4 - Consent, defaults, sharing, retention and deletion copy - macOS 3.0 (com.meta.endo)
+# Static text extraction only. The app was never launched, connected or network-tested.
+#
+# Sources (relative to repo root):
+#   W = extracted/Muse.app/Contents/Resources/hatch/index.html   (bundled web UI; offset = byte offset
+#       of the fbs._(`...`) / fbt._(`...`) call, or of the quoted code snippet)
+#   N = extracted/Muse.app/Contents/MacOS/Muse                     (native binary; offset = decimal file
+#       offset printed by `strings -a -t d`. Native sentences are sometimes split into adjacent
+#       strings that are joined at run time with a connector name; the gap is shown as [..])
+#   C = extracted/Muse.app/Contents/Resources/chrome/              (bundled Chrome extension)
+# Quotes are verbatim English source strings. {param} placeholders are filled at run time
+# ({appName}/{productName} = "Muse", {service} = connector name). British variants in
+# hatch/i18n/en_GB.json are not quoted.
+# Presence of a string proves it ships in this build, not that a given user sees it: many screens
+# are gated by connector state, server flags or rollout (see section 7).
+
+======================================================================
+1. CONNECTOR / CONSENT DIALOGS (what each connector says it shares)
+======================================================================
+
+1a. Local permission connectors - Calendar, Contacts, Reminders (function localPermissionAccessBulletText)
+  W@42160958  case apple_contacts:
+    "{appName} will store existing information from {service}, and will be automatically updated with the latest information from your device going forward."
+  W@42161232  case apple_calendar:
+    "{appName} will store information from {service} shared after you connect and will be automatically updated with the latest information from your device going forward."
+  W@42161522  case apple_reminders:
+    "{appName} will access information from {service} shared after you connect and will be automatically updated with the latest information from your device going forward."
+  W@42161890  title "Level up with {service}"
+  W@42162041  title "You choose what {appName} can do"
+  W@42162149  "You can ask {appName} to delete this info at any time, or disconnect from {service} in your device's settings to prevent future syncing."
+  W@42162419  title "Keep an eye on things"
+  W@42162474  "{appName} may take unexpected actions. Monitor it carefully."
+  W@42162626  footer "Learn more about how we use this info in our [Privacy Policy]({metaPrivacyUrl})."   (metaPrivacyUrl = https://www.facebook.com/privacy/policy/)
+  Per-connector descriptions:
+  W@42155531  "{appName} can access and manage the calendar from your Mac"
+  W@42155688  "{appName} can access and manage reminders from your Mac"
+  W@42155842  "{appName} can access and manage the contacts from your Mac"
+
+1b. Other local connectors - Messages (iMessage), Mail, Notes (generic consent screen)
+  W@42157574  storage bullet: "Muse will use and store information from {service}, including any new information from your Mac going forward."
+  W@42157770  control bullet: "You can ask the agent to delete stored information at any time, or disconnect from {service} in System Settings."
+  W@42157968  caution: "The agent may take unexpected actions. Monitor it carefully."
+  W@42158098  footer: "The info Muse uses for your tasks is part of your interactions with AI. The [Privacy Policy]({privacyPolicyUrl}) explains how we use this info, including to improve AI at Meta. [Learn more]({learnMoreUrl})"
+  W@42156096  "The agent can access and manage messages on your Mac"
+  W@42156374  "The agent can access and manage the email on your Mac"
+  W@42155996  "The agent can access and manage notes on your Mac"
+  W@42152173  "Lets {productShortName} read your message history."
+  W@42152343  "Lets {productShortName} send messages through Messages."
+  W@42152524  "Lets {productShortName} read notes stored on this Mac. macOS requires Full Disk Access for these files."
+
+1c. Auto-sync ("Keep ... up to date") rows shown inside the consent dialog and in settings (function autoSyncCopy)
+  W@42164477/42164539  Messages: "Keep messages up to date" / "New messages are shared automatically. Turn this off to share only what you ask for."
+  W@42164683/42164742  Mail: "Keep email up to date" / "Who new email is from and what it is about are shared automatically. The message text is shared only when you ask."
+  W@42164917/42164976  Notes: "Keep notes up to date" / "New and edited notes are shared automatically. Turn this off to share only what you ask for."
+  W@42165131/42165200  Calendar: "Keep calendar events up to date" / "New and changed events are shared automatically. Turn this off to share only what you ask for."
+  W@42165359/42165421  Reminders: "Keep reminders up to date" / "New and changed reminders are shared automatically. Turn this off to share only what you ask for."
+  W@42165582/42165644  Contacts: "Keep contacts up to date" / "New and changed contacts are shared automatically. Turn this off to share only what you ask for."
+  W@42165791/42165848  default: "Keep this up to date" / "New and changed items are shared automatically. Turn this off to share only what you ask for."
+  W@42166001  switch OFF: "Only what you ask for is shared. Turn this on to share new and changed items as they happen."
+  Messages settings variant:
+  W@44797073  "Automatically sync messages"
+  W@44797138  "{product} reads new messages as they arrive, instead of only when you ask"
+  Native agent-tool text consistent with the Mail copy:
+  N@12286096  "... Requires Full Disk Access. Proactive sync shares only headers. ..."
+  N@12287472  "true to include each message's text. Off by default because bodies are large and often sensitive "
+
+1d. WhatsApp (read-only local database search)
+  W@42156199  "Let Muse search text messages in your primary WhatsApp account on this Mac. Chats with Advanced Chat Privacy are excluded."
+  W@42163116  "Muse can search text messages from your primary WhatsApp account on this Mac for your tasks. This connection only reads messages."
+  W@42163314  "Chats with Advanced Chat Privacy, locked or hidden chats, and deleted or expired messages are excluded."
+  W@42163481  "Messages used for a task become part of that conversation. You can stop future reads by disconnecting WhatsApp in Muse settings."
+  N@12277328  "... No background message index is created. ..."
+
+1e. Filesystem / files
+  W@42159517  "Muse wants to use the files and folders on your Mac."
+  W@42159607  "Connecting turns on Filesystem, which lets Muse and the programs it runs use any folder on this Mac until you turn it off."
+  W@42159813  "Muse can see the files and folders on this Mac, and can create, change and delete them. By default, it asks before changes. Programs it runs can also read and change them."
+  W@42160060  "Some folders stay protected by macOS until you allow Muse in System Settings, and you can turn this off at any time."
+  W@42160251  "Muse may take unexpected actions — monitor it carefully. Turning it off stops future actions but doesn't undo what it already did."
+  W@44800291  "When you turn off an app here, {productName} will be blocked from accessing it. {appName} can still access apps outside of this list which also store information on your disk when requested."
+  W@44802974  "{productName} can't see or use the folders you add here."
+  W@44998986  "Full Disk Access enables {productName} to read and interact with your files and apps."
+
+1f. Messenger (end-to-end-encrypted chats) and Facebook
+  W@20740591  "Create a PIN in Messenger to give {productFullName} access to your end-to-end encrypted chats."
+  W@20748707  "It's the same PIN you use to access your chat history. This gives {productShortName} access to your end-to-end encrypted chats."
+  W@20707890  "You'll need to add your Facebook account to give {productShortName} access to your info."
+
+1g. Cloud / custom connectors (web consent sheet)
+  W@20641883  "Connect your {serviceName} account to let {productFullName} help you with tasks and information from this service."
+  W@20636571  "{productFullName} may exchange information with {serviceName}."
+  W@20636847  "You can disconnect from {serviceName} any time in Settings."
+  W@20635615  "The info used for your tasks is part of your interactions with AI. The {metaPrivacyPolicyLink} explains how we use this info, including to improve AI at Meta. {learnMoreLink}"
+  W@20637065  "Meta doesn't review custom connectors or how they use your information. The agent may take unexpected actions. Grant access with caution and review their privacy policies."
+
+1h. Photos, location, health, notifications, SMS, call log, HomeKit, screen control, browser
+  No consent-dialog copy found in W for Photos, Location, Health, Notifications, Call log or HomeKit.
+  Photos: native has a background uploader ("[MediaSync] Starting background sync timer" N@12315248;
+  pref key "connections.photos.enabled" N@12232912) but no user-facing sharing sentence was found.
+  Call history: native path strings only ("Library/Application Support/CallHistoryDB" N@12318560; label
+  "call and recent-contact history" N@12318528); no consent copy found.
+  Screen/computer control: permission-level copy only, e.g.
+  N@12310064  "Computer control requires current Accessibility and Screen Recording access. Enable both permissions in System Settings, then relaunch the app if macOS says a restart is required."
+  N@12263888  (tool text) "... retained data expires within two minutes and on session end."
+  Browser extension (C/manifest.json): "Connects your browser to Muse as a controllable node"; popup
+  offers only "Pause" / "Disconnect" (C/popup.html, C/popup.js:71). No sharing/retention copy.
+
+======================================================================
+2. DEFAULT-STATE INDICATORS (code, not observed state)
+======================================================================
+
+  W@42172078  Local-connector consent dialog, auto-sync switch initial state:
+    "[Ki,ea]=(0,import_react$636.useState)(Wi?.autoSync.enabled??!0)"
+    -> switch starts at the native-reported value; `??!0` (true) applies only when that value is
+       missing. Wi is null (no row, no write) when native reports no autoSync object
+       (W@42167133 "return i==null||t==null?null:{connectorId:e.id ...").
+  W@42172253  On "Connect" the dialog commits the switch value: "Wi?.onChange(Ki),Ri?r():n()"
+    -> onChange posts {action:`setLocalConnectorAutoSync`,id,enabled} to native (W@51156411).
+  W@42167501  Row subtitle state machine: enabled -> "shared automatically" copy; enabled+blocked ->
+    "Paused ..." copy; disabled -> "Only what you ask for is shared ..."
+  N@15397304  native preference prefix "nodeAutoSync." ; N@12202992 rollout flag
+    "endo_rollout:featured_app_proactive_sync_enabled". The native default is not recoverable from strings.
+  W@42159813  Filesystem copy: "By default, it asks before changes."
+  W@46274201  AI-training toggle: "Hi=r.data?.trainingEnabled??!0" -> shown ON when the server
+    returns no value; turning it off requires a confirmation dialog (W@46275232).
+  W@17154492 and W@17155691  approval defaults:
+    "connectorDefault:normalizePermissionDefault(t.connector_default)??`auto_allow`,networkDefault:normalizePermissionDefault(t.network_default)??`auto_allow`"
+  W@44936673  label of the internal value `auto_allow`:
+    "ENGLISH_PERMISSION_DEFAULT_CONTENT={connector:{heading:`Connector defaults`,options:{auto_allow:{title:`Ask for some actions`, ..."
+    i.e. the default shown to users as "Ask for some actions" is stored as `auto_allow`.
+  W@17153925  fallback when the approval-status payload is absent/invalid:
+    "return{hitlMode:`disabled`,connectorsEnabled:!1,networkEnabled:!1,connectorDefault:`auto_allow`,networkDefault:`auto_allow`, ..."
+  W@17154816  "backgroundSelectorsEnabled:normalizeOptionalBoolean(t.background_selectors_enabled)??!1"
+  W@16861405  bug report: "Recent web and VM logs will be sent to Meta unless you choose not to include them. You can download, replace, or remove files before sending."  (copy implies logs are included by default)
+
+======================================================================
+3. APPROVAL-PROMPT COPY AND WHAT PERSISTS
+======================================================================
+
+  Prompts: W@17942865 "{assistant} wants to {action} in {connector}"; W@17942042 "{assistant} wants to use {connector}";
+    W@17944341 "{assistant} wants to share information with"; W@17936903 "{assistant} wants unrestricted web access for this task";
+    W@17947398 "{assistant} wants to check out at {merchant}"; W@42158544..42159288 "Muse wants to see what is in a folder on your Mac." /
+    "Muse wants to create or change a file on your Mac." / "Muse wants to permanently delete files on your Mac."
+  Buttons: W@17956042 "Allow once"; W@17956101 "Allow for this task"; W@17955881 "Allow for this scheduled task";
+    W@17955961 "Allow all web access for this task"; W@17956820 "Always allow this site"; W@17956944 "Allow all {connector} actions";
+    W@17958510 "Allow always for this connector"; W@17959207 "Allow all {connector} methods always"; W@17959337 "Allow always for {domain}".
+  Outcome labels: W@17925778 "Allowed once"; W@17925846 "Allowed for this task"; W@17925921 "Always allowed";
+    W@17925988 "Automatically allowed"; W@17926063 "Always denied".
+  W@17933220  "Request was auto-allowed as deemed low risk"
+  W@17960409  "Request approved permanently for all connector methods"
+  W@17960523  "Request approved permanently for this domain"
+  W@17959901  "Request denied permanently for all connector methods"
+  Defaults screen:
+  W@44929020/44929093/44929154  "Connector defaults" - "Ask for some actions" - "Before every write and some read actions"
+  W@44929241/44929292           "Always ask" - "Before any action"
+  W@44929357/44929493           "Web access defaults" - "When your information may be shared or the website is unfamiliar"
+  W@44929656                    "Ask before accessing any website"
+  W@44932832  "These defaults apply when no permission has been saved. “Always allow” choices do not expire."
+  W@44999819  "Some actions ask separately. Choose “Always allow” on an action's approval card to allow future requests until you change it. Changing this setting clears saved action approvals."
+  W@45023538  "This removes saved custom permissions for {connector name} . Future actions will use your Connector default. Temporary approvals remain until they expire."
+  W@45022379  "This will remove all website and connector overrides. Future actions will use your selected defaults."
+  Local app access levels: W@44818980 "Ask every time"; W@44819051 "Always allow"; W@44819119 "Always deny";
+    W@44792693 "Read only"; W@44792747 "Read and interact"; W@44792797 "Off".
+  W@46962508..46964038  "Human approvals" - "Off" / "Only Chat" / "Chat + Crons + Artifacts" (sits beside "Internal settings" W@46964651; may be employee-only).
+
+======================================================================
+4. RETENTION / DELETION / DATA DOWNLOAD / MEMORY / TRAINING / REVIEW
+======================================================================
+
+  Disconnect:
+  W@20718706  "When you disconnect, {productFullName} will no longer have access to new data from {appName}. Previous data shared with {productFullName2} won't be removed unless you choose to delete it."
+  W@20719149  "You can remove the permissions you've given {productFullName} in {appName}'s account settings."
+  W@44925991  "{accountName} will be unlinked from {connectorName}. You can reconnect it any time."
+  Deleting stored connector data: via the agent (W@42157770, W@42162149 above: "You can ask ... to delete ...").
+  History upload interrupted (native, joined with connector name):
+  N@12365872+12365920+12365984  "Automatic syncing is turned off for [..], so the full history cannot be uploaded. You can still search [..] directly when the user asks."
+  N@12375824+12375872  "Automatic syncing was turned off for [..] while the history was uploading, so the rest wasn't sent."
+  N@12375936  "[..] was set to Ask while the history was uploading, so the rest wasn't sent."
+  N@12376096  "[..] connector was turned off while the history was uploading, so the rest wasn't sent."
+  N@12262352  (agent tool) "Publish a historical local-source window as a snapshot. Contacts ignore the window and republish the whole address book. Requires the source's OS permission: Full Disk Access for imessage/email/notes, or Calendar, Reminders or Contacts access respectively."
+  N@12262928  (agent tool) "Return the current source directly without historical backfill: calendar/reminders use [-7d, +14d]; contacts returns the whole address book. ..."
+  N@12263232  (agent tool) "Search Apple Notes title/body, newest first, publish matches as a snapshot and activate forward sync while allowed. ..."
+  N@12269088  (agent tool, notes.list) "... Does not enable background syncing. ..."
+  Messages / chats / artifacts:
+  W@17212334  "This permanently deletes your message. This can’t be undone."
+  W@43208221  "Deleting this side chat permanently removes it and cannot be undone."
+  W@40306692  "Deleting this artifact removes it from your library and cannot be undone."
+  W@40951205  "This permanently deletes the agent definition and its side chat. Shared source content in {productShortName} is not deleted."
+  Account-level reset:
+  W@46237186  "Resetting permanently deletes your data, including chat history, files, artifacts and tasks."
+  W@46240659  "Permanently deletes your {productShortName} data, including chat history, files and active tasks."
+  W@46237892  "This action cannot be undone. Type your agent’s name below to confirm."
+  W@46688524  (activation reset) "... It does not restart VM onboarding or delete your {productShortName} data. ..."
+  N@12559696  (menu item described as the "employee reset tool", N@12559872) "Signs you out, clears local app data and notification history, and resets Muse's macOS privacy permissions before relaunching. Notification permission itself stays unchanged."
+  No "delete account" copy was found in W or N.
+  Data download:
+  W@46281157/46281951  "Download your agent data" / "This will download a copy of your chats, files and other agent data."
+  Memory:
+  W@46261563  "{product name} will read this and remember the durable facts. This is not a verbatim copy."
+  W@46250395  (import prompt) "... remember the durable facts about me — who I am, my preferences, recurring topics, ongoing projects. Skip anything ephemeral or sensitive. Confirm what you stored. ..."
+  W@43659452  "New ideas show up here as {productShortName} learns about you."
+  W@40778770  (shared agents) "Files, memories, chat history, connectors, skills, and credentials stay private unless you add them later."
+  Training:
+  W@46274562  "Help improve our AI models"
+  W@46274026  "Allow us to use your interactions with {productShortName} to develop and improve AI at Meta."
+  W@46275232  "Turn off AI model training?"
+  W@46275300  "Your interactions with {productShortName} won’t be used to improve AI at Meta after you turn this off."
+  W@46276165  "Keep on"
+  Human review / people at Meta:
+  No statement about human review of conversations or connector data was found in W or N.
+  W@16897208  (support ticket) "Thank you for your submission. Our team will review your report."
+  W@16861405  (bug report) "Recent web and VM logs will be sent to Meta unless you choose not to include them. ..."
+
+======================================================================
+5. PAUSE vs OFF
+======================================================================
+
+  W@42166155  "Paused while “{permission}” is set to Ask or Deny. Nothing is shared automatically until you set it back to Allow."
+  W@42166359  "Paused until access to this app is granted on your Mac. Nothing is shared automatically until then — once access is granted, you can ask for anything from this time."
+  W@42166589  "If you turned access on, relaunch Muse to start sharing automatically. Nothing is shared automatically until then."
+  W@42166001  (off) "Only what you ask for is shared. Turn this on to share new and changed items as they happen."
+  -> On macOS "Paused" means auto-sync is switched on but blocked by an Ask/Deny read setting or a missing
+     macOS permission; "Off" is the switch. No macOS equivalent of the iOS "pause clears on reopen" copy was found.
+  Browser extension: "Pause"/"Resume" button (C/popup.js:71); no copy explains what pausing retains.
+
+======================================================================
+6. NOTABLE TENSIONS VISIBLE IN TEXT ALONE
+======================================================================
+
+  - Calendar consent says information "shared after you connect" (W@42161232), but a native agent tool
+    can "Publish a historical local-source window" for calendar (N@12262352), and native copy ties "full
+    history" upload to automatic syncing (N@12365872). Contacts copy says existing information is stored
+    (W@42160958).
+  - Mail auto-sync shares "who new email is from and what it is about" (sender + subject)
+    automatically (W@42164742). No macOS copy mentions filtering one-time codes in subjects.
+  - The approval default stored as `auto_allow` is labelled "Ask for some actions" (W@44936673).
+  - Deletion is described as asking the agent ("You can ask the agent to delete stored information"),
+    not as a settings control; disconnecting does not remove earlier data (W@20718706).
+
+======================================================================
+7. WHAT THIS TEXT CANNOT ESTABLISH
+======================================================================
+
+  - The actual initial auto-sync value for each connector (native-reported; `??!0` is only a fallback)
+    and whether the rollout flag endo_rollout:featured_app_proactive_sync_enabled is on.
+  - Whether a historical backfill runs automatically on connect, and its depth.
+  - Whether "ask the agent to delete" removes server copies, backups or training copies.
+  - Server values for trainingEnabled, connector_default and network_default.
+  - Whether any string here is shown to all users, a cohort, or employees only.

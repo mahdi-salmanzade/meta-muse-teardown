@@ -1,0 +1,200 @@
+# S4 - Consent, defaults, sharing, retention and deletion copy - iOS 8.1 (com.facebook.hatch)
+# Static text extraction only: `strings`, plists and .strings files. No disassembly, no execution.
+# The iOS sample failed signature verification (see evidence-ios/01-provenance.txt); strings below
+# describe the supplied bytes, not an authenticated App Store build.
+#
+# Sources (relative to repo root):
+#   B = extracted-ipa/Payload/HatchApp.app/HatchApp   (decimal file offset from `strings -a -t d`)
+#       English UI strings are FBT source strings embedded in the binary; en.lproj/Localizable.strings
+#       is empty. `strings` splits text at non-ASCII bytes (curly apostrophes), shown as [..] joins.
+#   P = extracted-ipa/Payload/HatchApp.app/en.lproj/InfoPlist.strings (system permission prompts)
+# {FBTParam|x} placeholders are filled at run time. Without disassembly the code that selects a
+# template for each connector, and every in-code default value, cannot be read. Section 2 is limited
+# to defaults stated in text.
+
+======================================================================
+1. CONNECTOR / CONSENT DIALOGS
+======================================================================
+
+1a. Shared consent-sheet templates (same wording as macOS/Android; connector mapping not recoverable)
+  B@60851792  "Level up with {FBTParam|service}"
+  B@60851616  "{FBTParam|appName} will store existing information from {FBTParam|service}, and will be automatically updated with the latest information from your device going forward."
+  B@60851424  "{FBTParam|appName} will store information from {FBTParam|service} shared after you connect and will be automatically updated with the latest information from your device going forward."
+  B@60851232  "{FBTParam|appName} will access information from {FBTParam|service} shared after you connect and will be automatically updated with the latest information from your device going forward."
+  B@60851136  "{FBTParam|appName} will access information from {FBTParam|service} shared after you connect."
+  B@60851088  "You choose what {FBTParam|appName} can do"
+  B@60850928  "You can ask {FBTParam|appName} to delete this info at any time, or disconnect from {FBTParam|service} in your device's settings to prevent future syncing."
+  B@60850784  "You can ask {FBTParam|appName} to delete this info at any time, or disconnect from {FBTParam|service} in your device's settings."
+  B@60850672  "Keep an eye on things"   B@60850704 "{FBTParam|appName} may take unexpected actions. Monitor it carefully."
+  Footers:
+  B@60850272  "The info used for your tasks is part of your interactions with {FBTParam|appName}, which we use to improve AI at Meta. [Learn more]({FBTParam|genAiUrl})"
+  B@60850432  "Learn more about how we use this info in our [Privacy Policy]({FBTParam|metaPrivacyUrl}) and [Health Policy]({FBTParam|healthPolicyUrl})."
+  B@60850576  "Learn more about how we use this info in our [Privacy Policy]({FBTParam|metaPrivacyUrl})."
+  Descriptions:
+  B@60852288  "{FBTParam|appName} can access and manage the calendar from your iPhone"
+  B@60852208  "{FBTParam|appName} can access and manage the contacts from your iPhone"
+  B@60852128  "{FBTParam|appName} can access and manage reminders from your iPhone"
+  B@60852016  "{FBTParam|appName} can access photos from your iPhone"
+  B@60852080  "Get insights from Health data on your iPhone"
+  B@60851840  "{FBTParam|appName} can access location data from your iPhone to find things nearby"
+  B@60851936  "{FBTParam|appName} can access and control Home accessories from your iPhone"
+
+1b. iMessage (Apple Shortcuts forwarding)
+  B@60850208  "Forward new messages with an Apple Shortcuts automation."
+  B@60863552  "{FBTParam|appName} can read new messages forwarded by an automation you set up in Apple[..]s Shortcuts app"
+  B@60863664  "{FBTParam|appName} will store the messages your automation forwards after you connect, along with who sent them. Your message history is not read."
+  B@60863824  "You decide which messages the automation forwards when you build it. Turn forwarding off here or delete the automation in Shortcuts at any time. Messages already shared are not deleted."
+  B@61113168  "Allow message forwarding"
+  B@61112928+61113038  "Forwards new messages and who sent them, including messages other people send you. Your message history isn[..]t read. To stop forwarding, turn this off here or delete the automation in Shortcuts. Messages already shared are not deleted."
+  B@61153280  (data-source description) "Incoming messages forwarded by a user-created Apple Shortcuts automation. No message history access. iOS cannot detect removal of the automation; disconnect in the iMessage connector to stop forwarding."
+  B@61258160  "Forward email to your assistant"  (Shortcuts action; no consent copy for email forwarding found)
+
+1c. Apple Notes (Shortcuts export)
+  B@61129344  "Sync Apple Notes to Muse"
+  B@61129536  "Share a text copy of all your Apple Notes with Muse whenever your shortcut runs. Turning this off stops future exports from your automations."
+  B@61129744  "Notes exports will stay on this device until Notes sync is available for your account."
+
+1d. Photos / camera roll
+  P  NSPhotoLibraryUsageDescription: "Muse needs access to your photo library to sync media to your agent."
+  B@61115440  "Camera Roll Sync Settings"   B@61128992 "Camera Roll Sync Enabled"
+  B@61127088  "Turn on to back up your camera roll. Only this setting fully enables or disables sync. Pausing is temporary and clears the next time you open the app."
+  B@61128624  "Uploads run in the background. You can close this screen and the sync will keep going. Tap Pause sync to stop the current run."
+  B@61128336  "{FBTPlural|1 photo is|[number] photos are} waiting to upload. Tap Sync Now to upload right away, or leave it and the next sync will pick up whatever is still pending."
+  B@61128752  "Upload over Cellular Data"
+  B@61128784  "Sync Full Camera Roll"   B@61128816 "Bypasses the 500-photo limit per sync. Syncs your entire library until everything is backed up."
+  B@61128912  "Every sync uploads your entire library until everything is backed up."
+
+1e. Location
+  P  NSLocationWhenInUseUsageDescription: "This lets Muse answer questions relevant to where you are."
+  P  NSLocationAlwaysAndWhenInUseUsageDescription: "This lets Muse proactively provide you suggestions relevant to where you are."
+  B@61306448 "Location sharing"; B@61307149 "When chatting"; B@61307349 "While using"; B@61307341 "Not set"
+  B@61156471  (agent tool) "... - 'always': background access. Use ONLY when the user explicitly asks for continuous or background monitoring ... Enabling it starts proactive location updates and is required before `geofence.set`. ..."
+  B@61157212  (agent tool) "... Revoking access or downgrading 'always' to 'when_chatting' requires user action in iOS Settings; this command reports the actual tier and cannot revoke or downgrade it. ..."
+
+1f. Health
+  P  NSHealthShareUsageDescription: "Muse would like access to your health data to support questions you may have."
+  P  NSHealthUpdateUsageDescription: "Muse can import health data to ensure your Health app has the full picture."
+  B@60850432  Health Policy footer (above).
+
+1g. HomeKit
+  P  NSHomeKitUsageDescription: "Muse can control your smart-home accessories — lights, locks, scenes — when you ask it to."
+  B@61190272  (agent tool) "Create a geofence-triggered HomeKit bridge. When the user enters or exits the specified location, the configured HomeKit actions execute automatically. Requires both homekit and Always location permissions."
+
+1h. Calendar, Reminders, Contacts, camera, microphone (system prompts)
+  P  NSCalendarsFullAccessUsageDescription: "Muse would like to access your calendar events to help answer questions about your schedule."
+  P  NSRemindersFullAccessUsageDescription: "Muse would like to access your reminders to help manage your tasks and to-do lists."
+  P  NSContactsUsageDescription: "Muse can help you draft messages to your contacts if it has access."
+
+1i. Messaging channels
+  B@61123456  "If you continue, your conversation with {FBTParam|agentName} will be connected to WhatsApp. {FBTParam|agentNameCapitalized} will not be able to read any other WhatsApp chats, and you can disconnect it anytime."
+  B@61123328+61123417  "The "Connect" button contains a unique link that gives full control of your agent. Don[..]t share the link with anybody."
+
+  No consent copy found for notifications, SMS, call log, files, browser or screen control
+  (iOS has no notification listener; notification-forwarding exists only as tool name
+  "shortcut_notifications.forward", B@61074192).
+
+======================================================================
+2. DEFAULT-STATE INDICATORS (text only; in-code defaults not readable without disassembly)
+======================================================================
+
+  B@61364064  "By default, Muse will ask before taking actions it thinks need review. Disconnect at any time in Settings."  (Meta Pay wallet consent)
+  B@61394480  "By default, {FBTParam|agent_name} will ask before taking actions it thinks need review. Disconnect at any time in Settings."
+  B@60873472/60873680/60873792  "Connector defaults" - "Ask for some actions" - "Before every write and some read actions"
+  B@60873665/60873760           "Always ask" - "Before any action"
+  B@60873600/60873552           "When your information may be shared or the website is unfamiliar" / "Ask before accessing any website"
+  B@61182080  (agent tool) "When true, enable the persistent full-library override so this run AND future automatic catch-up syncs drain the entire camera roll. Defaults to false. Pass true only when the user explicitly asks to sync ALL their photos."
+  B@61181636  (agent tool) "... subsequent automatic catch-up syncs also drain the full backlog instead of stopping at the conditions-based per-run cap (~500 on Wi-Fi). The override stays on until the user disables it in settings ..."
+  B@61183077  (agent tool) "... those still fire on app launch, foreground, and the periodic background task. ..."
+  B@62514208  (bug report) "Recent conversation details and device logs will be sent to Meta unless you choose not to include them. You can also review and remove information before sending."
+  B@61120672  "Checking your AI model training setting" / B@61120624 "Retry loading your AI model training setting" (value loaded from server; client default unknown)
+  B@61115344  (internal settings) "Relaunch Hatch to apply changes. Default follows the server setting."
+
+======================================================================
+3. APPROVAL-PROMPT COPY AND WHAT PERSISTS
+======================================================================
+
+  B@61075504 "{FBTParam|assistant} wants to refresh data from your Health app."   B@61078640 "{FBTParam|assistant} wants to read detailed samples from your Health app."
+  B@61075584 "{FBTParam|assistant} wants to refresh photos from your library."   B@61075664 "{FBTParam|assistant} wants to refresh your location data."
+  B@61075824 "{FBTParam|assistant} wants to refresh events from your calendar."   B@61075904 "{FBTParam|assistant} wants to refresh contacts from your phone."
+  B@61076480 "{FBTParam|assistant} wants to trigger a HomeKit action based on your location."   B@61076752 "{FBTParam|assistant} wants to change the state of a HomeKit accessory."
+  B@61077232 "{FBTParam|assistant} wants to create a new album in your photo library."
+  B@61075248 "Allow {FBTParam|assistant} to have read permissions in {FBTParam|connector}?"
+  B@61075168 "Allow {FBTParam|assistant} to have write permissions in {FBTParam|connector}?"
+  B@61075328 "Allow {FBTParam|assistant} to update location sharing on {FBTParam|device}?"
+  Buttons/labels: B@61075447 "Always allow"; B@60866656 "Always allow all"; B@60866673 "Allow all once"; B@60866607 "Deny all";
+    B@61073240 "Auto allowed"; B@61073254 "Always allowed"; B@61073226 "Always denied".
+  B@60874352  "Approvals you grant to artifacts and scheduled tasks will appear here."
+  No iOS text states how long "Always allow" lasts (macOS: "“Always allow” choices do not expire.").
+
+======================================================================
+4. RETENTION / DELETION / DATA DOWNLOAD / MEMORY / TRAINING / REVIEW
+======================================================================
+
+  Disconnect:
+  B@60853104  "When you disconnect, {FBTParam|product} will no longer have access to new data from {FBTParam|app}. Previous data shared with {FBTParam|appAgain} won't be removed unless you choose to delete it."
+  B@60853312  "You can remove the permissions you've given {FBTParam|product} in your {FBTParam|app} account settings."
+  B@61192396  (agent tool) "To stop iMessage reads when the user asks to disconnect or stop syncing messages, set `disable_forwarding: true`. This discards queued messages and blocks future forwarding on this device. Previously uploaded messages are not deleted. The user can also disable or delete the automation in Apple's Shortcuts app."
+  Deleting messages:
+  B@61405456  "How delete works"
+  B@61405312+61405342+61405433  "You can delete messages you[..]ve sent. Messages you delete are removed from the conversation but may stay in the agent[..]s memory."
+  Reset / delete data:
+  B@61120096  "This will reset {FBTParam|bot_name} and **permanently delete** your data, including chat history, files, artifacts and active tasks."
+  B@61120832  "Permanently deletes your Muse data, including chat history, files and active tasks."
+  B@61119888  "This action cannot be undone. Type your agent's name below to confirm."
+  B@61110400+61110514  (internal "Reset to Onboarding?") "... NOTE: this may result in deleting conversation history or other data. You should probably only do this on a burner VM. ..."
+  No "delete account" copy was found.
+  Photo deletion tool: B@61183376 "Delete photos or videos from the user's photo library by their local asset identifiers. The device will show a native iOS confirmation dialog that the user must approve before deletion occurs. ..."
+  Data download:
+  B@61120720  "Download your agent data"   B@61120352 "This will download a copy of your chats, files and other agent data."
+  Memory:
+  B@61116976  "Your {FBTParam|agentNoun} will read this and remember the durable facts. This is not a verbatim copy."
+  B@61117104+61117224  "I am importing memory from another AI assistant. Please read the block below and remember the durable facts about me [..] who I am, my preferences, recurring topics, ongoing projects. Skip anything ephemeral or sensitive. Confirm what you stored."
+  Training:
+  B@61120544  "Help improve our AI models"
+  B@61120464  "Allow us to use your interactions with Muse to develop and improve AI at Meta."
+  B@61109744  "Turn off AI model training?"
+  B@61120240+61120274  "Your interactions with Muse won[..]t be used to improve AI at Meta after you turn this off."
+  Human review / support access:
+  B@62514608  (bug report) "The information you choose to include will be sent to Meta for review and may be used to improve {FBTParam|appName}."
+  B@61111136  "{FBTParam|appName} Support will access your account to investigate and resolve the issue."
+  B@61111232  "Access ends when the issue is resolved, or you can revoke it at any time."
+  B@61110928  "Allowing access means your chats, memory, and files will be visible to support and your data will no longer be confidential."
+  B@61115840  (next to internal debug items) "Open access to your CVM for debugging purposes."
+  Code identifiers, not user copy: B@55001520 "MetaAIMediaHumanReviewNoticeStore"; B@59338075 "bk.action.rlcp.mwa.SetMediaHumanReviewEnabled";
+    B@60087024 "Media human review: no handler linked, cannot open the setting"; B@60397248 "Media human review: no handler linked, dropping the flyout toggle write".
+    These look like a shared Meta AI (glasses) framework setting whose handler is reported as not linked in this app.
+  No statement about routine human review of conversations or connector data was found.
+
+======================================================================
+5. PAUSE vs OFF
+======================================================================
+
+  B@61127088  "Turn on to back up your camera roll. Only this setting fully enables or disables sync. Pausing is temporary and clears the next time you open the app."
+  B@61127248  "Turning this off fully disables camera roll sync. Only this setting lasts beyond the current app session. Pausing sync is temporary and clears the next time you open the app."
+  B@61128512  "Sync is paused. Tap Resume sync to start syncing again, or it will resume the next time you open the app."
+  B@61182944+61183077  (agent tool) "Cancel the currently running camera roll sync. Does NOT disable the user's Camera Roll Sync toggle or stop future automatic syncs [..] those still fire on app launch, foreground, and the periodic background task. Use when the user says things like "stop the sync", "pause the photo upload", or "cancel syncing for now". ..."
+  -> A user or agent "pause"/"stop" is temporary; only the Camera Roll Sync toggle is persistent.
+  No Android-style app-wide "Pause Muse" kill switch copy was found on iOS.
+  Message forwarding "off" = "Turn forwarding off here or delete the automation in Shortcuts"; already-shared messages are not deleted.
+
+======================================================================
+6. NOTABLE TENSIONS VISIBLE IN TEXT
+======================================================================
+
+  - The iOS consent footer says connector info is used ("which we use to improve AI at Meta"), where the
+    Android local-connector footers say "which we may use".
+  - "Pause" in the photo UI and the agent's "stop the sync" both leave automatic syncing on; syncing
+    resumes at next app open.
+  - Forwarded iMessages and camera-roll uploads persist after turning forwarding/sync off
+    ("Messages already shared are not deleted"; "Previously uploaded messages are not deleted").
+
+======================================================================
+7. WHAT THIS TEXT CANNOT ESTABLISH
+======================================================================
+
+  - Which consent template each iOS connector uses, and every in-code default (training toggle,
+    camera-roll toggle, approval baseline): none can be read without disassembly.
+  - Whether camera-roll sync starts automatically after Photos permission is granted.
+  - Whether "ask to delete" or data reset removes server copies, backups or training copies.
+  - Whether the "Media human review" setting is live anywhere in this app.
+  - Authenticity of this build (signature verification failed).

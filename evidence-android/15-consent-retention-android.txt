@@ -1,0 +1,209 @@
+# S4 - Consent, defaults, sharing, retention and deletion copy - Android 8.0.0.21.168 (com.facebook.aura)
+# Static text extraction only. The app was never installed, run or network-tested.
+#
+# Sources (relative to repo root):
+#   R = English default ("()" locale) string values from
+#       `aapt2 dump resources muse-from-meta-8-0-0-21-168.apk`, cited by resource ID (0x7f12xxxx).
+#       Resource names are stripped ("_name_removed_"); code references them as
+#       R.string._name_removed__res_0x7f12xxxx.
+#   J = extracted-apk/jadx/sources/<path>:<line> (JADX decompilation; control flow can be wrong).
+# %1$s is normally the app name ("Muse") or a connector/device name, filled at run time.
+# Presence of a string proves it ships in this build, not that a given user sees it.
+
+======================================================================
+1. CONNECTOR / CONSENT DIALOGS (local device connectors)
+======================================================================
+
+Mapping (J com/facebook/aura/connectorconsent/LocalConnectorConsent.java and LocalConnectorConsentKt.java):
+enum order CALENDAR, CONTACTS, MESSAGES, PHONE, NOTIFICATIONS, CALL_LOG, LOCATION, HEALTH, PHOTOS
+(J .../LocalConnectorConsentType.java:12-20). Each consent sheet = description + 3 bullets + footer.
+Internal sync category per connector (J .../LocalConnectorConsent.java:276-291):
+  CALENDAR, CONTACTS            -> HISTORICAL_SYNC      (:280)
+  MESSAGES (SMS), NOTIFICATIONS -> PROACTIVE_TRANSIENT  (:283)
+  PHONE, CALL_LOG               -> NO_SYNC              (:286)
+  LOCATION, HEALTH, PHOTOS      -> PROACTIVE_PERSISTED  (:290)
+
+Access bullet ("Level up with %1$s", R 0x7f1206da):
+  R 0x7f1206d0 Calendar:      "Your agent will store existing information from Calendar, and will be automatically updated with the latest information from your device going forward."
+  R 0x7f1206d2 Contacts:      "Your agent will store existing information from Contacts, and will be automatically updated with the latest information from your device going forward."
+  R 0x7f1206d5 Messages(SMS): "Your agent will access information from Messages shared after you connect and will be automatically updated with the latest information from your device going forward."
+  R 0x7f1206d6 Notifications: "Your agent will access information from Notifications shared after you connect and will be automatically updated with the latest information from your device going forward."
+  R 0x7f1206d1 Call log:      "Your agent will access information from Call Log shared after you connect."
+  R 0x7f1206d4 Location:      "Your agent will store information from Location shared after you connect and will be automatically updated with the latest information from your device going forward."
+  R 0x7f1206d3 Health:        "Your agent will store information from Health Connect shared after you connect and will be automatically updated with the latest information from your device going forward."
+  R 0x7f1206d8 Photos:        "Your agent will look through details about your photos — when they were taken, which album they are in, and where — to find the ones you ask for, and will keep a copy of the photos you ask it to work with."
+  R 0x7f1206d7 Phone:         "Your agent will use your device to make calls on your behalf."
+
+Control bullet ("You choose what your agent can do", R 0x7f1206dc):
+  R 0x7f1206eb "You can ask your agent to delete this info at any time, or disconnect from Calendar in your device's settings to prevent future syncing."
+  R 0x7f1206ed (Contacts), 0x7f1206f0 (Messages), 0x7f1206f1 (Notifications), 0x7f1206ef (Location), 0x7f1206ee (Health): same sentence with the connector name.
+  R 0x7f1206ec "You can ask your agent to delete this info at any time, or disconnect from Call Log in your device's settings."
+  R 0x7f1206f3 "You can ask your agent to delete these copies at any time, or disconnect from Photos in your device's settings."
+  R 0x7f1206f2 "You can disable calling access in your device's settings."
+
+Caution bullet: R 0x7f1206db "Keep an eye on things" / R 0x7f1206d9 "Your agent may take unexpected actions. Monitor it carefully."
+
+Footers (J .../LocalConnectorConsent.java:21-34; HEALTH overridden in LocalConnectorConsentKt.java):
+  R 0x7f1206e8/0x7f1206e9/0x7f1206ea (historical / persisted / transient; identical English):
+    "All of the info from %1$s is part of your interactions with %3$s, which we may use to improve AI at Meta. You can manage this in Settings. [Learn more](%2$s)"
+  R 0x7f1206e7 (Health):
+    "All of the info from %1$s is part of your interactions with %4$s, which we may use to improve AI at Meta. You can manage this in Settings. Learn more in our [Privacy Policy](%2$s) and [Health Policy](%3$s)."
+  R 0x7f1206e6 (no-sync: Phone, Call log):
+    "The info used for your tasks is part of your interactions with %3$s, which we may use to improve AI at Meta. You can manage this in Settings. [Learn more](%2$s)"
+
+Descriptions: R 0x7f1206dd "Your agent can access and manage the calendar from your %1$s"; 0x7f1206e2 "Your agent can access messages from your %1$s";
+  0x7f1206e3 "Your agent can access and manage the notifications from your %1$s"; 0x7f1206de "Your agent can access the call log from your %1$s";
+  0x7f1206e1 "Your agent can access location data from your %1$s to find things nearby"; 0x7f1206e0 "Get insights from Health Connect data";
+  0x7f1206e5 "Your agent can access the photos on your %1$s".
+
+Location (J com/facebook/aura/settings/LocationSharingPermissionContentKt.java):
+  R 0x7f12095f "Allow background location?"
+  R 0x7f120960 "Get more relevant responses and recommendations based on your location. Allowing access in the background also lets %1$s collect location data to trigger actions based on your movement, even when the app is closed or not in use."
+  R 0x7f12095e "%1$s collects location data to support features that require your location or trigger actions based on your movement, even when the app is closed or not in use."
+  R 0x7f12095d / 0x7f120964 / 0x7f120961  "Always" / "When using the app" / "Never"
+Notifications:
+  R 0x7f120740 "To read and act on your notifications, %1$s needs notification listener access. You will be taken to Settings to enable this."
+  R 0x7f120312 (work-managed devices) "On a work-managed device, suppress notifications from every app not covered by a filter above. Turn off to capture notifications from apps that are not named individually."
+SMS sending: R 0x7f1206f6 "To send texts for you, set %1$s as your default assistant."
+Messenger E2EE: R 0x7f1209c1 "It's the same PIN you use to access your chat history. This gives %1$s access to your end-to-end encrypted chats."
+Smart home (hardware hub): R 0x7f1205e1 "%1$s allows your agent to connect to your Wi‑Fi network, enabling it to access and interact with smart devices in your home."
+Background running:
+  R 0x7f120760 "Let your assistant keep working after you leave the app. It runs in the background until you turn it off from the notification or in device permissions."
+  R 0x7f120177 "Your agent can continue working on tasks after you close the app. Check in to keep it on track and intervene if needed."
+Custom / cloud connectors:
+  R 0x7f1205a7 "You can disconnect anytime in Settings. Info from this connector is part of your AI interactions, which we use to improve AI at Meta. %1$s"
+  R 0x7f1205a8 "Meta doesn't review custom connectors or how they use your information. Grant access with caution and supervise your agent's use."
+  R 0x7f1205a2 "%1$s will exchange info with this connector. Check their policies to understand how they use your data."
+Wallet: R 0x7f1207a2 "Your agent will access the payment methods saved in your Meta Pay wallet to pay for what you ask it to buy."
+Onboarding: R 0x7f120180 "With your approval, your agent can send messages, edit files, make purchases, and take actions in apps you've connected. You control what it can access in Settings."
+
+No Android "Keep ... up to date" / "shared automatically" auto-sync switch copy (as on macOS) was found in R.
+No consent copy for screen control, browser, files or HomeKit was found in R.
+
+======================================================================
+2. DEFAULT-STATE INDICATORS (code, not observed state)
+======================================================================
+
+AI training:
+  J com/facebook/aura/settings/HatchAiTrainingApi.java:24  "public static final boolean DEFAULT_ENABLED = true;"
+  J com/facebook/aura/settings/ProductImprovementsResponseJson.java:76-85  field absent from server JSON ->
+    "this.training_enabled = true;" (:78) and no-arg constructor "this(true);" (:85)
+  J com/facebook/aura/settings/HatchDataPrivacySettingsScreenKt.java:825  "if (bool == null) {" -> shows a
+    loading card until the server value arrives (no local UI fallback on this screen).
+Approval baseline ("Connector defaults"):
+  J com/facebook/aura/permissions/defaults/PermissionSettings.java:102,107  default mode "PermissionDefaultMode.AUTO_ALLOW"
+    for both connector and network surfaces. Defaults UI: R 0x7f12099a "Connector defaults";
+    R 0x7f120998 "Ask for some actions" / R 0x7f120997 "Before every write and some read actions";
+    R 0x7f120994 "Always ask" / R 0x7f120993 "Before any action".
+  J com/facebook/aura/nodes/core/NodeHitlMode.java:25-33  defaultFor(access): READ -> "return NodeHitlMode.ALLOW;" (:28),
+    WRITE -> "return NodeHitlMode.ASK;" (:31)
+  J com/facebook/aura/gateway/NodeHitlPermissionStore.java:42  stored override, else
+    "HatchNodeHitlGateKt.withBaseline(companion.defaultFor(nodeHitlSpec.access), this.baseline)"
+  J com/facebook/aura/gateway/HatchNodeHitlGateKt.java:412  ALWAYS_ASK baseline turns a default ALLOW into ASK.
+  J com/facebook/aura/gateway/HatchNodeHitlGate.java:478-498  no cached server baseline -> fetch (not for
+    PROACTIVE_SYNC); on failure "Connector baseline fetch failed; failing closed" -> ALWAYS_ASK.
+  J com/facebook/aura/gateway/HatchNodeHitlGate.java:170  a PROACTIVE_SYNC request that resolves to ASK is not
+    prompted and is denied (per existing extract evidence-android/10-review-corrections.txt).
+  -> Reading of the code: with the AUTO_ALLOW baseline, background reads (proactive sync) of a
+     connected source proceed without a prompt; writes ask. With an ALWAYS_ASK baseline, background reads
+     are denied. The server-supplied baseline is not visible statically.
+Backfill capability despite "shared after you connect" copy:
+  J com/facebook/aura/commands/sms/SmsDataSource.java:58-67  "BACKFILL_CHUNK_DAYS = 30", "BACKFILL_LIMIT = Integer.MAX_VALUE", "supportsBackfill = true"
+  J com/facebook/aura/commands/calllogs/CallLogDataSource.java:51-58  same constants, "supportsBackfill = true"
+  J com/facebook/aura/commands/health/HealthDataSource.java:92  "supportsBackfill = true"
+  J com/facebook/aura/commands/calendar/CalendarDataSource.java:60  "DEFAULT_BACKFILL_WINDOW_MS = 2592000000L" (30 days)
+Other stated defaults:
+  R 0x7f1207a3 "By default, your agent will ask before taking actions it thinks need review. Disconnect at any time in Settings."
+  R 0x7f12012e (bug report) "Recent conversation details and device logs will be sent to Meta unless you choose not to include them. You can also review and remove information before sending."
+  R 0x7f1201ba "Your feed will automatically update three times a day. It will reference your prompt instructions. You can also manually generate new posts at any time."
+
+======================================================================
+3. APPROVAL-PROMPT COPY AND WHAT PERSISTS
+======================================================================
+
+  R 0x7f12021c "%1$s wants to check your health data."   R 0x7f12021d "%1$s wants to check your text messages."
+  R 0x7f12021e "%1$s wants to send a text message from your phone."   R 0x7f12021f "%1$s wants to check your phone notifications."
+  R 0x7f120220 "%1$s wants to act on your phone notifications."   R 0x7f120217 "%1$s wants to check your call history."
+  R 0x7f120215 "%1$s wants to check your phone calendar."   R 0x7f120218 "%1$s wants to check your phone contacts."
+  R 0x7f120222 "%1$s wants to check your photos."   R 0x7f120221 "%1$s wants to make a call from your phone."
+  R 0x7f1201fa "Allow %1$s to have read permissions in %2$s?"   R 0x7f1201fb "Allow %1$s to have write permissions in %2$s?"
+  R 0x7f1201e0 "Allow always"   R 0x7f1201e1 "Allow once"   R 0x7f1201f1 "Deny"
+  R 0x7f1201f8 "Your choice applies to all related reads in %1$s."   R 0x7f1201f9 "Your choice applies to all related changes in %1$s."
+  R 0x7f1201f2 "This action wasn't recognized. Approve it only if you expected it."
+  Status labels: R 0x7f120068 "Allowed"; 0x7f120069 "Always allowed"; 0x7f12006b "Auto allowed"; 0x7f12006a "Always denied".
+  Defaults screen: R 0x7f120999 "When your information may be shared or the website is unfamiliar"; R 0x7f120995 "Ask before accessing any website"; R 0x7f1200a0 "Reset to defaults".
+  Persistence in code: J com/facebook/aura/gateway/AgentPermissionDecision.java:16-17 ALLOW_ONCE / ALLOW_ALWAYS;
+    J com/facebook/aura/gateway/HatchNodeHitlGate.java:211 "setMode(nodeHitlSpec2, NodeHitlMode.ALLOW)" writes a
+    per-group, per-access override to VM-scoped prefs (NodeHitlPermissionStore.java prefKey = group_access).
+  Onboarding: R 0x7f12017b "It may make mistakes or take unexpected actions. It's built to ask before taking sensitive actions, but supervision is recommended."
+
+======================================================================
+4. RETENTION / DELETION / DATA DOWNLOAD / MEMORY / TRAINING / REVIEW
+======================================================================
+
+  Disconnect (J com/facebook/aura/skills/view/DisconnectConfirmationSheetKt.java):
+  R 0x7f1206c4 "When you disconnect, %1$s will no longer have access to new data from %2$s. Previous data shared with %1$s won't be removed unless you choose to delete it.\n\nYou can remove the permissions you've given %1$s in %2$s's account settings."
+  R 0x7f1206cd "%1$s will no longer be able to access %2$s"
+  Deleting messages (J com/facebook/aura/conversation/view/HatchUnsendNuxSheetKt.java):
+  R 0x7f120595 "How delete works"
+  R 0x7f120592 "You can delete messages you’ve sent. Messages you delete are removed from the conversation but may stay in the agent’s memory. %1$s"
+  R 0x7f120aa8 "This permanently deletes the chat and its messages. This can't be undone."  (side chat)
+  Reset / delete data (J com/facebook/aura/settings/HatchDataPrivacySettingsScreenKt.java):
+  R 0x7f1205bc "Permanently deletes your %1$s data, including chat history, files and active tasks."
+  R 0x7f120acd "Resetting permanently deletes your data, including chat history, files, artifacts and tasks.\n\nThis action cannot be undone. Type “%1$s” below to confirm."
+  R 0x7f12092a (Confidential-VM encryption setup, J .../settings/ComposableSingletons$CancelEncryptionScreenKt...) "If you cancel, all of your data including chats, artifacts and tasks will be permanently deleted. This cannot be undone."   R 0x7f12092b "Export data"
+  Credentials: R 0x7f1208f2 "Your log in details for %1$s will be deleted and your agent will no longer be able to use them."
+  No "delete account" copy was found in R.
+  Data download:
+  R 0x7f1205b1 "Download your agent data"   R 0x7f1205b3 "This will download a copy of your chats, files and other agent data."
+  Memory:
+  R 0x7f120958 (import prompt) "... Please read it, internalize it, and remember it via your memory tooling. Skip anything that looks sensitive or wasn't clearly meant to be remembered. Confirm what you stored. ..."
+  Training (J .../HatchDataPrivacySettingsScreenKt.java):
+  R 0x7f1205b0 "Help improve our AI models"
+  R 0x7f1205aa "Allow us to use your interactions with %1$s to develop and improve AI at Meta."
+  R 0x7f1205af "Turn off AI model training?"
+  R 0x7f1205ac "Your interactions with %1$s won’t be used to improve AI at Meta after you turn this off."
+  Human / support access:
+  R 0x7f120531 "%1$s Support will access your account to investigate and resolve the issue.\n\nAccess ends when the issue is resolved, or you can revoke it at any time."
+  R 0x7f120536 "Allowing access means your chats, memory, and files will be visible to support and your data will no longer be confidential."
+  R 0x7f120129 (bug report) "The information you choose to include will be sent to Meta and may be used to debug and improve %1$s."
+  No statement about routine human review of conversations or connector data was found in R.
+  Glasses (Meta AI app hand-off): R 0x7f1207ad "Review or clear your chat history in the %1$s app. You can change back to Meta AI anytime in the Meta AI app settings."
+
+======================================================================
+5. PAUSE vs OFF
+======================================================================
+
+  Android "Pause" is an app-wide kill switch / lock, not a sync pause (J com/facebook/aura/pause/...):
+  R 0x7f12097a "Use Pause anytime you want to ensure that %1$s isn’t running, sending, or accessing your data."
+  R 0x7f12097c "Pausing %1$s stops all activity and locks the app."
+  R 0x7f120979 "When paused, %1$s goes offline and all activity stops. You won’t be able to access any content in the app until you unlock."
+  R 0x7f120974 "This key is the only way to unpause and unlock %1$s on another device. You’ll get a new one each time you pause."
+  R 0x7f12096d "Make sure you have a recovery key saved before you pause."
+  R 0x7f120800 "All activity has been stopped. You can still access your settings."
+  "Off" for a data source is described only as OS-level disconnection ("disconnect from X in your device's
+  settings to prevent future syncing"); no in-app per-connector sync switch copy was found.
+
+======================================================================
+6. NOTABLE TENSIONS VISIBLE IN TEXT/CODE
+======================================================================
+
+  - Calendar and Contacts consent says existing data is stored (HISTORICAL_SYNC); Messages, Call log and
+    Health say "shared after you connect", yet SMS, call log and health data sources declare
+    supportsBackfill = true with 30-day chunks and an unbounded item limit.
+  - Every local connector footer says the connector's info "may" be used "to improve AI at Meta",
+    including Health Connect data; custom connectors say "which we use" (R 0x7f1205a7).
+  - Deleting a message does not remove it from memory (R 0x7f120592); disconnecting does not remove
+    earlier data (R 0x7f1206c4).
+  - Both training defaults found in code are true.
+
+======================================================================
+7. WHAT THIS TEXT CANNOT ESTABLISH
+======================================================================
+
+  - Server values for training_enabled and connector_default, and so whether background reads are
+    auto-allowed for a given account.
+  - Whether backfill runs on connect or only on agent request, and how far back it reaches.
+  - Whether "ask your agent to delete" removes server copies, backups or training copies.
+  - Whether OTP / one-time codes in SMS or notifications are filtered before upload.
+  - Which strings are visible to all users vs cohorts or employees.

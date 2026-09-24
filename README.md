@@ -199,6 +199,14 @@ media_sync_enabled
 
 These strings establish background media-upload and deduplication machinery. **They do not establish the selected date range, media types, default enablement or that the entire library is uploaded.** `media_sync_last_date` and permission/skip paths are also present. The previous whole-library conclusion was too strong.
 
+### Training and approval defaults
+
+- The AI-training switch initializes from `trainingEnabled ?? !0`, so it shows **on** unless Meta's server returns a value.
+- The connector approval default is `auto_allow`, which the UI labels **"Ask for some actions: Before every write and some read actions"**. A missing server value also falls back to `auto_allow`, so some reads run without a prompt.
+- Resetting *"permanently deletes your data, including chat history, files, artifacts and tasks"*. Agent memory and already-synced connector data aren't named.
+
+Details and quotes: [CROSS-PLATFORM.md](CROSS-PLATFORM.md#consent-defaults-and-retention-what-the-apps-say) · [`15-consent-retention-macos.txt`](evidence/15-consent-retention-macos.txt).
+
 ## 5. Full computer control
 
 Muse asks for **Accessibility** and **Screen Recording**:

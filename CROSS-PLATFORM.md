@@ -56,4 +56,36 @@ One table per data type: **how** each build reaches it, whether it's fetched **o
 3. **Deletion.** The apps say forwarded messages aren't deleted when you disconnect. Cloud retention needs an account-level test (D6).
 4. **iOS Health scope.** 110 identifiers are imported, but the requested set only shows on the permission sheet (D7).
 
-*Network, telemetry and consent-copy findings (workstreams S4/S5) will be added below when complete.*
+## Consent, defaults and retention: what the apps say
+
+From the apps' own UI text ([macOS](evidence/15-consent-retention-macos.txt) · [Android](evidence-android/15-consent-retention-android.txt) · [iOS](evidence-ios/15-consent-retention-ios.txt)), compared with Meta's public posts ([comparison](evidence/15-public-statements-vs-app.txt)). The app strings and public quotes were re-checked against the builds and the live pages on 2026-09-24.
+
+### Defaults in the code
+
+| Setting | macOS | Android | iOS |
+|---|---|---|---|
+| **AI training on your interactions** | `trainingEnabled ?? !0` → **on** unless the server says otherwise | `HatchAiTrainingApi.DEFAULT_ENABLED = true` | footer says info "we use to improve AI at Meta"; default not readable from strings |
+| **Approval default** | `auto_allow`, labelled **"Ask for some actions"**: *"Before every write and some read actions"*. Missing value → `auto_allow` | `auto_allow` fallback (`PermissionDefaultMode.fromWire`) | `auto_allow` / "Auto allowed" present |
+| **Background sync switch** | consent dialog falls back to **on** | server `connector_default` for 6 sources | *untested* |
+
+Meta's research post calls training-on "**a good default**". Its launch post says *"Muse checks with the person before sensitive actions like sending an email or making a purchase."* That holds for sends and purchases. Under the default, **some reads run without a prompt**, which the research post confirms: *"Read-only, previously allowed, or demonstrably low-risk actions can proceed without interruption."*
+
+### Where your data goes, per the apps' own footers
+
+- Android, every connector: *"Info from this connector is part of your AI interactions, which we use to improve AI at Meta."* Health Connect is included.
+- iOS: *"The info used for your tasks is part of your interactions with {appName}, which we use to improve AI at Meta."*
+- Neither public post says **connector data** (messages, health, contacts) is part of the training pool. The app footers do.
+
+### Deletion and retention
+
+| Statement in the app | Platform |
+|---|---|
+| *"Previous data shared with {app} won't be removed unless you choose to delete it."* (on disconnect) | iOS (shared copy) |
+| *"Messages already shared are not deleted."* / *"Previously uploaded messages are not deleted."* | iOS (iMessage forwarding) |
+| *"Messages you delete are removed from the conversation but **may stay in the agent's memory**."* | Android |
+| *"Allowing access means your chats, memory, and files will be visible to support and **your data will no longer be confidential**."* | Android (support access) |
+| *"Pausing … stops all activity and locks the app."* vs iOS camera roll: *"Pausing is temporary and clears the next time you open the app."* | Android / iOS |
+
+**Disconnecting doesn't delete what was already shared**, and deleting a chat message doesn't delete it from the agent's memory. The public posts say nothing about retention periods. The research post says *"Your VM data is backed up continuously so you can restore it if something goes wrong,"* while the reset option says *"Permanently deletes your {Muse} data, including chat history, files and active tasks"* (macOS and Android). That list doesn't name **agent memory** or **synced connector data**, though "including" isn't exhaustive. Whether a reset reaches memory, the continuous VM backups and any training copies isn't stated anywhere (test D6).
+
+*Network and telemetry findings (workstream S5) will be added below when complete.*
