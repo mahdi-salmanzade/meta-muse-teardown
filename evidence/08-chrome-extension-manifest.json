@@ -1,0 +1,58 @@
+{
+  "manifest_version": 3,
+  "name": "Muse Browser Node",
+  "version": "1.0.8",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApZcSpWgg1Vk1h5MGD1Eum583u4Tue+ItFl6zXYXUR8fIg59VYR7o2xDTCnCv8/0z2HdRPQuL9E/ROyG8r4pGDVRw057mWBTH45xd9UpnP0sq8t8MKlU7cdr9YgTomSk4lBG17P6gfYXPZQDqiRijRrOcfY6nUWsIT0+G83yQPbTd9jOsM0mWoqclPX2zkvB7iP9JyL7foas7eOK2eM9NGNH9YQSb1gQmEGMnJ/U0kvKcJ5Eaks2ZgzZVyagKxUnopb86cPeiADstTAIxANeedZQ67mCPjUkAlXXHspBzGNKPVMtghR75TEcELol6JQROIQmsRe4WDoS0hqXxujO+HwIDAQAB",
+  "description": "Connects your browser to Muse as a controllable node",
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "scripting",
+    "downloads",
+    "history",
+    "bookmarks",
+    "notifications",
+    "storage",
+    "debugger",
+    "alarms",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://hatch.meta.ai/*",
+        "https://agent.meta.ai/*"
+      ],
+      "js": [
+        "lib/pairing-security.js",
+        "hatch-web-pairing.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_page": "options.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "externally_connectable": {
+    "ids": [
+      "*"
+    ]
+  }
+}

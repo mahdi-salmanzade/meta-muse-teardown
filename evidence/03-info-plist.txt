@@ -1,0 +1,84 @@
+{
+  "AnalyticsClientToken" => "[REDACTED]"
+  "ApplicationIdentifier" => "V9WTTPBFK9.com.meta.endo"
+  "ATSApplicationFontsPath" => "Fonts"
+  "CFBundleDevelopmentRegion" => "en"
+  "CFBundleDisplayName" => "Muse"
+  "CFBundleIconFile" => "AppIcon"
+  "CFBundleIconName" => "AppIcon"
+  "CFBundleIdentifier" => "com.meta.endo"
+  "CFBundleName" => "Muse"
+  "CFBundlePackageType" => "APPL"
+  "CFBundleShortVersionString" => "3.0"
+  "CFBundleSupportedPlatforms" => [
+    0 => "MacOSX"
+  ]
+  "CFBundleURLTypes" => [
+    0 => {
+      "CFBundleTypeRole" => "Editor"
+      "CFBundleURLName" => "com.meta.prototypes.endo.macos"
+      "CFBundleURLSchemes" => [
+        0 => "hatch"
+      ]
+    }
+    1 => {
+      "CFBundleTypeRole" => "Viewer"
+      "CFBundleURLName" => "com.meta.prototypes.endo.window"
+      "CFBundleURLSchemes" => [
+        0 => "endo-window"
+      ]
+    }
+  ]
+  "CFBundleVersion" => "1075746581"
+  "DTPlatformBuild" => "26A425"
+  "DTPlatformName" => "macosx"
+  "DTPlatformVersion" => "27.0"
+  "DTSDKBuild" => "26A425"
+  "DTSDKName" => "macosx27.0"
+  "DTXcode" => "2700"
+  "DTXcodeBuild" => "27A266a"
+  "FacebookAppID" => "988919250660868"
+  "FacebookLoggingAppID" => "988919250660868"
+  "FBBuck2" => true
+  "HatchReleaseChannel" => "production"
+  "HatchReleaseNotesImpressionLimit" => "1"
+  "LSApplicationCategoryType" => "public.app-category.productivity"
+  "LSMinimumSystemVersion" => "14.0"
+  "LSRequiresIPhoneOS" => false
+  "LSUIElement" => false
+  "NativeLoginAppID" => "1181158755084833"
+  "NativeLoginClientToken" => "[REDACTED]"
+  "NSAppleEventsUsageDescription" => "With your approval, Muse can send messages and emails, manage notes, and organize your inbox."
+  "NSCalendarsFullAccessUsageDescription" => "Muse reads your calendar events to give the assistant context about your schedule"
+  "NSCalendarsUsageDescription" => "Muse reads your calendar events to give the assistant context about your schedule"
+  "NSCameraUsageDescription" => "Muse uses your camera to capture photos when requested"
+  "NSContactsUsageDescription" => "Muse reads and updates your contacts so the assistant can look up and manage the people you know"
+  "NSDesktopFolderUsageDescription" => "Muse reads files on your Desktop when you ask the assistant to work with them"
+  "NSDocumentsFolderUsageDescription" => "Muse reads files in your Documents folder when you ask the assistant to work with them"
+  "NSDownloadsFolderUsageDescription" => "Muse reads files in your Downloads folder when you ask the assistant to work with them"
+  "NSHighResolutionCapable" => true
+  "NSLocationUsageDescription" => "Muse uses your location to provide information and features relevant to where you are."
+  "NSLocationWhenInUseUsageDescription" => "Muse uses your location to provide information and features relevant to where you are."
+  "NSMicrophoneUsageDescription" => "Muse uses your microphone for voice dictation"
+  "NSNetworkVolumesUsageDescription" => "Muse accesses files on mounted volumes so it can move itself into your Applications folder from the installer disk image, and when you ask it to work with files stored there"
+  "NSPhotoLibraryUsageDescription" => "Muse syncs your photos and videos for content understanding and media editing"
+  "NSPrincipalClass" => "NSApplication"
+  "NSRemindersFullAccessUsageDescription" => "Muse reads your reminders to give the assistant context about your to-dos"
+  "NSRemindersUsageDescription" => "Muse reads your reminders to give the assistant context about your to-dos"
+  "NSRemovableVolumesUsageDescription" => "Muse accesses files on mounted volumes so it can move itself into your Applications folder from the installer disk image, and when you ask it to work with files stored there"
+  "NSSpeechRecognitionUsageDescription" => "Muse uses speech recognition to transcribe your voice messages"
+  "NSSupportsAutomaticGraphicsSwitching" => true
+  "SUFeedURL" => "https://www.facebook.com/endo/release/appcast.xml?channel=production"
+  "SUPublicEDKey" => "disxTjHFQiufTKeFl5u0U+72690NzNIoqakG/XAEasw="
+  "UTExportedTypeDeclarations" => [
+    0 => {
+      "UTTypeConformsTo" => [
+        0 => "public.data"
+      ]
+      "UTTypeDescription" => "Endo Attachment Reference"
+      "UTTypeIdentifier" => "com.meta.prototypes.endo.attachment-reference"
+      "UTTypeTagSpecification" => {
+      }
+    }
+  ]
+}

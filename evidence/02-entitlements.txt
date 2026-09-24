@@ -1,0 +1,18 @@
+{
+  "com.apple.application-identifier" => "V9WTTPBFK9.com.meta.endo"
+  "com.apple.developer.associated-domains" => [
+    0 => "applinks:agent.meta.ai"
+    1 => "webcredentials:agent.meta.ai"
+  ]
+  "com.apple.developer.team-identifier" => "V9WTTPBFK9"
+  "com.apple.security.automation.apple-events" => true
+  "com.apple.security.device.audio-input" => true
+  "com.apple.security.device.camera" => true
+  "com.apple.security.personal-information.addressbook" => true
+  "com.apple.security.personal-information.calendars" => true
+  "com.apple.security.personal-information.photos-library" => true
+  "com.apple.security.personal-information.reminders" => true
+  "keychain-access-groups" => [
+    0 => "V9WTTPBFK9.com.meta.endo"
+  ]
+}

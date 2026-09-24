@@ -1,0 +1,15 @@
+Keep messages up to date
+New messages are shared automatically. Turn this off to share only what you ask for.
+Keep email up to date
+Who new email is from and what it is about are shared automatically. The message text is shared only when you ask.
+Keep notes up to date
+New and edited notes are shared automatically. Turn this off to share only what you ask for.
+Keep calendar events up to date
+New and changed events are shared automatically. Turn this off to share only what you ask for.
+Keep reminders up to date
+New and changed reminders are shared automatically. Turn this off to share only what you ask for.
+Keep contacts up to date
+New and changed contacts are shared automatically. Turn this off to share only what you ask for.
+Keep this up to date
+New and changed items are shared automatically. Turn this off to share only what you ask for.
+Only what you ask for is shared. Turn this on to share new and changed items as they happen.

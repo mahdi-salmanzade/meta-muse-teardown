@@ -1,0 +1,75 @@
+# From Resources/chrome/lib/blocked-sites.js (excerpt)
+const WHATSAPP_DOMAINS = Object.freeze(['whatsapp.com', 'whatsapp.net', 'wa.me']);
+const MANAGED_BROWSER_DEBUG_PORT = '9222';
+
+const BLOCKED_DOMAINS = Object.freeze([
+  'agent.meta.ai',
+  'muse.ai',
+  'hatch.ecto1.ai',
+  'hatch.meta.ai',
+  // Bare apex, not `www.` — the suffix rule then covers the apex and every
+  // subdomain rather than just `www`.
+  'internalfb.com',
+  ...WHATSAPP_DOMAINS,
+]);
+
+const BLOCKED_URL_SUBSTRINGS = Object.freeze([]);
+
+# Commands exposed by Resources/chrome/lib/commands.js
+tabs.list
+tabs.open
+tabs.close
+tabs.focus
+tabs.reload
+tabs.navigate
+page.describe
+page.content
+page.click
+page.type
+page.select
+page.screenshot
+page.wait
+page.scroll
+page.fill_form
+downloads.list
+history.search
+bookmarks.search
+notifications.show
+page.macro
+page.click
+page.type
+page.select
+page.scroll
+page.submit
+page.wait
+page.fill_form
+page.describe
+page.content
+page.snapshot
+page.info
+page.get
+page.elements
+page.get_text
+page.get_html
+page.screenshot
+page.macro
+tabs.list
+tabs.open
+tabs.close
+tabs.focus
+tabs.reload
+tabs.navigate
+downloads.list
+history.search
+bookmarks.search
+notifications.show
+
+# Gateway hosts allowed (lib/pairing-security.js)
+  const HATCH_WEB_GATEWAY_HOST_SUFFIXES = Object.freeze([
+    '.metaaivm.com',
+    '.customer.prod.willow606.com',
+  ]);
+  const HATCH_WEB_GATEWAY_HOSTS = Object.freeze(['node.hatch.one']);
+
+  function normalizeNonEmptyString(value) {
+    if (typeof value !== 'string') return null;

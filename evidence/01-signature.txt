@@ -1,0 +1,29 @@
+# sha256
+3818f35b89580d857f412977f6d8f5d409dbc3112da3e7119ea254d518010de4  Muse-3.0.dmg
+
+# codesign -dvvv
+Identifier=com.meta.endo
+Format=app bundle with Mach-O thin (arm64)
+CodeDirectory v=20500 size=37145 flags=0x10000(runtime) hashes=1150+7 location=embedded
+Hash type=sha256 size=32
+CandidateCDHash sha256=d68d20a5aada826fe7e9e9dc3e31d3a94d1f848b
+CandidateCDHashFull sha256=d68d20a5aada826fe7e9e9dc3e31d3a94d1f848bdd323c3fac25933bb57e1b18
+Hash choices=sha256
+CMSDigest=d68d20a5aada826fe7e9e9dc3e31d3a94d1f848bdd323c3fac25933bb57e1b18
+CMSDigestType=2
+CDHash=d68d20a5aada826fe7e9e9dc3e31d3a94d1f848b
+Signature size=9059
+Authority=Developer ID Application: Meta Platforms, Inc. (V9WTTPBFK9)
+Authority=Developer ID Certification Authority
+Authority=Apple Root CA
+Timestamp=24 Sep 2026 at 5:08:29 AM
+Info.plist entries=55
+TeamIdentifier=V9WTTPBFK9
+Runtime Version=27.0.0
+Sealed Resources version=2 rules=13 files=180
+Internal requirements count=1 size=176
+
+# spctl
+Muse.app: accepted
+source=Notarized Developer ID
+origin=Developer ID Application: Meta Platforms, Inc. (V9WTTPBFK9)

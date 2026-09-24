@@ -1,0 +1,4 @@
+# Never publish Meta's binaries or the extracted bundle
+*.dmg
+extracted/
+.DS_Store

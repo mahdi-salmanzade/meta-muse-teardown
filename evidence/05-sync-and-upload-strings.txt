@@ -1,0 +1,137 @@
+## grep -E 'backfill|Backfill'
+$s17HatchNodeProtocol0B19BackfillResumeStoreP
+A backfill is already running; please wait for it to finish.
+BackfillAccumulator
+BackfillFailure
+BackfillNotesAccumulator
+BackfillNotesFailure
+CalendarBackfillAccumulator
+CalendarBackfillAck
+CalendarBackfillFailure
+ContactsBackfillAck
+Data source id to backfill. Supported: imessage, email, calendar, notes, reminders, contacts.
+EmailBackfillAccumulator
+EmailBackfillAck
+EmailBackfillFailure
+EndoBackfillResumeStore
+IMessageBackfillAck
+NodeBackfillResumeStore
+NodeBackfillUploadState
+NotesBackfillAck
+RemindersBackfillAccumulator
+RemindersBackfillAck
+RemindersBackfillFailure
+Return the current source directly without historical backfill: calendar/reminders use [-7d, +14d]; contacts returns the whole address book. Requires the source's OS permission.
+[EndoCalendarSyncSource] Backfill complete: 
+[EndoEmailSyncSource] Backfill complete: 
+[EndoIMessageSyncSource] Backfill complete: 
+[EndoNotesSyncSource] Backfill complete: 
+[EndoRemindersSyncSource] Backfill complete: 
+_TtC4EndoP33_503A311A0BA961C1EBD30193564B9ABC23CalendarBackfillFailure
+_TtC4EndoP33_503A311A0BA961C1EBD30193564B9ABC27CalendarBackfillAccumulator
+_TtC4EndoP33_6DA64BEDBBA00CD9DFB5B54E2FF5171B20EmailBackfillFailure
+_TtC4EndoP33_6DA64BEDBBA00CD9DFB5B54E2FF5171B24EmailBackfillAccumulator
+_TtC4EndoP33_CB94AAB2D798878AD6DFBB2A33F0F59C24RemindersBackfillFailure
+_TtC4EndoP33_CB94AAB2D798878AD6DFBB2A33F0F59C28RemindersBackfillAccumulator
+_TtC4EndoP33_D4A148C24550C3483368519E2130C98415BackfillFailure
+_TtC4EndoP33_D4A148C24550C3483368519E2130C98419BackfillAccumulator
+_TtC4EndoP33_DF80464641FF8FF45665C2C04C824C3920BackfillNotesFailure
+_TtC4EndoP33_DF80464641FF8FF45665C2C04C824C3924BackfillNotesAccumulator
+backfill not supported for source: 
+backfillDrainWaiters
+backfillSources
+backfillTasks
+backfill_completed
+backfill_in_flight
+backfill_in_progress
+dataSourceBackfill
+data_source.backfill
+drainInFlightBackfills()
+endo.backfill.
+endo.backfill.calendar
+endo.backfill.email
+endo.backfill.imessage
+endo.backfill.notes
+endo.backfill.reminders
+failed to encode backfill ack
+failed to read contacts for backfill
+failed to read reminders for backfill window
+gateway rejected Mail backfill chunk
+gateway rejected calendar backfill chunk
+gateway rejected iMessage backfill chunk
+gateway rejected notes backfill chunk
+gateway rejected reminders backfill chunk
+isBackfilling
+nextBackfillToken
+supportsBackfill
+supports_backfill
+
+## grep -E 'SyncSource'
+$s17HatchNodeProtocol0B14DataSyncSourceP
+EndoCalendarSyncSource
+EndoContactsSyncSource
+EndoEmailSyncSource
+EndoIMessageSyncSource
+EndoNotesSyncSource
+EndoRemindersSyncSource
+NodeDataSyncSource
+[EndoCalendarSyncSource] Auto-sync off: dropped baseline; re-enable re-baselines silently
+[EndoCalendarSyncSource] Backfill complete: 
+[EndoCalendarSyncSource] Delta (
+[EndoCalendarSyncSource] Delta encode failed; keeping baseline
+[EndoContactsSyncSource] Full snapshot (
+[EndoContactsSyncSource] Snapshot fetch failed; keeping baseline
+[EndoContactsSyncSource] Snapshot is 
+[EndoEmailSyncSource] Backfill complete: 
+[EndoEmailSyncSource] Forward encode failed; keeping cursor
+[EndoEmailSyncSource] Forward read failed (
+[EndoEmailSyncSource] Forward sync (
+[EndoEmailSyncSource] Reconcile read failed (
+[EndoEmailSyncSource] Reconcile: 
+[EndoIMessageSyncSource] Backfill complete: 
+[EndoIMessageSyncSource] Forward encode failed; keeping cursor
+[EndoIMessageSyncSource] Forward message exceeds payload cap; keeping cursor
+[EndoIMessageSyncSource] Forward read failed (
+[EndoIMessageSyncSource] Forward sync (
+[EndoIMessageSyncSource] Forward sync: row_id=
+[EndoIMessageSyncSource] Reconcile read failed (
+[EndoIMessageSyncSource] Reconcile: 
+[EndoNotesSyncSource] Backfill complete: 
+[EndoNotesSyncSource] Forward encode failed; keeping cursor
+[EndoNotesSyncSource] Forward read failed (
+[EndoNotesSyncSource] Forward sync (
+[EndoNotesSyncSource] Reconcile read failed (
+[EndoNotesSyncSource] Reconcile: 
+[EndoNotesSyncSource] Search complete: 
+[EndoRemindersSyncSource] Auto-sync off: dropped baseline; re-enable re-baselines silently
+[EndoRemindersSyncSource] Backfill complete: 
+[EndoRemindersSyncSource] Delta (
+[EndoRemindersSyncSource] Delta encode failed; keeping baseline
+[EndoRemindersSyncSource] Snapshot fetch failed; keeping baseline
+_TtC4Endo19EndoEmailSyncSource
+_TtC4Endo19EndoNotesSyncSource
+_TtC4Endo22EndoCalendarSyncSource
+_TtC4Endo22EndoContactsSyncSource
+_TtC4Endo22EndoIMessageSyncSource
+_TtC4Endo23EndoRemindersSyncSource
+
+## grep -E 'MediaSync|media_sync'
+MediaSyncSettings
+[MediaSync] Already on server: 
+[MediaSync] Found 
+[MediaSync] No Photos permission, skipping sync
+[MediaSync] Skipping sync 
+[MediaSync] Starting background sync timer
+[MediaSync] Status check failed for 
+[MediaSync] Stopped background sync
+[MediaSync] Sync already in progress, skipping
+[MediaSync] Sync complete: 
+[MediaSync] Sync complete: everything up to date
+[MediaSync] Upload failed for 
+[MediaSync] Uploaded 
+_TtC4Endo17MediaSyncSettings
+media_sync_enabled
+media_sync_last_date
+media_sync_manifest
+media_sync_manifest.json
+
