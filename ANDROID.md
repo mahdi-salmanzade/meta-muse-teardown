@@ -67,17 +67,17 @@ alarm.set / list / update / dismiss / dismiss_all      battery.get
 network.state          background.session
 ```
 
-Each category belongs to an approval ("human-in-the-loop") group in `nodes/core/NodeHitlGroup.java`: `SMS`, `SMS_SEND`, `CALL_LOG`, `PHONE_CALL`, `NOTIFICATIONS`, `LOCATION`, `HEALTH`, `PHOTOS`, `CONTACTS`, `CALENDAR`, … You approve by category, then the agent uses it. The **proactive sync** below goes through the same gate as `NodeHitlRequestKind.PROACTIVE_SYNC` (`nodes/datasource/ProactiveSyncRunner.java`). If no permission default is cached, `HatchNodeHitlGate` **fails closed to `ALWAYS_ASK`** ([`10-review-corrections.txt`](evidence-android/10-review-corrections.txt)). The inspected gate allows persisted allowed modes, denies denied modes, and returns a denial for proactive requests that would otherwise need a prompt. This is evidence of permission checks, not a runtime proof of every path or default.
+Many command categories belong to an approval ("human-in-the-loop") group in `nodes/core/NodeHitlGroup.java`: `SMS`, `SMS_SEND`, `CALL_LOG`, `PHONE_CALL`, `NOTIFICATIONS`, `LOCATION`, `HEALTH`, `PHOTOS`, `CONTACTS`, `CALENDAR`, … Where a category mapping exists, saved permissions and the baseline determine whether approval is needed. Mapped **proactive sync** paths use the gate as `NodeHitlRequestKind.PROACTIVE_SYNC` (`nodes/datasource/ProactiveSyncRunner.java`). If no permission default is cached, `HatchNodeHitlGate` **fails closed to `ALWAYS_ASK`** ([`10-review-corrections.txt`](evidence-android/10-review-corrections.txt)). The inspected gate allows persisted allowed modes, denies denied modes, and returns a denial for proactive requests that would otherwise need a prompt. This is evidence of permission checks, not a runtime proof of every path or default.
 
 ### Which background paths the gate actually covers
 
-A full trace of every path that publishes without a user command ([`13-publish-path-gating.txt`](evidence-android/13-publish-path-gating.txt)) shows **the gate isn't enforced at the network sink**. Each caller checks it only if `NodeHitlCatalog.forDataSource()` returns a spec, and it does so for **six sources only**: `health`, `contacts`, `calendar`, `call_log`, `sms`, `notifications` (`nodes/core/NodeHitlCatalog.java`). The `LOCATION` approval group exists, but no data source is mapped to it.
+The reviewed background publish paths ([`13-publish-path-gating.txt`](evidence-android/13-publish-path-gating.txt)) show **the gate isn't enforced at the network sink**. Each caller checks it only if `NodeHitlCatalog.forDataSource()` returns a spec, and it does so for **six sources only**: `health`, `contacts`, `calendar`, `call_log`, `sms`, `notifications` (`nodes/core/NodeHitlCatalog.java`). The `LOCATION` approval group exists, but no data source is mapped to it.
 
-| Background path | Trigger | Approval check | What is sent |
+| Background path | Trigger | Local category-gate check | Payload fields / capability |
 |---|---|---|---|
 | Calendar, contacts, call log, SMS sync | content change, app resume | **yes** | records |
 | Health sync | Health Connect changes | **yes** (once the gateway is attached) | health samples |
-| Notification listener → `publishNow` | every notification | **yes** | notification content |
+| Notification listener → `publishNow` | posted notifications, subject to access/filtering | **yes** | notification content |
 | **Geofence crossing** → `LocationDataSource.publishNow` | entering/leaving a geofence | **no** | **latitude, longitude, timestamp, geofence name** |
 | **`network_state`** proactive sync | network change, app attach, boot | **no** | **Wi-Fi SSID, BSSID**, RSSI, link speed, **carrier name**, roaming, VPN on/off |
 | `battery` | power broadcasts | **no** | battery state |
@@ -85,8 +85,9 @@ A full trace of every path that publishes without a user command ([`13-publish-p
 | Photo upload worker | `photos.upload` command | yes, when queued (retries aren't re-checked) | photos |
 
 Nuances:
-- Creating a geofence needs an approved `geofence.set` command. The **crossings** afterwards publish your coordinates with no further check, and `HatchBootReceiver` re-arms geofences after every reboot.
-- A Wi-Fi BSSID identifies a specific router and works as a location fingerprint. Android only returns real SSID/BSSID values when the app holds location permission; otherwise it returns placeholders.
+
+- `geofence.set` requests Android foreground/background location grants when missing, but **it also has no `NodeHitlCatalog.forCommand` mapping**. An existing OS grant is not a fresh approval prompt. Crossings can publish coordinates without this local category check; server authorization, source state, deduplication and successful delivery remain separate questions. Boot handling attempts to re-arm geofences.
+- A Wi-Fi BSSID identifies a specific router and works as a location fingerprint. The inspected reader sets SSID/BSSID to **null** without fine-location permission or when it receives unknown/scrubbed identifiers. A populated field is not guaranteed.
 
 **How the gate decides for background sync.** It never prompts. It allows silently when the category is set to "allow", or when the category is unset and the cached **server-provided** `connector_default` is `auto_allow`. It denies otherwise, including when nothing is cached. That server default comes from `GET permissions/settings`, and `PermissionDefaultMode.fromWire()` maps a **missing or unrecognized value to `AUTO_ALLOW`**:
 
@@ -94,7 +95,7 @@ Nuances:
 return permissionDefaultMode == null ? PermissionDefaultMode.AUTO_ALLOW : permissionDefaultMode;
 ```
 
-So for the six gated categories, **Meta's server decides whether background sync is on by default**. The client code can't tell us the production value. It's test D1 in the [research plan](RESEARCH-PLAN.md).
+For the six gated categories, a **server-returned, user-editable account setting supplies the fallback when there is no per-category override**. The settings UI also writes this value. An omitted/unrecognized field in a successfully parsed response differs from no cached response: the latter fails closed for unset proactive reads. The client code cannot tell us the production value. It's test D1 in the [research plan](RESEARCH-PLAN.md).
 
 ## 4. Proactive sync: data published in the background
 
@@ -163,8 +164,8 @@ return strA01 != null ? PhoneNotificationsAccessMode.valueOf(strA01) : PhoneNoti
 
 ### Training, deletion and support access (app text)
 
-- AI training defaults to on: `HatchAiTrainingApi.DEFAULT_ENABLED = true`.
-- Every connector footer: *"Info from this connector is part of your AI interactions, which we use to improve AI at Meta."* This includes Health Connect.
+- The client AI-training fallback is on: `HatchAiTrainingApi.DEFAULT_ENABLED = true`; the response-model fallback is also true. Fresh-account server state remains untested.
+- Generic connector footer: *"Info from this connector is part of your AI interactions, which we use to improve AI at Meta."* Health Connect has a distinct variant saying **“may use”** (resource `0x7f1206e7`). This is disclosure language, not a trace of raw records entering training.
 - Deleting a message: *"Messages you delete are removed from the conversation but may stay in the agent's memory."*
 - Support access: *"Allowing access means your chats, memory, and files will be visible to support and your data will no longer be confidential."*
 - The consent sheets for SMS, notifications, health and location describe sharing **after** you connect. The code still declares `supportsBackfill = true` for SMS, call log and health.
@@ -188,7 +189,7 @@ The inspected `photos.upload` interface is batch-oriented, with on-device labeli
 
 - **On-device MCP server + agentic runtime**: `libmcp_server_jni.so`, `libagentic_runtime_jni.so`, `libxplat_agentic_client_AgenticRemoteClientAndroid.so`, `libxplat_mcp-sdk_…__2025-06-18__mobileAndroid.so`. These libraries indicate bundled MCP/runtime support; library names alone do not establish which protocols every network connection uses.
 - **`assets/vmvnc/`** (noVNC `vnc.html` + `novnc-rfb.js`): a VNC viewer for watching the **cloud VM's desktop** from the phone.
-- **`FoaPhoneIdProvider` + `FoaPhoneIdRequestReceiver`**: both exported with no manifest permission, and both answer with Meta's "Family of Apps" device ID (a random UUID shared across Meta apps on the phone; the oldest wins), its origin and timestamp. **They are caller-checked in code:** the provider compares the calling app's signing-certificate SHA-256 against an allow-list of 11 hashes (including Muse's own) plus two pinned research apps, `com.facebook.study` and `com.facebook.viewpoints`. Anyone else gets `"Caller Identity … is not trusted"`. The receiver requires an "auth" `PendingIntent` whose creator passes the same check. **A third-party app can't read the ID**, but it is shared across Meta's own apps, which is its purpose ([`12-phone-id-provider.txt`](evidence-android/12-phone-id-provider.txt)).
+- **`FoaPhoneIdProvider` + `FoaPhoneIdRequestReceiver`**: both exported with no manifest permission, and both answer with Meta's "Family of Apps" device ID (a random UUID shared across Meta apps on the phone; the oldest wins), its origin and timestamp. **They are caller-checked in code:** the provider compares the calling app's signing-certificate SHA-256 against an allow-list of 11 hashes (including Muse's own) plus two pinned research apps, `com.facebook.study` and `com.facebook.viewpoints`. Anyone else gets `"Caller Identity … is not trusted"`. The receiver requires an "auth" `PendingIntent` whose creator passes the same check. **Untrusted callers are rejected by the inspected checks**; this supports intended Family-of-Apps sharing, not an unconditional proof against every bypass. Other allow-listed certificates were not individually attributed, and the trusted-caller decompilation has unresolved branches ([`12-phone-id-provider.txt`](evidence-android/12-phone-id-provider.txt)).
 - **`HatchVoiceInteractionService`**: can register as the phone's **default digital assistant** (long-press home / "assist" gesture).
 - **`HatchXInstallReferrerReceiver`** + `AD_ID` + Facebook `analytics2` uploaders: standard Meta attribution and analytics.
 - **Oxygen preloads SDK** (`com.facebook.oxygen.preloads…`): Meta's first-party SDK tied to its preloaded-app infrastructure.
@@ -202,13 +203,13 @@ The inspected `photos.upload` interface is batch-oriented, with on-device labeli
 | Place phone calls | `CALL_PHONE`, `phone.dial` |
 | Read exposed notifications and invoke available notification actions, subject to grants/filters | `NodeNotificationListenerService`, `NotificationSerializer`, `notifications.action`, default `ALL` |
 | No app-level OTP conclusion; Android 15+ redaction applies to untrusted listeners | bounded keyword search plus Android platform documentation |
-| Background location + geofence pushes, **no approval check on crossings** | `ACCESS_BACKGROUND_LOCATION`, `LocationDataSource.publishNow`, `NodeHitlCatalog` (6 gated sources) |
-| Wi-Fi SSID/BSSID + carrier published in background, **no approval check** | `commands/network/NetworkStateHandlerKt.java`, `AuraProactiveSyncWorker` |
-| Server default decides background sync; missing value → `AUTO_ALLOW` | `PermissionDefaultMode.fromWire` |
+| Background location + geofence pushes, **no local category-gate check on crossings** | `ACCESS_BACKGROUND_LOCATION`, `LocationDataSource.publishNow`, `NodeHitlCatalog` (6 gated sources) |
+| Wi-Fi SSID/BSSID + carrier published in background, **no local category-gate check** | `commands/network/NetworkStateHandlerKt.java`, `AuraProactiveSyncWorker` |
+| Server-returned baseline for unset categories: omitted/unrecognized field → `AUTO_ALLOW`; no cache → proactive deny | `PermissionDefaultMode.fromWire` |
 | 19 health-data category permissions, extended history/background access requested, proactive publishing code | Health Connect perms, `HealthSyncManager` → `client.data_source.publish` |
 | Server-initiated commands | manifest: *"Execute server-initiated device commands…"* |
 | Re-registers work after boot/update, subject to OS restrictions | `HatchBootReceiver` |
-| Cross-app Meta identity (Meta apps only; cert-checked) | exported `FoaPhoneIdProvider` (`com.facebook.GET_PHONE_ID`) |
+| Cross-app identity sharing with certificate allow-list checks | exported `FoaPhoneIdProvider` (`com.facebook.GET_PHONE_ID`) |
 
 ## 9. Remove it
 

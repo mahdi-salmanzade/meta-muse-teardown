@@ -1,10 +1,10 @@
 # Muse across macOS, Android and iOS
 
-[macOS](README.md) · [Android](ANDROID.md) · [iOS](IOS.md) · [Research plan](RESEARCH-PLAN.md) · [Evidence index](EVIDENCE.md)
+[macOS](README.md) · [Android](ANDROID.md) · [iOS](IOS.md) · [Research plan](RESEARCH-PLAN.md) · [Evidence index](EVIDENCE.md) · [Commit audit](COMMIT-AUDIT.md)
 
 One table per data type: **how** each build reaches it, whether it's fetched **on request** or sent **in the background**, whether history is **backfilled**, and what **approval check** applies. Everything here comes from static analysis of the three samples. Nothing was run. Cells marked *untested* are covered by the dynamic tests in the [research plan](RESEARCH-PLAN.md).
 
-**Legend:** 🟢 on request only · 🟠 background sync, approval-checked · 🔴 background sync, **no approval check found** · — not present in this build
+**Legend:** 🟢 on-request path identified · 🟠 background/forwarding path with consent controls indicated · 🔴 background path without a **local Muse category-gate check** · — no corresponding path established in this review. These labels do not prove successful uploads or complete gate coverage. OS grants, source settings, server policy and runtime state still matter.
 
 ---
 
@@ -14,7 +14,7 @@ One table per data type: **how** each build reaches it, whether it's fetched **o
 |---|---|---|---|
 | **Text messages** | iMessage `chat.db` read + send (Full Disk Access); 🟠 auto-sync + backfill | SMS read + send; 🟠 proactive sync + backfill | 🟠 only what a user-built Shortcuts automation forwards; `message.draft` (user sends) |
 | **WhatsApp** | 🟢 `whatsapp.search` reads `ChatStorage.sqlite`; "no background message index" | via notifications only (see below) | — |
-| **Other apps' notifications** | — | 🟠 listener sees every app, **default `ALL`**; can reply / press buttons | — (iOS doesn't allow it) |
+| **Other apps' notifications** | — | 🟠 app filter defaults to **`ALL`**, subject to Notification access and OS filtering; exposed actions can reply / press buttons | — (iOS doesn't allow it) |
 | **Email** | Mail.app via AppleScript, read/send/delete; 🟠 auto-sync of sender + subject, body on request | via notifications only | 🟠 Shortcuts forwarding intent |
 | **Notes** | read/create; 🟠 auto-sync | — | 🟠 Shortcuts "text copy of all your Apple Notes" |
 | **Calendar** | 🟠 auto-sync | 🟠 observer sync (−7 / +14 days), 30-day backfill chunks | 🟠 `CalendarSyncSource` |
@@ -23,22 +23,22 @@ One table per data type: **how** each build reaches it, whether it's fetched **o
 | **Call history / calls** | — | 🟠 call-log sync + backfill; `phone.dial` | — |
 | **Photos** | background `MediaSync` uploader | 🟢 agent-requested batches (≤50), on-device ML Kit labels | camera-roll sync (~500/run, persistent full-library override) |
 | **Health** | — | 🟠 19 Health Connect types + history + background | 110 HealthKit identifiers imported; background delivery; requested set *untested* |
-| **Location** | — | 🔴 **geofence crossings publish lat/long with no check**; `location.get` | always-on significant-change + geofences; `LocationSyncSource` |
-| **Wi-Fi / network identity** | — | 🔴 **SSID, BSSID, carrier published with no check** | not in command table |
+| **Location** | permission prompt present; local tool not established | 🔴 geofence-crossing publish path carries lat/long without the local category check; OS grants required | significant-change + geofences; `LocationSyncSource`; Always permission requested |
+| **Wi-Fi / network identity** | — | 🔴 SSID/BSSID/carrier publish path without the local category check; identifiers may be null | not in command table |
 | **Browser** | Chrome extension: `debugger` on `<all_urls>`, history, bookmarks, downloads | — | Share extension: title / URL / description / selection |
 | **Screen & input** | screen capture + Accessibility control | — | — |
 | **Files** | read/write/search/upload (credential folders refused) | — | not in command table |
 | **Smart home** | — | — | HomeKit: set accessories, run scenes, **security sweep**, **geofence-triggered actions** |
-| **Cross-app Meta ID** | — | Family device ID, shared only with cert-checked Meta apps | `group.com.facebook.family` app groups, `FBFamilyDeviceID` |
+| **Cross-app Meta ID** | — | Family device ID, certificate allow-list protects the sharing interfaces | `group.com.facebook.family` app groups, `FBFamilyDeviceID` |
 
 ## Approval model
 
 | | macOS | Android | iOS |
 |---|---|---|---|
-| Per-command approval ("wants to…") | yes | yes, by category (`NodeHitlGroup`) | yes (45 prompt strings) |
+| Per-command approval ("wants to…") | approval UI/code present | category gate (`NodeHitlGroup`); not every command maps to it | 45 prompt strings; exhaustive enforcement not established |
 | Persistent "always allow" | yes | yes | yes (`allow_always`, `auto_allow`) |
-| Background sync goes through the check | per connector auto-sync switch | **only 6 sources** (health, contacts, calendar, call log, SMS, notifications). Location, network and battery bypass it | log shows proactive sync can be denied by the gate |
-| Default when nothing is set | consent dialog initializes auto-sync to **on** (`autoSync.enabled ?? true`) | cached **server** `connector_default`; nothing cached → deny; missing server value → **`AUTO_ALLOW`** | *untested* |
+| Background sync goes through the check | per connector auto-sync switch | **only 6 sources** (health, contacts, calendar, call log, SMS, notifications). Location, network and battery have no mapping in this local gate | log shows proactive sync can be denied by the gate |
+| Default when nothing is set | consent dialog initializes auto-sync to **on** (`autoSync.enabled ?? true`) | per-category preference first; otherwise cached `connector_default`; no cache → deny proactive reads; omitted/unrecognized field in a parsed response → **`AUTO_ALLOW`** | *untested* |
 
 ## Transport, identity and persistence
 
@@ -47,14 +47,14 @@ One table per data type: **how** each build reaches it, whether it's fetched **o
 | Agent location | Meta-hosted VM (`*.metaaivm.com`) | same | same |
 | Survives reboot | links to Login Items settings; registration not established. Sparkle auto-update | `HatchBootReceiver` re-arms geofences, alarms, sync; forces notification-listener rebind | background tasks (`nodedata.sync.refreshTask`, `cameraroll.sync.processingTask`) |
 | Server-initiated work | gateway `client.invoke` | "Execute server-initiated device commands" foreground service | silent push → reconnect (`HatchVmLockedSilentPushHandler`) |
-| Signed by | Meta Developer ID, notarized | Meta cert, Google Play source stamp | Apple App Store chain, team V9WTTPBFK9 (decrypted copy; see [IOS.md](IOS.md#1-provenance-consistent-with-a-decrypted-app-store-package-not-fully-authenticated)) |
+| Signature / provenance | Meta Developer ID, notarized | Meta cert, Google Play source stamp | Apple App Store signing metadata, team V9WTTPBFK9; integrity verification **fails** (consistent with decrypted copy; see [IOS.md](IOS.md#1-provenance-consistent-with-a-decrypted-app-store-package-not-fully-authenticated)) |
 
 ## What the code can't tell us
 
-1. **Production defaults.** On Android the server's `connector_default` decides background sync for the six gated sources. On macOS the consent dialog falls back to on, but native state may override it.
+1. **Production defaults.** On Android a server-returned, user-editable `connector_default` supplies the baseline when a category has no saved override; the production value is unknown. On macOS the consent dialog falls back to on, but native state may override it.
 2. **Exact payloads.** Field names are known. Actual values, sizes and history depth need traffic capture (tests D3/D4).
 3. **Deletion.** The apps say forwarded messages aren't deleted when you disconnect. Cloud retention needs an account-level test (D6).
-4. **iOS Health scope.** 110 identifiers are imported, but the requested set only shows on the permission sheet (D7).
+4. **iOS Health scope.** 110 identifiers are imported, but imports alone do not identify the requested set. A permission-sheet capture and request-call inspection can establish the set for the tested flow (D7).
 
 ## Consent, defaults and retention: what the apps say
 
@@ -64,17 +64,17 @@ From the apps' own UI text ([macOS](evidence/15-consent-retention-macos.txt) · 
 
 | Setting | macOS | Android | iOS |
 |---|---|---|---|
-| **AI training on your interactions** | `trainingEnabled ?? !0` → **on** unless the server says otherwise | `HatchAiTrainingApi.DEFAULT_ENABLED = true` | footer says info "we use to improve AI at Meta"; default not readable from strings |
-| **Approval default** | `auto_allow`, labelled **"Ask for some actions"**: *"Before every write and some read actions"*. Missing value → `auto_allow` | `auto_allow` fallback (`PermissionDefaultMode.fromWire`) | `auto_allow` / "Auto allowed" present |
+| **AI training on your interactions** | `trainingEnabled ?? !0` → UI fallback **on** when the value is absent | `HatchAiTrainingApi.DEFAULT_ENABLED = true`; response-model fallback also true; fresh-account server state untested | footer says info "we use to improve AI at Meta"; default not readable from strings |
+| **Approval default** | `auto_allow`, labelled **"Ask for some actions"**: *"Before every write and some read actions"*. Missing value → `auto_allow` | `auto_allow` when a parsed wire value is omitted/unrecognized; no-cache proactive reads fail closed | `auto_allow` / "Auto allowed" present |
 | **Background sync switch** | consent dialog falls back to **on** | server `connector_default` for 6 sources | *untested* |
 
-Meta's research post calls training-on "**a good default**". Its launch post says *"Muse checks with the person before sensitive actions like sending an email or making a purchase."* That holds for sends and purchases. Under the default, **some reads run without a prompt**, which the research post confirms: *"Read-only, previously allowed, or demonstrably low-risk actions can proceed without interruption."*
+The launch post promises checks before sensitive actions. The research post also describes unprompted read-only, previously allowed or low-risk actions. The app's default label is consistent with that distinction; a UI label does not prove every write is freshly prompted. [Launch](https://about.fb.com/news/2026/09/introducing-muse-personal-ai-agent/) · [Research](https://research.meta.ai/blog/security-and-safety-for-ai-agents-our-approach-with-muse).
 
 ### Where your data goes, per the apps' own footers
 
-- Android, every connector: *"Info from this connector is part of your AI interactions, which we use to improve AI at Meta."* Health Connect is included.
-- iOS: *"The info used for your tasks is part of your interactions with {appName}, which we use to improve AI at Meta."*
-- Neither public post says **connector data** (messages, health, contacts) is part of the training pool. The app footers do.
+- Android has generic connector copy saying its information forms part of AI interactions used to improve AI at Meta. The Health Connect variant says **“may use”** (resource `0x7f1206e7`).
+- iOS has a corresponding task-data footer.
+- The research post describes training trajectories that include tool calls, with sanitization and an opt-out. The app footers are more explicit about connector information, including health. This does **not** establish that all raw connector records enter training, or that connector-derived data was excluded from the public description. [Research](https://research.meta.ai/blog/security-and-safety-for-ai-agents-our-approach-with-muse).
 
 ### Deletion and retention
 
@@ -86,7 +86,7 @@ Meta's research post calls training-on "**a good default**". Its launch post say
 | *"Allowing access means your chats, memory, and files will be visible to support and **your data will no longer be confidential**."* | Android (support access) |
 | *"Pausing … stops all activity and locks the app."* vs iOS camera roll: *"Pausing is temporary and clears the next time you open the app."* | Android / iOS |
 
-**Disconnecting doesn't delete what was already shared**, and deleting a chat message doesn't delete it from the agent's memory. The public posts say nothing about retention periods. The research post says *"Your VM data is backed up continuously so you can restore it if something goes wrong,"* while the reset option says *"Permanently deletes your {Muse} data, including chat history, files and active tasks"* (macOS and Android). That list doesn't name **agent memory** or **synced connector data**, though "including" isn't exhaustive. Whether a reset reaches memory, the continuous VM backups and any training copies isn't stated anywhere (test D6).
+The disconnect copy says previously shared data remains unless separately deleted. Message deletion **may** leave information in agent memory; it does not establish that every deleted message persists. Reset copy names chat history, files and tasks after “including”, which is a non-exhaustive list: omission of memory is **not proof** that reset preserves it. Meta describes continuous VM backups. Backup existence alone is compatible with eventual deletion; reset coverage, retention periods and treatment of training copies remain unverified. D6 can test visible effects, but cannot prove backend erasure. [Research](https://research.meta.ai/blog/security-and-safety-for-ai-agents-our-approach-with-muse).
 
 ## Network, protocol and telemetry
 
@@ -94,12 +94,12 @@ From [`16-network-cross-platform.txt`](evidence/16-network-cross-platform.txt) a
 
 ### One pipe to a Meta VM
 
-All three apps keep a WebSocket to the user's Meta-hosted VM at `hatch.metaaivm.com/v1/noise`, carrying JSON inside an extra **Noise** encryption layer (`Noise_XX_25519_AESGCM_SHA256`). Two protocol generations coexist: `node.*` (Chrome extension; also in the macOS and iOS apps) and `client.*` (macOS app and Android).
+All three samples contain VM-gateway WebSocket/Noise support, including `hatch.metaaivm.com/v1/noise` and `Noise_XX_25519_AESGCM_SHA256`. The selected endpoint and transport depend on lease/configuration state; this is not an observation of every connection. Two protocol generations coexist: `node.*` (Chrome extension; also in the macOS and iOS apps) and `client.*` (macOS app and Android).
 
 | Direction | Messages | Carries user data? |
 |---|---|---|
-| device → Meta | `client.invoke.result` / `node.invoke.result` | **yes**: results of every command (messages, SMS, contacts, calendar, call log, photos, files, screenshots, location, health, notifications, web pages) |
-| device → Meta | `client.data_source.publish` | **yes**: background sync and backfill. Android backfill streams up to **1 MiB × 256 chunks = 64 MiB** per request |
+| device → Meta | `client.invoke.result` / `node.invoke.result` | **yes**: results of supported commands (messages, SMS, contacts, calendar, call log, photos, files, screenshots, location, health, notifications, web pages) |
+| device → Meta | `client.data_source.publish` | **yes**: background sync and backfill. Android targets **1 MiB per chunk**; **256 chunks and 64 MiB total are warning thresholds, not hard limits**. The emitter logs and continues; a separate 4 MiB wire-size check rejects oversized frames |
 | device → Meta | `chat.*`, photo sync | yes |
 | device → Meta | `client.register_capabilities`, `node.register` | metadata: device model, **which OS permissions you've granted** |
 | Meta → device | `client.invoke` / `node.invoke.request` | commands, including `data_source.backfill` |
@@ -109,19 +109,19 @@ All three apps keep a WebSocket to the user's Meta-hosted VM at `hatch.metaaivm.
 
 | | macOS | Android | iOS |
 |---|---|---|---|
-| Certificate pinning | a "Facebook Rootcanal Prod Root CA" is embedded (role unclear) | platform config pins **only legacy Meta domains** (`facebook.com`, `meta.com`, `instagram.com`…; 18 pins, expire 2027-09-17). **`meta.ai`, `metaaivm.com` and `muse.ai` aren't pinned there**, and `base-config` allows cleartext. Meta's native HTTP stack may apply its own pins | ships its own trust store of 143 roots |
-| VM attestation (AMD SEV-SNP) | server-flagged; web default `attestation_enforce_mode = 0` ("Off"); an accept-all verifier class exists | server-flagged | server-flagged; accept-all verifier class exists; Sigstore trust root points at **`rekor.sigstage.dev` (Sigstore's staging instance)** |
-| Privacy relay (OHTTP) | anonymous VM lease only, behind a flag defaulting to off | same scope | same scope |
+| Certificate pinning | a "Facebook Rootcanal Prod Root CA" is embedded (role unclear) | platform config pins a **listed set of Meta domains** (`facebook.com`, `meta.com`, `instagram.com`…; 18 pins, expire 2027-09-17). **`meta.ai`, `metaaivm.com` and `muse.ai` aren't pinned there**, and `base-config` allows cleartext. Meta's native HTTP stack may apply its own pins | bundles 143 CA roots; active trust-store selection unverified |
+| VM attestation (AMD SEV-SNP) | server-flagged; web default `attestation_enforce_mode = 0` ("Off"); an accept-all verifier class exists | server-flagged | server-flagged; accept-all verifier class exists; embedded Sigstore root lists **`rekor.sigstage.dev`**; active root selection and server contact unverified |
+| Privacy relay (OHTTP) | anonymous VM lease path identified; web flag fallback off; shared OHTTP support also present | lease path plus shared GraphQL support; query configuration says `ALL`, runtime routing unknown | lease path plus allow-listed GraphQL support; runtime selection unknown |
 
-The OHTTP relays Meta mentions cover **anonymous VM leasing only**. Chat, sync, commands and crash uploads go over account-authenticated connections.
+The static evidence does **not** limit OHTTP to VM leasing: the mobile stacks also include GraphQL routing support. Authenticated gateway and upload paths are present, but finding account credentials alone does not establish whether a request uses a privacy relay. Runtime routing and what each intermediary learns remain untested.
 
-**TLS interception on the VM.** The VM's outbound-network settings have a switch (`mitmMode`). On: *"All TLS connections are always intercepted for inspection."* Off: *"TLS connections are only intercepted when required by policy."* So the HTTPS traffic the agent makes **from** Meta's VM (for example, logging into a site on your behalf) passes through an inspecting proxy always, or whenever policy requires.
+**TLS interception on the VM.** The VM's outbound-network settings have a switch (`mitmMode`). On: *"All TLS connections are always intercepted for inspection."* Off: *"TLS connections are only intercepted when required by policy."* This describes a VM policy capable of inspecting the agent's outbound HTTPS, including policy-required inspection with the toggle off. The live policy and actual interception were not tested; it does not describe all traffic from the user's device.
 
 ### Telemetry, ads and third parties
 
-- **Meta analytics on all three platforms** (Falco / FBAnalytics, QPL, per-command loggers). They log commands, permission states and connector-toggle changes with item counts. No logged field names suggest message text. The macOS web UI has **1,190 click-event names** and a "Client telemetry" setting that's on by default.
-- **Ad attribution:** Android reads the **Google Advertising ID** and sends it as `adid` to `/hatch/attribution/report_events`, gated by a server setting. iOS reports SKAdNetwork and AdServices tokens.
-- **Crash reports go to Meta** with thread stacks and process memory, and on Android also logcat and the granted-permission list. No content scrubbing was visible.
-- **Third parties:** Google (Firebase Messaging, Play services: Advertising ID, location, sign-in, ML Kit), Spotify sign-in (Android), Stripe.js at checkout and Bing/Esri/USDA map tiles (macOS web), Sparkle updates (macOS). KaTeX/Mermaid load from jsDelivr **without integrity checks** (iOS, Android). Not found anywhere: Crashlytics, Firebase Analytics, AppsFlyer, Adjust, Amplitude, Mixpanel, Segment.
+- **Meta analytics on all three platforms** (Falco / FBAnalytics, QPL, per-command loggers). Inspected event schemas cover commands, permission states and connector-toggle changes with item counts. Those schemas do not prove all telemetry excludes message content. The macOS web UI has **1,190 click-event names** and a "Client telemetry" setting that's on by default.
+- **Ad attribution:** Android has a path that reads the **Google Advertising ID** and sends it as `adid` to `/hatch/attribution/report_events`, gated by a server setting. iOS contains SKAdNetwork and AdServices attribution paths. Availability and actual transmitted identifiers remain untested; attribution does not prove conversations are used for ads.
+- **Crash reporting code targets Meta** and includes minidump/memory and diagnostic collectors; Android has logcat and permission-list fields. Which fields are populated and what is scrubbed remain untested; iOS sanitizer classes also exist.
+- **Third parties:** Google (Firebase Messaging, Play services: Advertising ID, location, sign-in, ML Kit), Spotify sign-in (Android), Stripe.js at checkout and Bing/Esri/USDA map tiles (macOS web), Sparkle updates (macOS). KaTeX/Mermaid load from jsDelivr **without integrity checks** (iOS, Android). Not identified in the inspected artifacts: Crashlytics, Firebase Analytics, AppsFlyer, Adjust, Amplitude, Mixpanel, Segment.
 - **Unexplained domains:** `willow606.com`, `exe.xyz` (allowed VM gateway domains) and `www.multimango.com` (macOS). Ownership unknown.
 

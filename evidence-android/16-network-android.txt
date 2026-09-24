@@ -244,7 +244,11 @@ coming back (M->D). "meta" = identifiers/metadata only per code.
     transport:"client.data_source.publish", source, start_date, end_date, estimated chunks, chunk_policy}
     (aura/nodes/datasource/BackfillAckJson.java). ChunkPolicyJson from DataSourcePublishPipeline.java:
     chunk_days (per source), max_chunk_bytes 1048576 (1 MiB), max_chunks 256, max_total_bytes 67108864 (64 MiB),
-    may_bisect true; frame cap "4194304B wire limit". Chunks then stream as client.data_source.publish with
+    may_bisect true; frame cap "4194304B wire limit". These advertised policy values differ from
+    enforcement: 256 chunks / 64 MiB total trigger warnings and CONTINUE; 1 MiB is a page-sizing target
+    that can be exceeded by a single item. The separate wire-size check rejects frames over 4 MiB.
+    See DataSourcePublishPipeline.java:80-108,160-175,532-555 and evidence/17-commit-audit.txt.
+    Chunks then stream as client.data_source.publish with
     operation "reconciliation_page". Proactive (non-backfill) publishes use operation "proactive".
   - node.register / node.heartbeat / node.invoke.result / node.list / node.unpair and /nodes/* path strings exist
     only in lib:libstartup.so (shared xplat gateway method->path table, same as macOS). The Android Java node client

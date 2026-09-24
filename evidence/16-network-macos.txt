@@ -273,8 +273,9 @@ Related: evidence/05 (sync/backfill strings), evidence/06 (/hatch/ paths), evide
   Web: OhaiRelayClient / FixedOhaiClient (message/ohttp-req, message/ohttp-res, KEM X25519-HKDF-SHA256;
   PROHIBITED_INNER_HEADER_PREFIXES proxy-, sec-, x-b3-, x-datadog-, x-forwarded-). The only feature found
   using it: CVM lease - "Reserve anonymously through ACS over OHTTP, then bind the CVM to your signed-in
-  account.", gated by hatch_web:hatch_acs_ohai_enabled (default false in code). On this evidence OHTTP
-  covers anonymous confidential-VM reservation, not chat, sync or telemetry.
+  account.", gated by hatch_web:hatch_acs_ohai_enabled (default false in code). This identifies a
+  reservation path; no wrapper for chat/sync/telemetry was identified in the inspected code.
+  It does not establish every runtime route or global relay scope.
 
 ### 3f. Tokens in URLs
   Native strings "auth_token=", "notary_token=", "vm_id=" beside the Noise WSS connect log line.

@@ -203,7 +203,7 @@ These strings establish background media-upload and deduplication machinery. **T
 
 - The AI-training switch initializes from `trainingEnabled ?? !0`, so it shows **on** unless Meta's server returns a value.
 - The connector approval default is `auto_allow`, which the UI labels **"Ask for some actions: Before every write and some read actions"**. A missing server value also falls back to `auto_allow`, so some reads run without a prompt.
-- Resetting *"permanently deletes your data, including chat history, files, artifacts and tasks"*. Agent memory and already-synced connector data aren't named.
+- Resetting *"permanently deletes your data, including chat history, files, artifacts and tasks"*. The list is non-exhaustive; omission of memory or connector data does not establish that reset preserves them. Backend deletion remains untested.
 
 Details and quotes: [CROSS-PLATFORM.md](CROSS-PLATFORM.md#consent-defaults-and-retention-what-the-apps-say) · [`15-consent-retention-macos.txt`](evidence/15-consent-retention-macos.txt).
 
@@ -241,9 +241,9 @@ These permissions support broad screen observation and input automation. Sensiti
 
 **Pairing-token lifecycle** ([`14-extension-token-lifecycle.txt`](evidence/14-extension-token-lifecycle.txt)):
 
-- The node token is stored **in plaintext in `chrome.storage.local` with no expiry**. It's sent as an `auth_token` URL query parameter as well as a Bearer header, so it can appear in any gateway or proxy logs that record URLs.
+- The node token is stored **as a string in `chrome.storage.local`, without an extension-enforced TTL**. It's sent as an `auth_token` URL query parameter as well as a Bearer header, so it can appear in any gateway or proxy logs that record URLs.
 - `expiresAt` is received and stored, but **never checked against the clock**. Expiry is enforced only if Meta's server rejects the token.
-- **Local "Disconnect" only deletes the local copy.** No server-side revoke is sent. The server can revoke through WebSocket close codes (4001/≥4000), a `node.unpaired` event or a registration error.
+- **Local "Disconnect" clears stored credentials and closes the socket.** No explicit revoke request appears in that path; whether the server invalidates the token is untested. Close codes (4001/≥4000), `node.unpaired` and registration errors can also trigger local credential clearing.
 - The extension **reconnects automatically**, with no user action, on browser start, on install/update, on a 1-minute heartbeat alarm, when the popup opens, and on backoff retries.
 - **"Pause" is held in memory only**, so it silently resets whenever Chrome restarts the extension's service worker.
 - The last agent command's parameters (e.g. text the agent typed into a page) remain in plaintext `_cachedStatus` in extension storage, **even after unpairing**.

@@ -8,12 +8,16 @@ SUMMARY
 The gate is not applied at the network sink. It is applied by each caller, and only
 when NodeHitlCatalog.forDataSource(sourceId) returns a spec. forDataSource returns a
 spec for exactly six sources: health, contacts, calendar, call_log, sms, notifications.
-Every path for location (geofence crossings), network_state (Wi-Fi SSID/BSSID/RSSI,
-carrier, roaming) and battery publishes to client.data_source.publish with no HITL check.
+The reviewed location (geofence crossing), network_state (Wi-Fi SSID/BSSID/RSSI,
+carrier, roaming) and battery publish paths have no local category HITL check.
+OS grants, source configuration, session/connection state and server policy are
+separate controls; successful transmission was not observed.
 The LOCATION NodeHitlGroup exists but nothing maps to it.
 Gated READ categories publish silently with no prompt when the per-category mode is
 "allow" OR is unset while the cached server "connector_default" is auto_allow. A
-missing or unrecognised server value is parsed as AUTO_ALLOW.
+missing or unrecognised field in a parsed server response becomes AUTO_ALLOW.
+No cached response instead fails closed for unset proactive categories. The settings
+UI can update the server-returned preference; it is not solely a server-selected policy.
 
 ======================================================================
 1. The sink: no gate in client.data_source.publish
@@ -123,7 +127,7 @@ LocationDataSource.java:465-489
   ...
   objCheck = dataSourceContext.publish(sourceId2, jsonObjectA00, anonymousClass1);
 The gate call is written for location, but forDataSource("location") returns null, so
-the call never runs. The remaining controls are the Android location permissions
+the call never runs. Other visible controls include the Android location permissions
 requested by geofence.set (GeofenceSetHandler.java:96-107) and a local reminder
 notification when a geofence fires (HatchGeofenceBroadcastReceiver.java:191).
 

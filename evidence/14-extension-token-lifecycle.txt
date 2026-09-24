@@ -15,9 +15,9 @@ VERDICT
 - Storage: plaintext in chrome.storage.local (key "authToken"), persistent across restarts.
 - expiresAt: stored and displayed, never compared to the clock. Expiry is enforced
   only by the server, if at all.
-- Revocation: local unpair deletes the local copy only; no server call is made.
-  Server-side revocation works through WebSocket close code 4001/>=4000,
-  the "node.unpaired" event, or a register error.
+- Revocation: local unpair clears credential keys and closes the socket, without an
+  explicit revoke request. Server invalidation is untested. Close code 4001/>=4000,
+  "node.unpaired" and register errors can also trigger local credential clearing.
 - Auto-reconnect: yes, with no user interaction, on browser start, on install/update,
   on the 1-minute heartbeat alarm, on popup open, and with exponential backoff.
 - Manual path: pair(token, url) accepts ANY ws:// or wss:// host. The token is placed in
@@ -100,8 +100,9 @@ background.js:618-624 -> connection.unpair()
 lib/connection.js:129-151
   async disconnect() { ... this.ws.close(1000, 'user disconnect'); ... }
   async unpair() { await this.disconnect(); await chrome.storage.local.remove(CRED_KEYS); ... }
-No revoke request is sent. The server only sees a normal 1000 close. A token copied
-before the disconnect stays valid until the server expires or revokes it.
+No explicit revoke request appears in this path; the client sends a normal 1000 close.
+Whether the gateway revokes the token on disconnect, or accepts a copied token later,
+is not established by client code. A live test is required.
 Server-initiated:
 lib/connection.js:489-492   msg.type === 'event' && msg.event === 'node.unpaired' -> _handleRemoteUnpair
 lib/connection.js:153-161   ignored when payload.node_id differs from the local nodeId
@@ -118,7 +119,7 @@ lib/connection.js:342-343       any non-1000, non-4xxx close -> _scheduleReconne
 After a browser restart, the extension reconnects to the stored wsUrl using the stored
 token, registers as a controllable node and accepts node.invoke.request
 (connection.js:479-481, 507-552). The user does nothing and no expiry check runs.
-The only local brake is "Pause" (connection.js:163-166, 536-541), which the popup
+One local control is "Pause" (connection.js:163-166, 536-541), which the popup
 exposes (popup.js:154-158). Pause is held in memory only and resets when the service
 worker restarts.
 
@@ -183,7 +184,7 @@ own Muse gateway while the extension is not connected.
 W1  The token is stored in plaintext and persists indefinitely in chrome.storage.local. No
     client-side TTL is applied even though the server supplies expiresAt.
 W2  The token is sent in the WebSocket URL query string (auth_token=...).
-W3  Local "Disconnect" does not revoke the token on the server.
+W3  Local "Disconnect" sends no explicit revoke request; server-side invalidation is untested.
 W4  An expired or rejected token can cause an endless reconnect loop (1006 path) that keeps
     re-sending it. This depends on server behaviour and was not verified.
 W5  The manual source allows any host and plaintext ws://, and that choice persists

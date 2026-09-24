@@ -8,7 +8,7 @@ MobileConfig parameter names read from params_maps/params_map.txt; bundled JS (n
 No disassembly, no execution, no network contact with any host listed here.
 
 Caveats:
-- The IPA is a FairPlay-decrypted dump whose code signature fails strict verification
+- The IPA is consistent with a FairPlay-decrypted dump and its code signature fails strict verification
   (see evidence-ios/01-authenticity.txt). Treat every string as "present in this sample", not as
   proven Meta-shipped code.
 - A hostname, path or method name shows that code refers to it. It does not show that the app
@@ -220,7 +220,8 @@ Direction: "dev->Meta" = request sent by the phone. "Meta->dev" = event or reque
     struct names SnpMeasurement, SnpMeasurementConfig, ImageManifest, CloudflareSignatureField.
     Embedded hex launch-measurement values follow "AMD_SEV_SNP" (e.g. 2bbfbb39...; public values).
   - The only embedded Sigstore trusted root lists the Sigstore STAGING instance (rekor.sigstage.dev and log20xx
-    shards). No production rekor.sigstore.dev entry was found.
+    shards). No production rekor.sigstore.dev entry was found. This establishes embedded trust data,
+    not selection of that root at runtime or contact with a staging server; bundle verification can be offline.
   - A no-op verifier class also exists: facebook::tigon::noise::NoiseAlwaysAcceptAttestationVerifier, alongside
     NoiseSevSnpAttestationVerifier and -[HCHNoiseGatewayCarrierBridge initWithSevSnpVerifierEnabled:...].
     MobileConfig gates: hatch_ios_reliability:enable_snp_attestation_verifier, hatch_ios:cvm_attestation_probe_enabled.
@@ -258,8 +259,8 @@ Direction: "dev->Meta" = request sent by the phone. "Meta->dev" = event or reque
   TrustAsia, BJCA, emSign, NAVER, etc.). No Meta-private CA and no leaf certificates.
   Strings: "CACerts", "Caught Exception loading CACerts:"; Security imports SecTrustSetAnchorCertificates and
   SecTrustSetAnchorCertificatesOnly.
-  => Meta's network stack validates against its own bundled root list rather than only the iOS store. A user- or
-     MDM-installed root is therefore unlikely to be trusted by that stack (inference; matches pinning telemetry below).
+  => A bundled root store and anchor-setting APIs are present. Which connection paths select this store,
+     whether it supplements/replaces system roots, and acceptance of user/MDM roots are unverified.
 
 ### 3c. Certificate pinning
   proxygen::httpclient::PinningData, PinningSSLCallbacks, "_CalculateCertPin", "Pinning validation failed.",
@@ -298,8 +299,9 @@ Direction: "dev->Meta" = request sent by the phone. "Meta->dev" = event or reque
   Traffic the strings tie to OHTTP: (1) ACS token issuance and CVM lease/bind (2d); (2) an allow-listed set of
   GraphQL queries (DeidentifiedRequestOHAIConfig / DeidentifiedRequestACSToken); (3) possibly analytics:
   OneFabric options attach_acs_claim_to_batches, deidentified_events, onefabric_enable_acs_claim_minting.
-  Nothing ties the VM gateway WSS, the Stefi HTTP API, chat, sync uploads or crash uploads to OHTTP; those strings
-  sit with Bearer / "ABRA access token" credentials that identify the account.
+  No OHTTP wrapper was identified for the reviewed gateway/chat/sync/crash paths. Their Bearer / ABRA
+  credentials show authenticated paths, but credentials alone do not prove whether an outer relay is used.
+  The GraphQL support above means that a lease-only OHTTP scope cannot be concluded.
 
 ### 3f. Device integrity
   DCAppAttestService and attestKey:clientDataHash:completionHandler: are imported, but 03-entitlements lists no

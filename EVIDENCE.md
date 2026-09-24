@@ -1,6 +1,6 @@
 # Complete evidence index
 
-[**iOS report**](IOS.md) · [**macOS report**](README.md) · [**Android report**](ANDROID.md) · [**Review log**](REVIEW.md)
+[**iOS report**](IOS.md) · [**macOS report**](README.md) · [**Android report**](ANDROID.md) · [**Review log**](REVIEW.md) · [**Commit audit**](COMMIT-AUDIT.md)
 
 Every evidence file in the three folders is linked below. Original extraction notes are retained; new machine-readable files supplement them. Interpretive prose in older notes is not itself proof of runtime behavior. The platform reports explain corrections and the iOS sample’s failed integrity verification.
 
@@ -12,7 +12,7 @@ shasum -a 256 -c evidence.sha256
 
 The app archives, full extracted binaries and full decompiled source are excluded; the repository publishes hashes, metadata, bounded extracts and commentary. See the [reproduction instructions](README.md#11-reproduce-it-yourself) for which extracts can be rebuilt automatically. The banner is editorial artwork, not a captured application screenshot or technical evidence.
 
-**Total: 52 evidence files.**
+**Total: 53 evidence files.**
 
 ## iOS — 19 files
 
@@ -38,7 +38,7 @@ The app archives, full extracted binaries and full decompiled source are exclude
 | [15-consent-retention-ios.txt](evidence-ios/15-consent-retention-ios.txt) | TXT |
 | [16-network-ios.txt](evidence-ios/16-network-ios.txt) | TXT |
 
-## macOS — 18 files
+## macOS and cross-platform — 19 files
 
 | Evidence file | Format |
 |---|---|
@@ -60,6 +60,7 @@ The app archives, full extracted binaries and full decompiled source are exclude
 | [15-public-statements-vs-app.txt](evidence/15-public-statements-vs-app.txt) | TXT |
 | [16-network-cross-platform.txt](evidence/16-network-cross-platform.txt) | TXT |
 | [16-network-macos.txt](evidence/16-network-macos.txt) | TXT |
+| [17-commit-audit.txt](evidence/17-commit-audit.txt) | TXT |
 
 ## Android — 15 files
 

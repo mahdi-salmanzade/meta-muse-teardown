@@ -61,8 +61,9 @@ Nothing was executed; no host was contacted. Secrets are [REDACTED].
 
 ## B. GATEWAY PROTOCOL / RPC MAP (unified)
 
-Shape (all three): one long-lived WebSocket per user, WSS to hatch.metaaivm.com/v1/noise (or a per-VM
-*.metaaivm.com URL from the lease response), carrying a Noise_XX_25519_AESGCM_SHA256 channel. Frames are JSON
+Supported shape in all three samples: a VM gateway WebSocket, including WSS to
+hatch.metaaivm.com/v1/noise or a per-VM URL from the lease response, with Noise_XX_25519_AESGCM_SHA256
+support. Endpoint, connection count and selected transport were not observed at runtime. Frames are JSON
 {type: req|res|event, id, method|event, params|payload}. Each method string is paired with an HTTP-style
 route (/chat/stream, /nodes/register, /client/data-source-publish ...) that the gateway serves over the same
 channel. The VM-side agent runtime is called "Jarvis".
@@ -121,7 +122,9 @@ USER DATA: YES = can carry personal content off the device; cmd = carries the ag
                                                                           ("acking agent and initiating chunked upload");
                                                                           Android BackfillAckJson {backfill_initiated,
                                                                           chunked_v1, transport client.data_source.publish},
-                                                                          chunks <=1 MiB, <=256, <=64 MiB total
+                                                                          1 MiB chunk target; 256 chunks / 64 MiB total are warning
+                                                                          guardrails that log and continue, not hard caps;
+                                                                          separate 4 MiB wire-size rejection (see evidence/17)
   Photo sync                       D->M   YES        MediaSync  media_sync.upload_asset  photos.upload cmd
                                                                           photo bytes + filename/local id to the VM file
                                                                           server (/fs/upload)
@@ -184,9 +187,9 @@ USER DATA: YES = can carry personal content off the device; cmd = carries the ag
                            found: anonymous CVM lease via     bind over OHTTP; allow-listed     fastly prod; GraphQL allow-list =
                            ACS, flag hatch_acs_ohai_enabled   GraphQL queries (runtime list);   "ALL"; static callers: ACS CVM
                            default false                      possible analytics ACS claims     lease/bind + internal test page
-  NOT via OHTTP (all 3)    chat, device commands, client.data_source.publish, backfill, photo sync, crash uploads, and
-                           the gateway WebSocket itself. Those carry account-identifying credentials (Bearer / ABRA
-                           tokens, x-hatch-verified-uid injected by the gateway).
+  OHTTP scope unresolved  Authenticated gateway, chat, sync, backfill, photo and crash paths are present.
+                           No OHTTP wrapper was identified for those reviewed paths. Credentials alone do not
+                           prove relay absence; shared GraphQL OHTTP support rules out a lease-only conclusion.
   Tokens in URLs           extension ?auth_token=; shared-    notary_token= query strings       vm_id + notary_token query params
                            agent ingress ?vm_id&auth_token
   Device identifiers       USDID token header, family_device_ Family Device ID + IDFV           X-ANDROID-ID, X-FB-Device-ID,
@@ -200,7 +203,8 @@ Reading: the content path (device <-> VM) is designed to be encrypted end-to-end
 optionally bound to an attested AMD SEV-SNP "confidential VM". Whether attestation is enforced is decided by
 server flags on every platform, and an accept-all verifier class exists. Even when enforced, the VM is run by
 Meta, so this limits who can read traffic in transit, not what the agent on the VM does with the data.
-OHTTP only hides the account at VM-lease time.
+An anonymous lease path is identified; broader OHTTP use and actual account/VM
+unlinkability are unverified. Shared GraphQL support is described above.
 
 
 ## D. TELEMETRY AND CRASH REPORTING (side by side)

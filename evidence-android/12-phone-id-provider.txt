@@ -4,10 +4,11 @@
 # jadx marks X/C19297iJ.A00 "Code decompiled incorrectly". The throw sites quoted
 # below are explicit in the output. The surrounding branch order is not guaranteed.
 
-VERDICT: PROTECTED (signature allow-list). An arbitrary third-party app cannot read
-the Family Device ID through either exported component. The provider returns null
-and the receiver returns no result unless the caller is signed with an allow-listed
-Meta certificate.
+VERDICT: caller checks found (signature allow-list). The inspected paths reject
+untrusted identities rather than exposing the ID solely because they are exported.
+This is not proof against every bypass: helper decompilation is imperfect, only the
+Muse certificate was independently attributed, and PendingIntent delegation remains
+a separate trust question (see uncertainties below).
 
 ## 1. Manifest: exported, no android:permission / readPermission
 extracted-apk/manifest-tree.txt:778-787

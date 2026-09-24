@@ -1,198 +1,88 @@
-# S4 - Meta's public statements vs in-app copy (macOS 3.0, Android 8.0.0.21.168, iOS 8.1)
-# Public sources (fetched 2026-09-24; public blog pages only, no app contact):
-#   [L] Meta Newsroom, "Introducing Muse: The World's First Personal AI Agent Built for Everyone", 8 Sep 2026
-#       https://about.fb.com/news/2026/09/introducing-muse-personal-ai-agent/
-#   [R] Meta AI Research, "How We Built Safety Into Muse" (Tarek Sheasha), 8 Sep 2026
-#       https://research.meta.ai/blog/security-and-safety-for-ai-agents-our-approach-with-muse
-# Public quotes were retrieved with an automated fetch-and-extract tool; re-check wording against the
-# live pages before quoting in publication.
-# App quotes and offsets are in:
-#   evidence/15-consent-retention-macos.txt            (W = hatch/index.html, N = MacOS/Muse)
-#   evidence-android/15-consent-retention-android.txt  (R = resource ID, J = jadx path:line)
-#   evidence-ios/15-consent-retention-ios.txt          (B = HatchApp offset, P = InfoPlist.strings)
-# Labels: AGREES = app text matches; APP ADDS = app says something the posts do not;
-#         TENSION = wording points in different directions; GAP = neither side states it.
-# No finding below is a runtime observation.
+# S4 - Public statements and in-app copy; corrected by the 9b0d5a3 audit
+# Checked 2026-09-24. Static app text is not a runtime observation.
+# [L] Meta Newsroom, Introducing Muse (8 Sep 2026):
+# https://about.fb.com/news/2026/09/introducing-muse-personal-ai-agent/
+# [R] Meta AI Research, How We Built Safety Into Muse (8 Sep 2026):
+# https://research.meta.ai/blog/security-and-safety-for-ai-agents-our-approach-with-muse
+# Public descriptions below are paraphrases. The earlier version overquoted the
+# posts and overstated several differences; Git history preserves that version.
+# App strings and offsets: evidence/15-consent-retention-macos.txt,
+# evidence-android/15-consent-retention-android.txt, evidence-ios/15-consent-retention-ios.txt.
+# W = macOS web bundle byte offset; R-ID = Android resource ID; B = iOS binary offset.
 
-----------------------------------------------------------------------
-1. Model training: default and opt-out
-----------------------------------------------------------------------
-[L] "People can also opt out of their interactions being used to train Meta's AI models."
-[R] "Inference data, the back and forth conversations between you and your Muse and the tool calls and
-    subagent handoffs that result ("trajectories") are useful data for training new checkpoints"
-[R] "To preserve user privacy, these trajectories are sanitized to remove key personally identifiable
-    information before being used in training. We think this is a good default ... If you do not want
-    your data to be used in model training at all, you can opt-out via a simple switch in Muse settings."
-App:
-  all  "Help improve our AI models" / "Allow us to use your interactions with Muse to develop and improve AI at Meta."
-       (macOS W@46274026, Android R 0x7f1205aa, iOS B@61120464)
-  all  "Your interactions with Muse won’t be used to improve AI at Meta after you turn this off."
-  mac  W@46274201 "Hi=r.data?.trainingEnabled??!0"  (ON if the server sends nothing)
-  and  J settings/HatchAiTrainingApi.java:24 "DEFAULT_ENABLED = true"; J settings/ProductImprovementsResponseJson.java:78,85 default true
-  iOS  default not readable (text only).
-AGREES: training is on unless the user opts out; the switch exists on all three platforms.
-APP ADDS: the "after you turn this off" wording covers future use only. Neither the app nor [R] says
-  whether data already collected, or checkpoints already trained, are removed on opt-out (GAP).
-APP ADDS: connector consent footers put connector data inside the training scope:
-  Android R 0x7f1206e7 (Health Connect) "All of the info from %1$s is part of your interactions with %4$s,
-  which we may use to improve AI at Meta."; iOS B@60850272 "... which we use to improve AI at Meta.";
-  macOS W@42158098 "... explains how we use this info, including to improve AI at Meta."
-  [R] names "tool calls" as training data but does not mention health data or connector data by name.
-GAP: the app never mentions the PII sanitisation that [R] describes.
+1. Training scope and defaults
+Public: [R] describes training on conversations, tool calls and subagent handoffs,
+with sanitization of key personal information and an opt-out. [L] also mentions opt-out.
+App: macOS W@46274201 trainingEnabled??!0 is a UI fallback, not a captured account
+setting. Android HatchAiTrainingApi.java:24 DEFAULT_ENABLED=true and
+ProductImprovementsResponseJson.java:78,85 also default true. iOS text does not establish
+the default. All three have a switch and copy describing future opt-out effects.
+Android Health Connect R-ID 0x7f1206e7 says its information forms part of interactions
+which Meta MAY use to improve AI. The generic connector footer uses “use”, not “may”.
+iOS B@60850272 and macOS W@42158098 have related task/connector-data disclosures.
+Assessment: connector footers are more specific about types such as health. They do
+not establish that all raw records train models, nor that connector-derived data was
+excluded from the public term “tool calls”. Opt-out enforcement and treatment of
+already-collected data remain untested. Client fallbacks do not establish live defaults.
 
-----------------------------------------------------------------------
-2. Choice over connections / defaults for sharing
-----------------------------------------------------------------------
-[L] "People choose which apps Muse connects to and exactly how much access it gets. For things like email,
-    people choose what Muse can do, whether it reads their mail or can also send on their behalf."
-App:
-  mac  auto-sync rows: "New messages are shared automatically. Turn this off to share only what you ask for."
-       (W@42164539); Mail: "Who new email is from and what it is about are shared automatically. The message
-       text is shared only when you ask." (W@42164742). The consent dialog switch falls back to ON
-       (W@42172078 "...useState)(Wi?.autoSync.enabled??!0)") and is committed on Connect (W@42172253).
-  and  "Your agent will store existing information from Calendar ..." (R 0x7f1206d0); Contacts same (R 0x7f1206d2).
-  iOS  "Turn on to back up your camera roll." (B@61127088) - wording suggests opt-in; in-code default unknown.
-AGREES: users pick which connectors to add and read vs read/write levels (macOS "Read only" / "Read and
-  interact", W@44792693/44792747).
-TENSION: [L] frames access as chosen "exactly", but once a connector is added the app copy describes
-  automatic, continuing sharing ("automatically updated with the latest information from your device going
-  forward"), and for Calendar/Contacts (Android) and Contacts (macOS) the upload of existing data.
-  On macOS the only opt-out inside the consent flow is a switch whose code fallback is ON.
-GAP: neither post mentions automatic background sync, historical backfill, or its depth.
+2. Access, automatic sharing and history
+Public: [L] describes choosing connections/access and being able to disconnect.
+App: macOS W@42164539 describes automatic message sharing; W@42164742 distinguishes
+Mail sender/subject auto-sync from message text on request. The dialog fallback at
+W@42172078 is on; W@42172253 saves it when connecting. Android Calendar/Contacts
+R-IDs 0x7f1206d0/0x7f1206d2 describe storing existing information. iOS camera-roll
+copy at B@61127088 presents a switch, without establishing its initial state.
+Assessment: these are material details of consent, not proof that user choice is
+absent or that automatic sharing contradicts the public statement. History depth,
+production defaults and behavior following denial still need measurement.
 
-----------------------------------------------------------------------
-3. Asking before acting (approvals)
-----------------------------------------------------------------------
-[L] "Muse checks with the person before sensitive actions like sending an email or making a purchase."
-[L] "Nothing Muse does reaches the internet unless the Sentinel approves it, and it asks the person for
-    permission when needed."
-[R] "Read-only, previously allowed, or demonstrably low-risk actions can proceed without interruption."
-[R] "Muse has support for obtaining one-time, session-scoped, task-scoped, time-bounded, or perpetual permission."
-App:
-  all  "Connector defaults" - "Ask for some actions" - "Before every write and some read actions";
-       "Always ask" - "Before any action"
-  mac  internal value of "Ask for some actions" is `auto_allow` (W@44936673) and it is the fallback default
-       (W@17154492 "...??`auto_allow`"); Android PermissionSettings.java:102,107 default AUTO_ALLOW.
-  mac  "Request was auto-allowed as deemed low risk" (W@17933220); Android/iOS "Auto allowed".
-  mac  "These defaults apply when no permission has been saved. “Always allow” choices do not expire." (W@44932832)
-  and  READ defaults to ALLOW, WRITE to ASK (J nodes/core/NodeHitlMode.java:28,31).
-  and/iOS "By default, your agent will ask before taking actions it thinks need review." (R 0x7f1207a3, B@61364064)
-AGREES: writes/sends ask by default; reads and "low-risk" actions may run unprompted; "Always allow" is
-  the "perpetual" permission [R] describes.
-TENSION (wording only): the default is labelled "Ask for some actions" in the UI but stored as
-  `auto_allow`, and it lets background reads of connected sources proceed without a prompt (Android code
-  reading; macOS auto-sync copy). [L]'s "checks with the person" is accurate for sends/purchases but does
-  not tell readers that reads are not checked.
-APP ADDS: macOS says "“Always allow” choices do not expire"; neither post says how perpetual approvals
-  are listed or revoked (the app has "Reset approvals to defaults", W@44991335).
+3. Approvals
+Public: [L] promises checks for sensitive actions; [R] expressly allows read-only,
+previously allowed and low-risk actions without interruption.
+App: macOS W@46301967 labels auto_allow as “Ask for some actions”; W@46302002 says
+“Before every write and some read actions”. Android defaults READ to ALLOW and WRITE
+to ASK, subject to saved modes and the connector baseline. “Always allow” is available.
+Assessment: unprompted reads are consistent with the public distinction. A UI label
+is not proof that every write always prompts or that every command is locally gated.
+Android's no-cache / missing-field distinction is in evidence-android/13 and evidence/17.
 
-----------------------------------------------------------------------
-4. Disconnecting and what happens to earlier data
-----------------------------------------------------------------------
-[L] "People can change access or disconnect a service whenever they want."
-[R] no sentence on disconnect or connector data retention (extraction tool reported none).
-App:
-  all  "When you disconnect, Muse will no longer have access to new data from {app}. Previous data shared
-       with Muse won't be removed unless you choose to delete it." (W@20718706, R 0x7f1206c4, B@60853104)
-  iOS  "Messages already shared are not deleted." (B@60863824); agent tool: "Previously uploaded messages
-       are not deleted." (B@61192396)
-  all  "You can ask your agent to delete this info at any time, or disconnect from {service} in your device's
-       settings to prevent future syncing."
-AGREES: disconnect is available at any time.
-APP ADDS (material): disconnecting stops new collection only; data already uploaded stays unless the user
-  separately asks the agent to delete it. The public posts do not say this.
-GAP: no public or in-app statement of how long connector data is kept, or whether "ask the agent to
-  delete" also removes backups.
+4. Disconnecting, message deletion and memory
+App: macOS W@20718706, Android R-ID 0x7f1206c4 and iOS B@60853104 distinguish stopping
+new access from deleting prior data. iOS forwarding copy at B@60863824/B@61192396 also
+says previously shared messages are not deleted by disconnecting.
+Android R-ID 0x7f120592 and iOS B@61405342 say a deleted message MAY stay in agent memory.
+Assessment: disconnect is not an erasure operation. Message deletion may leave derived
+memory; the earlier categorical “does not delete memory” conclusion was too strong.
+Public: [L] describes asking Muse to forget; [R] describes inspecting/editing/downloading
+VM files, including memory. Neither is a demonstrated backend-erasure guarantee.
 
-----------------------------------------------------------------------
-5. Memory and "forget"
-----------------------------------------------------------------------
-[L] "Muse remembers what matters to a person, and they can always tell it to "forget" specific things it's learned."
-[L] "Muse also remembers what matters to a person, so it can make suggestions unprompted."
-[R] "You can inspect, edit and download these files freely, including Muse's memory about you."
-App:
-  and/iOS "You can delete messages you’ve sent. Messages you delete are removed from the conversation but may
-       stay in the agent’s memory." (R 0x7f120592, B@61405342)
-  all  memory import: "... will read this and remember the durable facts. This is not a verbatim copy."
-  mac  "New ideas show up here as Muse learns about you." (W@43659452)
-AGREES: memory is persistent and forgetting is an explicit, separate request.
-APP ADDS: deleting a chat message does not delete what memory derived from it; [L]'s "forget" sentence
-  does not warn about this.
-GAP: no statement on whether "forget" removes memory from backups or training data.
+5. Reset and backups
+Public: [R] describes continuous VM backups.
+App: reset copy lists chat history, files, artifacts and tasks after “including”
+(macOS W@46237186/W@46240659, Android R-IDs 0x7f120acd/0x7f1205bc, iOS B@61120832).
+Assessment: that list is non-exhaustive; omission of memory does not establish exclusion.
+Backups and permanent deletion can coexist. The reviewed statements do not establish
+backup-deletion timing or treatment of training copies. A client test can inspect
+visible results, not certify backend erasure. No account-deletion flow was verified.
 
-----------------------------------------------------------------------
-6. Deleting everything / backups
-----------------------------------------------------------------------
-[R] "All the files you put in your VM and everything Muse generates or uses on your behalf is stored there."
-[R] "Your VM data is backed up continuously so you can restore it if something goes wrong."
-App:
-  all  "Resetting permanently deletes your data, including chat history, files, artifacts and tasks."
-       / "Permanently deletes your Muse data, including chat history, files and active tasks."
-       (W@46237186, W@46240659, R 0x7f120acd, R 0x7f1205bc, B@61120832)
-  and  (Confidential VM setup) "If you cancel, all of your data including chats, artifacts and tasks will be
-       permanently deleted. This cannot be undone." (R 0x7f12092a)
-  all  no "delete account" copy found.
-TENSION (unresolved): "permanently deletes" in the app vs "backed up continuously" in [R]. Neither says
-  whether reset or cancellation also deletes backups, or on what schedule. Not a proven contradiction.
-AGREES: data download - app "This will download a copy of your chats, files and other agent data."
-  matches [R] "inspect, edit and download".
+6. Support and human access
+Public: [R] allows operational access under policy for the current service; [L] describes
+Confidential VM as a future offering.
+App: support copy at Android R-ID 0x7f120536 / iOS B@61110928 says granting access exposes
+chats, memory and files and ends confidentiality; related copy makes access revocable.
+Bug-report copy (macOS W@16861405, Android R-ID 0x7f12012e, iOS B@62514208) includes recent
+conversation details/device logs unless deselected. iOS B@62514608 describes review.
+Assessment: the warning belongs to a support-access flow, not evidence that all current
+VMs prevent operator access. A shared “Media human review” setting with no linked handler
+does not establish a Muse conversation-review process.
 
-----------------------------------------------------------------------
-7. Human review / Meta access
-----------------------------------------------------------------------
-[R] "It restricts access to your data by Meta personnel through operational policies. It does not prevent
-    Meta from accessing data when necessary to support, secure or operate the service."
-[L] "Later this year, Meta will introduce Muse Confidential VM, where the whole VM, including a person's data
-    and conversations with Muse, is encrypted with a key only they hold, so not even Meta can access it."
-[L]/[R] no sentence on human review of conversations for training or safety (extraction tool reported none).
-App:
-  and/iOS "Allowing access means your chats, memory, and files will be visible to support and your data will
-       no longer be confidential." (R 0x7f120536, B@61110928); "... Support will access your account to
-       investigate and resolve the issue. Access ends when the issue is resolved, or you can revoke it at any time."
-  iOS  bug report: "The information you choose to include will be sent to Meta for review and may be used to
-       improve {appName}." (B@62514608)
-  all  bug report: logs / "Recent conversation details and device logs will be sent to Meta unless you choose
-       not to include them." (W@16861405, R 0x7f12012e, B@62514208)
-  mac/and "Meta doesn't review custom connectors or how they use your information." (W@20637065, R 0x7f1205a8)
-AGREES: support access is user-granted and revocable; the "no longer be confidential" wording fits the
-  Confidential VM model in [L]/[R].
-APP ADDS: bug reports include recent conversation details by default and are sent "for review" (iOS).
-GAP: no app or public statement says whether people at Meta review conversations, connector data or
-  training trajectories. iOS contains "Media human review" setting identifiers from a shared Meta AI
-  framework, logged as "no handler linked"; they are not user copy.
+7. Advertising and email filtering
+Public: [L] says conversations/VM data are not shared with Meta's ad systems. [R] describes
+filtering email tokens and login/reset links.
+App: Android has an Advertising ID attribution path (evidence-android/16); this is not
+proof that conversation/VM content goes into ads. Local Mail header sync and the Android
+SMS/notification paths do not establish where the described email filter runs.
+Assessment: measure attribution conditions and email/SMS/notification filtering separately.
 
-----------------------------------------------------------------------
-8. Advertising
-----------------------------------------------------------------------
-[L] "Muse doesn't share a person's conversations or the data in their VM with Meta's ad systems."
-App: no advertising statement found on any platform (searched "ads", "advertis").
-GAP only; nothing in the app contradicts [L].
-
-----------------------------------------------------------------------
-9. Email OTP filtering
-----------------------------------------------------------------------
-[R] "So Muse's email connector filters out one-time tokens, password reset links, and login magic links via
-    both deterministic filters and a classifier model."
-App: macOS Apple Mail auto-sync shares sender and subject automatically (W@42164742; N@12286096
-  "Proactive sync shares only headers."). No app copy mentions OTP filtering, for email subjects, SMS
-  (Android) or notifications (Android).
-GAP: whether the [R] filter applies to the local Apple Mail connector, Android SMS or Android
-  notifications is not established by any text.
-
-----------------------------------------------------------------------
-SUMMARY
-----------------------------------------------------------------------
-Agreements: training on by default with an opt-out switch; users pick connectors; approvals include
-  one-time and perpetual scopes; reads/low-risk actions can run unprompted; memory is persistent and
-  "forget" is explicit; data download exists; support access needs user consent.
-Material things the app says that the public posts omit:
-  (1) disconnecting does not delete data already shared;
-  (2) deleting a message does not remove it from memory;
-  (3) connector data, including Health Connect data, is covered by the "improve AI at Meta" language;
-  (4) sharing is automatic and continuing after connect (macOS switch falls back to ON), with existing
-      Calendar/Contacts data stored on Android and existing Contacts on macOS;
-  (5) bug reports include recent conversation details unless the user unticks them.
-Unresolved tensions: "permanently deletes" vs continuous backups; "checks with the person" vs a default
-  stored as `auto_allow` that lets reads run unprompted.
-No contradiction proven: every tension depends on server values or runtime behaviour this static
-  review cannot see.
+Open: runtime defaults, enforcement, selected payloads, training use, deletion and backup
+retention. No claim of verified server behavior follows from these UI strings.
