@@ -1,0 +1,179 @@
+# FoaPhoneIdProvider / FoaPhoneIdRequestReceiver: caller verification
+# Static review of extracted-apk/jadx/sources (com.facebook.aura 8.0.0.21.168).
+# Nothing was installed or run. Line numbers refer to the jadx output.
+# jadx marks X/C19297iJ.A00 "Code decompiled incorrectly". The throw sites quoted
+# below are explicit in the output. The surrounding branch order is not guaranteed.
+
+VERDICT: PROTECTED (signature allow-list). An arbitrary third-party app cannot read
+the Family Device ID through either exported component. The provider returns null
+and the receiver returns no result unless the caller is signed with an allow-listed
+Meta certificate.
+
+## 1. Manifest: exported, no android:permission / readPermission
+extracted-apk/manifest-tree.txt:778-787
+  provider  name="com.meta.foa.infra.fdid.FoaPhoneIdProvider"  exported=true
+            authorities="com.facebook.aura.provider.phoneid"
+  receiver  name="com.meta.foa.infra.fdid.FoaPhoneIdRequestReceiver"  exported=true
+            intent-filter action="com.facebook.GET_PHONE_ID"
+  (no permission attribute on either element; <queries> also lists
+   com.facebook.GET_PHONE_ID and com.facebook.GET_UNIQUE_ID at :1009)
+The manifest does not protect either component. Enforcement is done in code (below).
+
+## 2. Superclass chain
+com/meta/foa/infra/fdid/FoaPhoneIdProvider.java:24
+  public final class FoaPhoneIdProvider extends ContentProvider {
+  (no obfuscated parent class; AbstractPhoneIdProvider logic was inlined by the build;
+   the only trace of it is the log tag at :105 "AbstractPhoneIdProvider")
+com/meta/foa/infra/fdid/FoaPhoneIdRequestReceiver.java:6
+  public final class FoaPhoneIdRequestReceiver extends AbstractPhoneIdRequestReceiver {
+com/facebook/phoneid/AbstractPhoneIdRequestReceiver.java:16
+  public abstract class AbstractPhoneIdRequestReceiver extends BroadcastReceiver {
+(com/facebook/phoneid/DeferredInitAbstractPhoneIdProviderDelegate.java is a stub whose
+ constructor throws; it is not in either component's chain.)
+
+## 3. Provider query(): trusted-caller check before any data is built
+com/meta/foa/infra/fdid/FoaPhoneIdProvider.java:56-83
+  C7i1 c7i1 = C9QS.A01;
+  ...
+      int callingUidOrThrow = Binder.getCallingUidOrThrow();
+      zA00 = C7i1.A00(context, c7i1, callingUidOrThrow);          // allow-list #1
+  if (!zA00) {
+      C7i1 c7i12 = C9QS.A00;
+      ...
+          zA002 = C7i1.A00(context, c7i12, callingUidOrThrow2);    // allow-list #2
+      if (!zA002) {
+          C19297iJ.A00(context, null, C9QS.A03);                   // enforcing check (throws)
+          C19297iJ.A00(context, null, C9QS.A02);
+      }
+  }
+FoaPhoneIdProvider.java:84-103   (reached only if the above did not throw)
+  arrayListA0y.add("COL_PHONE_ID");
+  arrayListA0y.add("COL_TIMESTAMP");
+  arrayListA0y.add("COL_ORIGIN");
+  arrayListA0y2.add(c7izA00.A01);                     // phone id
+  arrayListA0y2.add(Long.toString(c7izA00.A00));      // timestamp
+  arrayListA0y2.add(c7izA00.A02);                     // origin
+FoaPhoneIdProvider.java:104-107
+  } catch (Exception e) {
+      Log.e("AbstractPhoneIdProvider", "Failed to call queryForIds", e);
+      ...
+      return null;
+insert/update/delete/getType all throw (:34-46, :112-114).
+
+## 4. The enforcing check (TrustedCaller) throws for an untrusted caller UID
+X/C19297iJ.java:66-74   (intent == null branch, used by the provider)
+  if ((j & 128) == 0 && Binder.getCallingPid() == Process.myPid()) {
+      throw AbstractC12995xg.A0e("Invalid Caller Identity (null)");
+  }
+  callingUid = Binder.getCallingUid();
+  c19287iIA01 = C19287iI.A02(AbstractC19347iP.A00(context, AbstractC19347iP.A02(context, callingUid)[0], 64), ...);
+X/C19297iJ.java:109-113
+  C7i1 c7i1 = c19297iJ.A01;
+  if (c7i1 != null && !c7i1.A03(c19287iIA01, z)) {
+      ...
+      throw AbstractC12995xg.A0e(AnonymousClass002.A19("' is not trusted", AnonymousClass003.A0g(c19287iIA01, "Caller Identity '")));
+  }
+X/C19297iJ.java:223-224
+  if (arrayList2.isEmpty() && c7i1 == null && arrayList3.isEmpty()) {
+      throw AbstractC12995xg.A0e("Calling app is not the same package, and no other identity checks were performed.");
+The provider's catch(Exception) turns the throw into a null cursor. The caller gets no data.
+
+## 5. The identity being checked comes from the certificate SHA-256 of the calling UID
+X/C19287iI.java:161-167   (C7i1.A00 -> C19287iI.A00(context, uid))
+  String[] strArrA02 = AbstractC19347iP.A02(context, i);          // packages for UID
+  C7iN c7iNA00 = AbstractC19347iP.A00(context, strArrA02[0], 64); // GET_SIGNATURES
+X/C19287iI.java:47-52
+  byte[] byteArray = signature.toByteArray();
+  MessageDigest messageDigest = MessageDigest.getInstance(... SHA_256);
+  String strEncodeToString = Base64.encodeToString(messageDigest.digest(), 11); // url-safe, no pad
+X/C7i1.java:26-53   A03(): caller's first cert hash must equal an allow-listed hash
+  (A01 set = any package with that cert; A00 map = cert hash + specific package name)
+X/C7i1.java:98-100
+  public static boolean A00(Context context, C7i1 c7i1, int i) {
+      return c7i1.A03(C19287iI.A00(context, i), AbstractC19277iH.A02(context));
+  }
+X/AbstractC19277iH.java:47-48  the "z" flag (lets debug-signature equivalences count) is
+  only true when Muse's OWN cert is in AbstractC9413BzY.A0l. Muse's production cert hash
+  (below) is not in that set. In production the comparison is an exact SHA-256 match.
+
+## 6. The allow-lists (X/C9QS.java static init)
+X/C9QS.java:36-55   A01 = 11 certificate hashes, each "*|all_packages|*":
+  AbstractC9414BzZ.A0m  = "4_nh4M-Z0OVqBVumXiQbM5n3zqUkMmsM3W7BMn7Q_cE"   (BzZ.java:268)
+  AbstractC9414BzZ.A1C  = "Xz5Q9DVYPJrmJjAqcfc0AEQIen4sYK2s_CVCBamT4wU"   (:306)
+  AbstractC9414BzZ.A1r  = "ZSEpCPBvG4p97Oj7FYJ_pqcOLvWpiwfdZ4BcNkPF08M"   (:380)
+  AbstractC9414BzZ.A1U  = "3C-DTjwZQjeLFPB2yCzRq1nqZWa_9HMLIEfpjvyfna8"   (:340)
+  AbstractC9414BzZ.A1V  = "hsjHCZZDQ_nYA7pFdZgLlu7Cj5sP_ledu-uCoBxGsRA"   (:344)
+  AbstractC9414BzZ.A2S  = "gbBIh-jriiCfLl5AQq3PaWv3Uemavb2hMrZhZ_3KlDE"   (:450)
+  AbstractC9414BzZ.A2o  = "OYfQQ9EK769ahxCzZxQY_lfg4ZtlPJ34JVj-tf_OXUQ"   (:494)
+  AbstractC9414BzZ.A1D  = "U2dXC61IjY2moPq3jZdmoaTCPDxw-sCtLpHI8L1YtDI"   (:310)
+  AbstractC9414BzZ.A22  = "uSEJtZCVlVzKr17Lzw8VPslkCkZYwQFmetlrfkmaQJI"   (:398)
+  AbstractC9414BzZ.A26  = "Pe8Et4hsPS7Kvjw_L5ntBUvzN7FBnR_-SZx5HwAgfNg"   (:406)
+  AbstractC9414BzZ.A12  = "oWu-AkenOLyPCf71DYkNwXfsh1qDoSH4dzKbG4lmfpk"   (:288)
+X/C9QS.java:56-67   A00 = cert hash pinned to a package name:
+  mapA0v2.put(AbstractC9414BzZ.A0v, "com.facebook.study");       // "GVQYWvhotR_1RBv0Am3VA2bLMifS4uOCNDeaKSVc7CU"
+  mapA0v2.put(AbstractC9414BzZ.A0B, "com.facebook.viewpoints");  // "XdkQEeiVeIyDkvBEAHtGJKKHfdsrOFf9te68UpyJVhA"
+X/C9QS.java:68-73   A03/A02 = TrustedCaller objects built from A01/A00 (used in section 3).
+
+Cross-check: evidence-android/01-signature.txt gives Muse's signing cert SHA-256 as
+a16bbe0247a738bc8f09fef50d890dc177ec875a83a121f877329b1b89667e99. In url-safe base64
+without padding that is "oWu-AkenOLyPCf71DYkNwXfsh1qDoSH4dzKbG4lmfpk", which is
+entry A12 above. The allow-list includes the "Meta Platforms Inc. / Meta Mobile"
+certificate that signs this APK. The other 10 hashes are presumably other Meta
+signing certificates. Mapping each hash to a specific app was NOT verified.
+
+## 7. Broadcast receiver: requires an "auth" PendingIntent whose creator is trusted
+com/facebook/phoneid/AbstractPhoneIdRequestReceiver.java:18-33
+  C7iz c7izA00 = c19517is != null ? c19517is.A00() : null;
+  if (!AbstractC12995xg.A1R(intent, "com.facebook.GET_PHONE_ID") || c7izA00 == null) {
+      return;
+  }
+  Bundle resultExtras = getResultExtras(true);
+  PendingIntent pendingIntent = (PendingIntent) resultExtras.getParcelable("auth");
+  if (pendingIntent == null || !C9QS.A00(context, pendingIntent.getCreatorPackage())) {
+      return;
+  }
+  Bundle bundleA08 = AbstractC12995xg.A08();
+  bundleA08.putLong("timestamp", c7izA00.A00);
+  bundleA08.putString("origin", c7izA00.A02);
+  setResult(-1, c7izA00.A01, bundleA08);          // resultData = phone id
+X/C9QS.java:20-31
+  public static boolean A00(Context context, String str) {
+      ApplicationInfo applicationInfo = context.getPackageManager().getApplicationInfo(str, 0);
+      if (!C7i1.A00(context, A01, applicationInfo.uid)) {
+          if (!C7i1.A00(context, A00, applicationInfo.uid)) {
+              return false;
+  ...
+The system sets PendingIntent.getCreatorPackage(). A caller cannot forge it. A
+third-party app that sends an ordered broadcast with its own PendingIntent fails the
+check and gets no result.
+
+## 8. What is returned (when the caller is trusted)
+com/facebook/aura/common/identifiers/fdid/AuraFdidStorage.java:11-14, 33-43
+  KEY_ID = "family_device_id"; KEY_ORIGIN = "family_device_id_origin";
+  KEY_TIMESTAMP = "family_device_id_timestamp"
+X/C19517is.java:27-33   -> C7iz(phoneId, timestamp, origin)
+  provider columns: COL_PHONE_ID, COL_TIMESTAMP, COL_ORIGIN
+  receiver: resultData = phone id, extras {timestamp, origin}
+com/facebook/aura/common/identifiers/fdid/AuraFamilyDeviceId.java:26-30 + X/C19517is.java:17-18
+  if no id is stored: setPhoneId(C5xh.A0g() /* UUID.randomUUID(), X/C7jR.java:15 */, now, null)
+X/C19547iw.java:24-30   ids learned from other Meta apps: the one with the older timestamp wins
+  (c19517is.A01(c19537iv.A01) when j < j2). This is how the family converges on one ID.
+com/facebook/aura/network/tigon/deviceidentifiers/AuraFamilyDeviceIdProvider.java:28
+  String str2 = AuraFamilyDeviceId.INSTANCE.get();   // also attached to Meta network requests
+
+## 9. Outbound direction (Muse asking other Meta apps) is also checked
+X/C19527it.java:63-66   candidate packages must be in C3L.A02 AND pass C9QS.A00 (cert check)
+X/C19527it.java:127-133 provider authority must resolve to the expected package,
+  and "app signature mismatch" is thrown if the cert check fails
+X/C19527it.java:174-180, 211-217  broadcasts use intent.setPackage(str2) (package-targeted),
+  "auth" = PendingIntent.getActivity(..., 201326592 /* IMMUTABLE|UPDATE_CURRENT */ on API 30+)
+
+## What remains uncertain
+- Which Meta apps own each of the 10 non-Muse hashes. They are presumably Meta keys, but this was not verified.
+- Whether any allow-listed Meta app re-exports the ID without a check. That is outside this APK.
+- X/C19297iJ.A00 is marked "decompiled incorrectly". The explicit "is not trusted" throw
+  and the provider's catch-all make the outcome clear. The exact flag-bit branches (j & 1/16/32/64/128) were
+  not verified against smali.
+- Residual theoretical risk: the receiver trusts the PendingIntent creator. A
+  PendingIntent created by an allow-listed Meta app that leaked to a third party would
+  pass the check. No such leak was found here.

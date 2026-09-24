@@ -1,0 +1,253 @@
+# Android background publishing: human-in-the-loop (HITL) gate coverage
+# Static review of extracted-apk/jadx/sources (com.facebook.aura 8.0.0.21.168).
+# Nothing was installed or run. Line numbers refer to the jadx output.
+# Many methods quoted here are Kotlin coroutines that jadx marks "Code decompiled
+# incorrectly". Where that affects a conclusion, it is noted inline.
+
+SUMMARY
+The gate is not applied at the network sink. It is applied by each caller, and only
+when NodeHitlCatalog.forDataSource(sourceId) returns a spec. forDataSource returns a
+spec for exactly six sources: health, contacts, calendar, call_log, sms, notifications.
+Every path for location (geofence crossings), network_state (Wi-Fi SSID/BSSID/RSSI,
+carrier, roaming) and battery publishes to client.data_source.publish with no HITL check.
+The LOCATION NodeHitlGroup exists but nothing maps to it.
+Gated READ categories publish silently with no prompt when the per-category mode is
+"allow" OR is unset while the cached server "connector_default" is auto_allow. A
+missing or unrecognised server value is parsed as AUTO_ALLOW.
+
+======================================================================
+1. The sink: no gate in client.data_source.publish
+======================================================================
+com/facebook/aura/network/api/RpcMethod.java:340-342
+  public final class ClientDataSourcePublish implements RpcMethod {
+      public static final String value = "client.data_source.publish";
+com/facebook/aura/nodes/snapshot/HatchClientCapabilitiesProtocol.java:121,139-143
+  public final Object sendDataSourcePublish(ClientDataSourcePublishParamsJson ...) {
+      RpcMethod.ClientDataSourcePublish clientDataSourcePublish = RpcMethod.ClientDataSourcePublish.INSTANCE;
+      objSendRequestAndWait = hatchNodeTransport.sendRequestAndWait(clientDataSourcePublish, jsonElementA03, anonymousClass1);
+com/facebook/aura/nodes/HatchNodeClient.java:2730-2736
+  public final Object sendDataSourcePublish(...) {
+      HatchClientCapabilitiesProtocol hatchClientCapabilitiesProtocol = this.protocol;
+      if (hatchClientCapabilitiesProtocol != null) { return hatchClientCapabilitiesProtocol.sendDataSourcePublish(...); }
+      C7m8.A06(..., ": gateway not attached, dropping frame");
+com/facebook/aura/nodes/HatchNodeClient.java:2936-2940   dataSourcePublishSink -> sendDataSourcePublish
+com/facebook/aura/nodes/datasource/DataSourceContext.java:200-261  publish() -> DataSourcePublishPipeline -> sink.publish()
+  (grep: no "Hitl" reference in DataSourceContext.java or DataSourcePublishPipeline.java)
+
+======================================================================
+2. Which sources can be gated at all (NodeHitlCatalog)
+======================================================================
+com/facebook/aura/nodes/core/NodeHitlCatalog.java:22
+  knownDataSourceIds = {"alarms","battery","calendar","call_log","contacts","geofences",
+                        "health","location","network_state","notifications","reminders","sms"}
+com/facebook/aura/nodes/core/NodeHitlCatalog.java:25-74   forDataSource(str)
+  "health"->HEALTH, "contacts"->CONTACTS, "calendar"->CALENDAR, "call_log"->CALL_LOG,
+  "sms"->SMS, "notifications"->NOTIFICATIONS;   default: return null;   (:71-72)
+  return new NodeHitlSpec(nodeHitlGroup, NodeHitlAccess.READ);   (:74)
+com/facebook/aura/nodes/core/NodeHitlCatalog.java:258-298   forCommand(): ordinals 5,6,7,10,11,12
+  (network.state, location.get, battery.get, geofence.set/remove/list) -> return null
+  (ordinals from com/facebook/aura/nodes/core/NodeCommandId.java: LOCATION_GET=6, GEOFENCE_SET=10)
+com/facebook/aura/nodes/core/NodeHitlGroup.java:25  LOCATION group is defined, but its only
+  other reference is display code: nodes/hitldisplay/NodeHitlCapability.java:92.
+com/facebook/aura/agentpermission/LocalDeviceConnectorKt.java: user-facing connectors are
+  SMS, SMS_SEND, CALL_LOG, HEALTH, PHOTOS, CALENDAR, CONTACTS, NOTIFICATIONS, PHONE_CALL
+  (no LOCATION / NETWORK / BATTERY connector).
+
+======================================================================
+3. Path-by-path table
+======================================================================
+path | trigger (no user command) | gated? | evidence
+-----|---------------------------|--------|---------
+A. HatchProactiveTriggerManager -> ProactiveSyncRunner (calendar, contacts, call_log, sms) | ContentObserver on provider change (debounce 2-5 s) | YES, PROACTIVE_SYNC via HatchNodeHitlGate | HatchNodeClient.java:2096 passes nodeHitlGate; ...$createHost$onFire$1.java:44-54; ProactiveSyncRunner.java:180,246,256
+B. HatchProactiveTriggerManager -> ProactiveSyncRunner (battery) | BroadcastReceiver BATTERY_LOW/OKAY, POWER_(DIS)CONNECTED | NO (forDataSource("battery") == null) | BatteryDataSource.java:42-43; ProactiveSyncRunner.java:180-199; NodeHitlCatalog.java:71-72
+C. HatchProactiveSyncCatchUpJob -> ProactiveSyncRunner | every app resume, FOREGROUND_ONLY, ContentObserver sources only | YES | HatchProactiveSyncCatchUpJob.java:106,156,169,200,205
+D. HealthSyncManager.runStagedSync -> HatchNodeClient.runProactiveSync -> ProactiveSyncRunner -> HealthDataSource.proactiveSync -> executeStagedSync | Health Connect Changes API observer | YES (HEALTH/READ) once attached (see note N1) | HealthSyncManager.java:808-815; HatchNodeClient.java:2726-2728; HealthDataSource.java:920-921
+E. NodeNotificationListenerService -> NotificationsDataSource.publishNow | every posted notification | YES (managed-config check, then PROACTIVE_SYNC) | NodeNotificationListenerService.java:90-93; NotificationsDataSource.java:505,517-530
+F. AuraProactiveSyncWorker "notifications" | enqueueAll() on attach/reregister/boot; scheduleNotificationsSync | YES | AuraProactiveSyncWorker.java:123,137-148; AuraProactiveSyncManager.java:99-107
+G. AuraProactiveSyncWorker "sms" | mapped (AuraProactiveSyncManager.java:58-80) but never scheduled in this build | YES (if reached) | only scheduleSync callers: :96 network_state, :106 notifications
+H. AuraProactiveSyncWorker "network_state" | connectivity change (NetworkStateCallbackStartupJob.java:75), enqueueAll on attach/boot | NO (spec null); worker itself attaches and connects the gateway | AuraProactiveSyncWorker.java:137-165; ...$syncResult$1.java:55-63; NetworkStateHandlerKt.java:95-111
+I. Geofence crossing -> HatchGeofenceBroadcastReceiver -> NodeCommandService.enqueueGeofenceTrigger -> handleGeofenceTrigger job / GeofenceEventWorker -> LocationDataSource.publishNow | Play-services geofence transition | NO (forDataSource("location") == null) | HatchGeofenceBroadcastReceiver.java:190-192; NodeCommandService$handleGeofenceTrigger$job$1.java:63-70; GeofenceEventWorker.java:113-120; LocationDataSource.java:443-489
+J. HatchBootReceiver | BOOT_COMPLETED / MY_PACKAGE_REPLACED | MIXED: re-arms geofences (-> I, ungated) and enqueues bootstrap worker -> enqueueAll (-> F gated, H ungated) | HatchBootReceiver.java:100 (geofence reregisterAll), :112/:132/:153 (enqueue AuraProactiveSyncBootstrapWorker); syncworker/AuraProactiveSyncBootstrapWorker.java:16-21
+K. data_source.backfill (client.invoke from gateway; agent/server-initiated, not a local user action) | server command | YES, DATA_SOURCE_BACKFILL (calendar, contacts, call_log, sms, health) | HatchNodeClientKt.java:25; HatchNodeClient.java:1567-1590 ("hitl_denied")
+L. SmsMediaUploader (MMS attachment bytes via HatchAttachmentStaging, a separate HTTP upload) | runs inside SMS proactiveSync / backfill / message.attachment.get | YES, inherited from the enclosing path (A/K) or COMMAND gate (SMS/READ) | SmsDataSource.java:322 (proactiveSync->readProactiveMessages), :620 uploadAttachmentsFor, :121 backfill; MessageAttachmentGetHandler.java:415-422; NodeHitlCatalog forCommand case 24 -> SMS READ
+M. PhotoUploadWorker / MediaDeviceSyncClient | only enqueued by photos.upload command; worker then drains a persisted queue with retries/backoff | YES at enqueue (COMMAND, PHOTOS/READ); no re-check per retry | PhotosUploadHandler.java:148-160; PhotoUploadWorker.java:103-111,190-248
+
+N1 (possible race, not proven): HatchNodeClient's constructor sets
+  this.hitlGate = NodeHitlGate.AllowAll.INSTANCE   (HatchNodeClient.java:2935)
+  and attach() replaces it (:2080 transport, :2083 hitlGate = HatchNodeHitlGate).
+  runProactiveSync() reads this.hitlGate when it is called (:2727). Before attach,
+  awaitConnected() returns false because transport == null
+  (HatchNodeClient$proactiveConnectionGate$1.java:45-58), and sendDataSourcePublish drops
+  frames when protocol == null. The AllowAll default therefore does not normally leak.
+  A health sync that starts just before attach() could pass AllowAll and then find a
+  live transport after acquiring its lock. This is a theoretical window only.
+
+======================================================================
+4. Key excerpts
+======================================================================
+-- ProactiveSyncRunner (shared runner for A, C, D) --
+com/facebook/aura/nodes/datasource/ProactiveSyncRunner.java:180-182
+  NodeHitlSpec nodeHitlSpecForDataSource = NodeHitlCatalog.INSTANCE.forDataSource(dataSource2.getSourceId());
+  r9 = r93;
+  if (nodeHitlSpecForDataSource == null) {
+      ... (permission scan, connection check, lock, withLease -> dataSource.proactiveSync)   // no gate
+ProactiveSyncRunner.java:246,256
+  NodeHitlRequest nodeHitlRequest = new NodeHitlRequest(NodeHitlRequestKind.PROACTIVE_SYNC, dataSource2.getSourceId(), null, false, null, null);
+  objCheck = nodeHitlGate.check(nodeHitlSpecForDataSource, nodeHitlRequest, c108281);
+ProactiveSyncRunner.java:328-331
+  if (!(objCheck instanceof NodeHitlResult.Denied)) {
+  }
+  dataSource2.getSourceId();
+  return DataSourceResult.Ok.INSTANCE;
+JADX CAVEAT: the resume branch after check() is broken. It shows an empty "not Denied"
+block, and the sync body is attached only to the spec==null branch. The ordering is
+still clear: the gate call happens before the proactiveSync body. The null-spec branch
+runs the sync with no check. That branch is the one used by battery (and by
+location/network_state if they ever pass through the runner).
+
+-- LocationDataSource.publishNow (path I) --
+com/facebook/aura/commands/location/LocationDataSource.java:61
+  proactiveTrigger = new ProactiveTrigger.CallerDriven("geofence broadcast receivers call publishNow() with the crossing coordinates. Sites: GeofenceEventWorker, NodeCommandService geofence path.");
+LocationDataSource.java:443-455
+  NodeHitlSpec nodeHitlSpecForDataSource = NodeHitlCatalog.INSTANCE.forDataSource(getSourceId());   // "location" -> null
+  if (nodeHitlSpecForDataSource != null) {
+      HatchNodeHitlGate companion = HatchNodeHitlGate.Companion.getInstance(c64g2);
+      ... objCheck = companion.check(...);
+  }
+  lClaim = claim(d3, d4, z2);
+LocationDataSource.java:465-489
+  C5QN.A01(new Double(d3), GeofenceEventWorker.KEY_LATITUDE, c3e1A18);
+  C5QN.A01(new Double(d4), GeofenceEventWorker.KEY_LONGITUDE, c3e1A18);
+  C5QN.A01(C3NG.A0M(jLongValue), "timestamp", c3e1A18);
+  if (str3 != null) { C5QN.A02("geofence_name", str3, c3e1A18); }
+  ...
+  objCheck = dataSourceContext.publish(sourceId2, jsonObjectA00, anonymousClass1);
+The gate call is written for location, but forDataSource("location") returns null, so
+the call never runs. The remaining controls are the Android location permissions
+requested by geofence.set (GeofenceSetHandler.java:96-107) and a local reminder
+notification when a geofence fires (HatchGeofenceBroadcastReceiver.java:191).
+
+-- AuraProactiveSyncWorker (paths F, G, H) --
+com/facebook/aura/gateway/AuraProactiveSyncWorker.java:137-140
+  NodeHitlSpec nodeHitlSpecForDataSource = NodeHitlCatalog.INSTANCE.forDataSource(strDataSourceFor);
+  if (nodeHitlSpecForDataSource != null) {
+      HatchNodeHitlGate companion3 = HatchNodeHitlGate.Companion.getInstance(currentSessionForWorkManagerWorker);
+      NodeHitlRequest nodeHitlRequest = new NodeHitlRequest(NodeHitlRequestKind.PROACTIVE_SYNC, strDataSourceFor, null, false, null, null);
+AuraProactiveSyncWorker.java:153-165  (after the if; runs for network_state with no check)
+  DataSourceContext dataSourceContext = new DataSourceContext(..., companion.dataSourcePublishSink, null);
+  ... hatchNodeOperationLease.withLease("proactive_worker:"+strDataSourceFor, ...syncResult$1 ...)
+AuraProactiveSyncWorker$doBackgroundWork$syncResult$1.java:55-63
+  hatchNodeClientAttachment.ensureAttached(c64g, context);
+  companion = HatchGatewayConnection.Companion.getInstance(this.$userSession);
+  if (companion.fetchAndConnect(false, this) == c94n) {
+com/facebook/aura/commands/network/NetworkStateHandlerKt.java:101-111
+  String ssid = wifiInfo.getSSID(); ... String bssid = wifiInfo.getBSSID();
+  boolean z = context.checkSelfPermission("android.permission.ACCESS_FINE_LOCATION") == 0;
+  ... return new WifiDetails(strA0V, bssid, wifiInfo.getRssi(), wifiInfo.getFrequency(), wifiInfo.getLinkSpeed());
+  (SSID/BSSID only when fine location is granted; carrier name + roaming at :87-92)
+
+-- Default-on data-source toggles --
+com/facebook/aura/nodes/registry/HatchDataSourceRegistry.java:34-37
+  return AuraDevicePrefs.INSTANCE.get(AuraDevicePrefStore.NODE).getBoolean(C65.A0O(HatchDataSourceRegistryKt.PREFS_KEY_SOURCE_PREFIX, str), true);
+  (isUserEnabled defaults to TRUE; NetworkStateDataSource/BatteryDataSource/LocationDataSource.isEnabled() return true)
+
+-- Backfill (path K) --
+com/facebook/aura/nodes/HatchNodeClient.java:1567-1590
+  NodeHitlSpec nodeHitlSpecForDataSource = NodeHitlCatalog.INSTANCE.forDataSource(strA04);
+  if (nodeHitlSpecForDataSource != null) {
+      NodeHitlRequest nodeHitlRequest = new NodeHitlRequest(NodeHitlRequestKind.DATA_SOURCE_BACKFILL, strA04, strA0g, AuraAppLifecycleManager.INSTANCE.canPresentInteractiveUi(), jsonObjectResolveCommandParamsObject.toString(), l2);
+      NodeHitlGate nodeHitlGate = this.hitlGate;
+      ... objBackfill = nodeHitlGate.check(nodeHitlSpecForDataSource, nodeHitlRequest, c108081);
+      ... HatchNodeQplLogger.INSTANCE.backfillFailure(strA0g, "hitl_denied", 0, 0, 0, null);
+  (JADX CAVEAT: the next line shows "if (dataSourceFind.getSupportsBackfill()) -> backfill_not_supported",
+   which is an inverted condition, a decompiler artefact.)
+
+======================================================================
+5. What HatchNodeHitlGate returns for PROACTIVE_SYNC
+======================================================================
+com/facebook/aura/gateway/HatchNodeHitlGate.java:334,353-369   check()
+  objResolveConnectorBaseline = resolveConnectorBaseline(nodeHitlRequest2, c104561);
+  int iOrdinal = hatchNodeHitlGate.storeWithBaseline((PermissionDefaultMode) objResolveConnectorBaseline).getMode(nodeHitlSpec2).ordinal();
+  if (iOrdinal == 0) { return NodeHitlResult.Allowed.INSTANCE; }        // ALLOW
+  if (iOrdinal == 2) { return denied(nodeHitlRequest2); }               // DENY
+  ... Object objAsk = ask(nodeHitlSpec2, nodeHitlRequest2, jElapsedRealtime, c104561);   // ASK
+com/facebook/aura/nodes/core/NodeHitlMode.java:20-22   ALLOW=0 "allow", ASK=1 "ask", DENY=2 "deny"
+com/facebook/aura/gateway/HatchNodeHitlGate.java:170,187   ask()
+  if (nodeHitlRequest2.kind != NodeHitlRequestKind.PROACTIVE_SYNC) { ...prompt... }
+  return denied(nodeHitlRequest2);          // PROACTIVE_SYNC never prompts: ASK => Denied
+com/facebook/aura/gateway/HatchNodeHitlGate.java:476-500   resolveConnectorBaseline()
+  objCachedConnectorDefault = this.permissionSettings.cachedConnectorDefault();
+  if (objCachedConnectorDefault == null) {
+      if (nodeHitlRequest.kind != NodeHitlRequestKind.PROACTIVE_SYNC && HatchGatewayConnection...isConnected()) {
+          objCachedConnectorDefault = permissionSettingsRepository.fetchConnectorDefault(5000L, c104571);
+      }
+      return PermissionDefaultMode.ALWAYS_ASK;
+  }
+  ... "Connector baseline fetch failed; failing closed" -> ALWAYS_ASK
+com/facebook/aura/gateway/NodeHitlPermissionStore.java:37-42,50-51
+  String strA01 = C5xd.A01(prefs(), prefKey(nodeHitlSpec));             // key "<group>_read"
+  NodeHitlMode nodeHitlModeFromWire = companion.fromWire(strA01);
+  return nodeHitlModeFromWire == null ? HatchNodeHitlGateKt.withBaseline(companion.defaultFor(nodeHitlSpec.access), this.baseline) : nodeHitlModeFromWire;
+com/facebook/aura/nodes/core/NodeHitlMode.java:25-31   defaultFor(READ) = ALLOW, defaultFor(WRITE) = ASK
+com/facebook/aura/gateway/HatchNodeHitlGateKt.java:411-413
+  return (permissionDefaultMode == PermissionDefaultMode.ALWAYS_ASK && nodeHitlMode == NodeHitlMode.ALLOW) ? NodeHitlMode.ASK : nodeHitlMode;
+
+Resulting truth table (READ categories; every proactive spec is READ):
+  per-category pref "<group>_read" | cached connector_default         | PROACTIVE_SYNC result
+  "allow" (always allow)           | any                              | Allowed, silent
+  "deny"                           | any                              | Denied
+  "ask"                            | any                              | Denied (never prompts)
+  unset                            | nothing cached                   | ALWAYS_ASK -> ASK -> Denied
+  unset                            | auto_allow                       | ALLOW -> Allowed, silent
+  unset                            | always_ask                       | ASK -> Denied
+  unset                            | server omitted / unknown string  | parsed AUTO_ALLOW -> Allowed, silent
+DATA_SOURCE_BACKFILL uses the same modes. ASK prompts only when canPrompt, the app is in
+the foreground, or a background session is active. Otherwise it is Denied.
+
+======================================================================
+6. Where the connector default comes from (PermissionDefaultMode)
+======================================================================
+com/facebook/aura/permissions/defaults/PermissionDefaultMode.java:17-18
+  AUTO_ALLOW = new PermissionDefaultMode("AUTO_ALLOW", 0, "auto_allow");
+  ALWAYS_ASK = new PermissionDefaultMode("ALWAYS_ASK", 1, "always_ask");
+PermissionDefaultMode.java:28-42   fromWire(): no match (including null) => AUTO_ALLOW
+  return permissionDefaultMode == null ? PermissionDefaultMode.AUTO_ALLOW : permissionDefaultMode;
+com/facebook/aura/permissions/defaults/PermissionSettingsRepository$fetch$2.java:99-113
+  jarvisPath = JarvisPath.PermissionsSettings.INSTANCE;   // value "permissions/settings" (network/api/JarvisPath.java:2734-2736)
+  requestType = RequestType.GET;
+  ... hatchHttpApiA0E.makeJarvisHttpRequestInternal(jarvisPath, null, requestType, this.this$0.userSession, ...)
+PermissionSettingsRepository$fetch$2.java:232-233
+  PermissionSettings domain = ((PermissionSettingsResponseJson) objA0w).toDomain();
+  permissionSettingsRepository.getCache().write(domain);
+com/facebook/aura/permissions/defaults/PermissionSettingsResponseJson.java:106-111,131-139
+  PermissionDefaultMode permissionDefaultModeFromWire = companion.fromWire(this.connector_default);
+  ... if ((i & 1) == 0) { this.connector_default = null; }   // field is optional in the JSON
+com/facebook/aura/permissions/defaults/PermissionDefaultsStore.java:29,62-65
+  c18087ejA9F.AWk(KEY_CONNECTOR_DEFAULT, permissionSettings.connectorDefault.getWireValue());
+  hasCachedSettings(): c5xdPrefs.contains(KEY_CONNECTOR_DEFAULT)
+com/facebook/aura/permissions/defaults/PermissionSettingsRepository.java:307-313
+  cachedConnectorDefault(): returns the stored value only if hasCachedSettings(), else null
+Fetch/update callers: settings/HatchPermissionsSettingsViewModel.java:185 (fetch), :242/:312
+(user changes connector/network default), and HatchNodeHitlGate.resolveConnectorBaseline for
+any COMMAND/BACKFILL request while nothing is cached. The first agent command after sign-in
+therefore caches the server value. From then on, that value decides whether gated READ
+categories without an explicit per-category choice sync silently.
+
+======================================================================
+7. What the code proves vs what is uncertain
+======================================================================
+PROVEN (static):
+- No gate in the publish sink or pipeline. Gating is per caller and keyed on forDataSource().
+- forDataSource() returns null for location, network_state, battery, geofences, alarms, reminders.
+- Geofence-crossing coordinates, network_state (SSID/BSSID with fine location) and battery
+  publish without any HITL check. HatchBootReceiver re-arms geofences and triggers
+  network_state after reboot.
+- PROACTIVE_SYNC never prompts. It is silent-allow or deny.
+- A missing or unknown connector_default in the server response is stored as AUTO_ALLOW.
+UNCERTAIN:
+- The actual server value of connector_default for a new account. It is not in the APK.
+- Exact post-check branching in ProactiveSyncRunner, AuraProactiveSyncWorker and
+  NotificationsDataSource (jadx "decompiled incorrectly"; smali not reviewed).
+- Whether the N1 AllowAll race can occur in practice.
+- Runtime OS limits (permissions, Doze, background-location grant) that can still block
+  individual paths.

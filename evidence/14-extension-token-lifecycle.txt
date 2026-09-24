@@ -1,0 +1,201 @@
+# Muse Browser Node (Chrome extension 1.0.8): pairing token lifecycle
+# Static review of extracted/Muse.app/Contents/Resources/chrome/ (paths below are
+# relative to that directory). Nothing was installed, loaded or run.
+# No token values appear in the shipped files. Nothing needed redaction.
+
+SCOPE NOTE
+background.js:293-299 and :521, :534, :557 skip all node connection when a ".bundled"
+marker file exists. The comment says the host writes it when the extension is loaded
+into Muse's managed Chromium. The shipped directory contains no .bundled file.
+Everything below therefore describes the standalone install (a user's own Chrome),
+where the WebSocket node is active. Whether Muse.app writes the marker at runtime was
+not verified.
+
+VERDICT
+- Storage: plaintext in chrome.storage.local (key "authToken"), persistent across restarts.
+- expiresAt: stored and displayed, never compared to the clock. Expiry is enforced
+  only by the server, if at all.
+- Revocation: local unpair deletes the local copy only; no server call is made.
+  Server-side revocation works through WebSocket close code 4001/>=4000,
+  the "node.unpaired" event, or a register error.
+- Auto-reconnect: yes, with no user interaction, on browser start, on install/update,
+  on the 1-minute heartbeat alarm, on popup open, and with exponential backoff.
+- Manual path: pair(token, url) accepts ANY ws:// or wss:// host. The token is placed in
+  the URL query string. hatch_pair has no sender check. In shipped code only this
+  extension's own pages or its service worker can reach it. No UI or content script
+  sends it, and no onMessageExternal listener exists.
+
+## 1. Where the token is stored
+lib/connection.js:12-20
+  const CRED_KEYS = [ 'authToken', 'wsUrl', 'credentialSource', 'gatewayIdentity', 'expiresAt', 'hatchName', 'avatarPath', ];
+lib/connection.js:251-256   pair()
+  const toStore = { authToken: token, wsUrl, credentialSource };
+  if (metadata.gatewayIdentity) toStore.gatewayIdentity = metadata.gatewayIdentity;
+  if (typeof metadata.expiresAt === 'number') toStore.expiresAt = metadata.expiresAt;
+  ...
+  await chrome.storage.local.set(toStore);
+- chrome.storage.local is persistent and not encrypted by the extension. The token is
+  stored as a plain string. Chrome keeps it in the profile's extension-state LevelDB,
+  readable by any process running as the user.
+- chrome.storage.session is used only for _cachedStatus (connection.js:64,
+  background.js:496). _cachedStatus is ALSO written to storage.local (connection.js:65,
+  background.js:497).
+- status() does not include the token (connection.js:68-85). It does include
+  lastCommand = { command, params, timestamp } (connection.js:533), so the parameters
+  of the most recent agent command (e.g. page.type "value") are persisted in plaintext in
+  storage.local._cachedStatus. unpair() does not clear lastCommand or _cachedStatus
+  (connection.js:141-151; CRED_KEYS does not include _cachedStatus).
+- nodeId: crypto.randomUUID(), stored in chrome.storage.sync ("Prefer sync storage —
+  survives extension uninstall/reinstall", connection.js:370-388). It is a stable node
+  identifier that roams with the user's Chrome sync account.
+
+## 2. How the token is sent
+lib/pairing-security.js:139-147
+  function buildAuthenticatedWsUrl(wsUrl, authToken) {
+    ...
+      url.searchParams.set('auth_token', token);
+      return url.toString();
+lib/connection.js:290,299   const fullUrl = hatchPairingSecurity.buildAuthenticatedWsUrl(wsUrl, authToken); ... new WebSocket(fullUrl);
+lib/connection.js:423-426   fetch(`${base}/identity`, { headers }) with 'Authorization': `Bearer ${stored.authToken}`
+background.js:414-437, popup.js:194-219   Bearer token also sent to `${base}/fs/raw/...` and `${base}/fs/read`
+  where base = scheme+host of wsUrl (connection.js:87-94; ws: -> http:).
+The token is a URL query parameter, so it can end up in server, proxy or load-balancer
+logs. On a ws:// URL, the token and the Bearer copies travel unencrypted.
+
+## 3. expiresAt is not enforced client-side
+lib/pairing-security.js:164-166
+  const expiresAt = typeof data.expiresAt === 'number' ? data.expiresAt : null;
+  if (!token || !wsUrl || !gatewayIdentity || expiresAt == null) { return { ok: false, ... } }
+background.js:662-665   passed into connection.pair(..., { gatewayIdentity, expiresAt })
+lib/connection.js:228       this.expiresAt = typeof stored.expiresAt === 'number' ? stored.expiresAt : null;
+lib/connection.js:76        expiresAt: this.expiresAt,      (status only)
+Search result: expiresAt appears only in the lines above. There is no comparison with
+Date.now() in background.js or lib/*.js. connect() and _loadStoredCredentials()
+(connection.js:107-127, 200-235) reconnect with a stored token regardless of its age.
+The hatch-web flow requires expiresAt to be present, but nothing checks its value.
+
+## 4. What happens on expiry (depends on the server)
+lib/connection.js:328-345   socket.onclose
+  if (event.code === 4001 || event.reason === 'node_unpaired') {
+      this._handleRemoteUnpair('close frame', null)
+  } else if (event.code >= 4000) {
+      console.log('[Hatch] Server rejected connection — treating as unpaired');
+      this.unpair();
+  } else if (event.code !== 1000) {
+      this._scheduleReconnect();
+  }
+lib/connection.js:353-363   _scheduleReconnect(): 1s doubling to 30s, then connect() again
+lib/connection.js:408-412   register error 'unknown_node' / 'not_found' -> unpair()
+- If the server accepts the socket and then closes with 4001/>=4000, or returns
+  unknown_node, the credentials are cleared.
+- If the server rejects an expired token at the HTTP upgrade (for example a 401),
+  browsers report close code 1006. The client then retries every 30 s indefinitely with
+  the same stored token in the URL and never clears it. Which of these the Meta gateway
+  does is not visible in the client.
+
+## 5. Revocation
+Local ("Disconnect" button):
+popup.js:160-163  sendMessage({ type: 'hatch_disconnect' })
+background.js:618-624 -> connection.unpair()
+lib/connection.js:129-151
+  async disconnect() { ... this.ws.close(1000, 'user disconnect'); ... }
+  async unpair() { await this.disconnect(); await chrome.storage.local.remove(CRED_KEYS); ... }
+No revoke request is sent. The server only sees a normal 1000 close. A token copied
+before the disconnect stays valid until the server expires or revokes it.
+Server-initiated:
+lib/connection.js:489-492   msg.type === 'event' && msg.event === 'node.unpaired' -> _handleRemoteUnpair
+lib/connection.js:153-161   ignored when payload.node_id differs from the local nodeId
+plus close codes (section 4) and register errors.
+
+## 6. Automatic reconnect without user action
+background.js:553-565   chrome.runtime.onStartup -> connection.connect() -> setAvatarIcon
+background.js:530-551   chrome.runtime.onInstalled (install AND update) -> connection.connect()
+background.js:567-569 + lib/connection.js:174-186, 451-459
+  chrome.alarms 'hatch_heartbeat' periodInMinutes: 1; if disconnected -> this.connect()
+  (the alarm is cleared in _stopTimers on close, so this covers drops while registered)
+background.js:520-528, 598-608  every 'hatch_get_status' (popup open) -> maybeReconnect()
+lib/connection.js:342-343       any non-1000, non-4xxx close -> _scheduleReconnect()
+After a browser restart, the extension reconnects to the stored wsUrl using the stored
+token, registers as a controllable node and accepts node.invoke.request
+(connection.js:479-481, 507-552). The user does nothing and no expiry check runs.
+The only local brake is "Pause" (connection.js:163-166, 536-541), which the popup
+exposes (popup.js:154-158). Pause is held in memory only and resets when the service
+worker restarts.
+
+## 7. Manual pairing can target any ws:// server
+lib/pairing-security.js:113-133
+  const source = credentialSource || 'manual';
+  if (source === 'hatch-web') {
+    if (!isAllowedHatchWebGatewayHost(url.hostname)) return null;
+    if (url.protocol !== 'wss:') return null;
+  } else if (url.protocol !== 'ws:' && url.protocol !== 'wss:') {
+    return null;
+  }
+  return url.toString();
+lib/connection.js:237-245
+  async pair(token, url, source = 'manual', ...) {
+    const fallbackUrl = credentialSource === 'manual' ? 'wss://node.hatch.one/ws' : null;
+    const wsUrl = hatchPairingSecurity.normalizeWsUrlForCredentialSource(url || fallbackUrl, credentialSource);
+lib/connection.js:215-225   the same rule applies at every reconnect. A stored 'manual' ws://
+  credential is honoured on every browser start (only the retired 'endo' source is dropped, :209-213).
+So a 'manual' pairing can use any host and plaintext ws://. The host allow-list
+(*.metaaivm.com, *.customer.prod.willow606.com, node.hatch.one) and the wss-only rule
+apply only to the 'hatch-web' source (pairing-security.js:13-17, 125-127). A server
+paired this way gets the full command set (tabs, page.*, history, bookmarks, downloads,
+debugger/CDP; manifest.json permissions + "<all_urls>").
+
+## 8. Who can trigger hatch_pair
+background.js:632-638
+  if (message.type === 'hatch_pair') {
+    connection
+      .pair(message.token, message.url)
+      .then(() => sendResponse(connection.status()))
+There is no sender check here. By contrast, 'hatch_web_pair' checks the sender at
+background.js:644 (isAllowedHatchWebSender).
+- Listener: chrome.runtime.onMessage (background.js:598). This fires only for messages
+  from this extension's own contexts: its pages, its service worker and its content
+  scripts. It does not fire for other extensions or for web pages.
+- The extension has no onMessageExternal/onConnectExternal listener (grep across *.js,
+  lib/*.js). manifest.json:53-57 declares "externally_connectable": { "ids": [ "*" ] },
+  so any extension may try to message it, but nothing receives those messages.
+- The content script (hatch-web-pairing.js:48-56) only sends
+  { type: 'hatch_web_pair', gatewayUrl }. The page cannot choose the message type.
+- popup.js and options.js never send 'hatch_pair'. options.html:98-100 shows the Gateway
+  URL read-only ("... or by manual pairing").
+- chrome.runtime.sendMessage appears only in hatch-web-pairing.js:48 and popup.js:92. The
+  ISOLATED-world scripts that the extension injects into agent-driven tabs do not call it.
+Conclusion: in this build, hatch_pair is reachable only by someone who can run code in
+an extension context, for example through the DevTools console of the popup or service
+worker. That means the user or a local attacker. It is a leftover developer path.
+
+## 9. The hatch-web path, for contrast (automatic pairing on meta.ai)
+hatch-web-pairing.js:38-57 + pairing-security.js:61-73   page postMessage accepted only
+  from window itself, isTrusted, origin in {https://hatch.meta.ai, https://agent.meta.ai}
+background.js:21-66   POST {gatewayUrl} to https://<same origin>/api/hatch/extension-pairing
+  with credentials:'include'; the response wsUrl must be wss: and on the gateway host list
+background.js:650-657   refuses to re-pair while already connected/registered or connecting
+  to the same gateway
+There is no extension-side confirmation. Any script running on hatch.meta.ai or
+agent.meta.ai (first-party, third-party or injected) can start pairing to the user's
+own Muse gateway while the extension is not connected.
+
+## Weaknesses (concrete)
+W1  The token is stored in plaintext and persists indefinitely in chrome.storage.local. No
+    client-side TTL is applied even though the server supplies expiresAt.
+W2  The token is sent in the WebSocket URL query string (auth_token=...).
+W3  Local "Disconnect" does not revoke the token on the server.
+W4  An expired or rejected token can cause an endless reconnect loop (1006 path) that keeps
+    re-sending it. This depends on server behaviour and was not verified.
+W5  The manual source allows any host and plaintext ws://, and that choice persists
+    across restarts. hatch_pair lacks the sender check that hatch_web_pair has.
+    Currently this is defence-in-depth only; see section 8.
+W6  externally_connectable ids:["*"] is broader than needed. It is harmless today only
+    because there is no external listener.
+W7  The last agent command's parameters (for example typed text) persist in plaintext in
+    storage.local._cachedStatus, even after unpair.
+
+## Uncertain / not verifiable statically
+- Server-side token lifetime, the expiresAt unit and value, and whether the gateway
+  closes with 4xxx or rejects at the HTTP upgrade when a token expires.
+- Whether Muse.app writes the .bundled marker. If it does, the bundled copy never uses
+  this token lifecycle.

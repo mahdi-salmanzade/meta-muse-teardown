@@ -231,6 +231,17 @@ These permissions support broad screen observation and input automation. Sensiti
 
 **Pairing controls omitted from the original report:** web pairing checks sender/event origins against `https://hatch.meta.ai` and `https://agent.meta.ai`, restricts gateway hostnames and requires `wss:` for web-issued credentials. Manual pairing has a different URL policy. These checks are visible in [the additional evidence](evidence/12-permission-and-pairing-review.txt); this is not a full security audit.
 
+**Pairing-token lifecycle** ([`14-extension-token-lifecycle.txt`](evidence/14-extension-token-lifecycle.txt)):
+
+- The node token is stored **in plaintext in `chrome.storage.local` with no expiry**. It's sent as an `auth_token` URL query parameter as well as a Bearer header, so it can appear in any gateway or proxy logs that record URLs.
+- `expiresAt` is received and stored, but **never checked against the clock**. Expiry is enforced only if Meta's server rejects the token.
+- **Local "Disconnect" only deletes the local copy.** No server-side revoke is sent. The server can revoke through WebSocket close codes (4001/≥4000), a `node.unpaired` event or a registration error.
+- The extension **reconnects automatically**, with no user action, on browser start, on install/update, on a 1-minute heartbeat alarm, when the popup opens, and on backoff retries.
+- **"Pause" is held in memory only**, so it silently resets whenever Chrome restarts the extension's service worker.
+- The last agent command's parameters (e.g. text the agent typed into a page) remain in plaintext `_cachedStatus` in extension storage, **even after unpairing**.
+- Manual pairing accepts any `ws://` or `wss://` host and keeps it across restarts. Only the extension's own pages can trigger it, and none currently does.
+- Scope: all of this applies to a standalone Chrome install. When a `.bundled` marker file is present, the code skips the node connection entirely. Whether Muse.app writes that marker wasn't established.
+
 ## 7. `stealth.min.js`: a bot-detection evasion kit
 
 `Resources/stealth.min.js` (180 KB) opens with:
