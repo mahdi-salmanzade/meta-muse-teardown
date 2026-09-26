@@ -4,6 +4,8 @@
 
 [**iOS**](IOS.md) · [**macOS**](#1-is-this-really-metas-app) · [**Android**](ANDROID.md) · [**All evidence**](EVIDENCE.md) · [**Review updates**](REVIEW.md)
 
+**Latest audit — [27 September 2026](RELEASE-AUDIT-2026-09-27.md):** verified macOS **4.1** and Android **9.0.0.11.178** samples. The unchanged bundled browser extension sends page metadata while paused, resets pause after browser restart, and retains the last command's parameters after unpairing. These behaviors were reproduced in isolated Chromium with synthetic data and a local gateway. iOS **9.0** is listed by Apple but its code has not been audited. See the supplement for version differences, evidence and limits.
+
 > The internet is the 'greatest spying machine the world has ever seen' and is not a technology that necessarily favours the freedom of speech.
 >
 > — Julian Assange’s remarks, as summarized by [The Guardian, 15 March 2011](https://www.theguardian.com/media/2011/mar/15/web-spying-machine-julian-assange). This full sentence is the article’s summary, not a verbatim sentence from his speech.
@@ -12,15 +14,15 @@ A static teardown of **Muse 3.0 for macOS** (`com.meta.endo`), plus Android and 
 
 **The privacy issue is the breadth of access:** the Mac build contains tools for iMessage, WhatsApp, Mail, Notes, contacts, calendars, files, screen capture and computer control, plus background-sync machinery and a powerful bundled Chrome extension. Enabling a connector can expose private information to a cloud agent; some connectors support ongoing uploads.
 
-**This report establishes shipped capabilities, not what a particular user's account uploaded.** OS permissions, connector settings, approval rules, feature flags and platform restrictions affect what actually runs. No Muse app was launched, no account was connected and no network traffic from the apps was captured. Strings and decompiled code do not establish successful execution or server-side enforcement.
+**The original report below establishes shipped capabilities, not what a particular user's account uploaded.** OS permissions, connector settings, approval rules, feature flags and platform restrictions affect what actually runs. No native Muse app was launched or Meta account connected. The later supplement executes the browser extension against a local synthetic fixture. Strings and decompiled code alone do not establish successful execution or server-side enforcement.
 
 ### Platforms covered
 
 | Platform | Inspected build | Report / evidence strength |
 |---|---|---|
-| macOS | 3.0, build `1075746581` | This page; Meta Developer ID signature verifies. Production update feed still lists this build on 2026-09-24. |
-| Android | 8.0.0.21.168 (`com.facebook.aura`) | [ANDROID.md](ANDROID.md): verified APK signature/source stamp; SMS, calls, notifications, location and **19 health-data category permissions**, plus history/background permissions. |
-| iOS | 8.1.0, build `1074192126` (`com.facebook.hatch`) | [IOS.md](IOS.md): **modified/decrypted-looking IPA with invalid signature**; sample-specific findings, not authenticated retail-code claims. |
+| macOS | 3.0 / `1075746581`; follow-up 4.1 / `1077426479` | This page covers 3.0. [4.1 supplement](RELEASE-AUDIT-2026-09-27.md): verified Developer ID and update signature; bundle comparison and browser tests. |
+| Android | 8.0.0.21.168; follow-up 9.0.0.11.178 (`com.facebook.aura`) | [ANDROID.md](ANDROID.md) covers 8.0. [9.0 supplement](RELEASE-AUDIT-2026-09-27.md): matching signer, unchanged 65 permission entries, selected DEX control-flow checks. |
+| iOS | 8.1.0 / `1074192126` (`com.facebook.hatch`); 9.0 listing only | [IOS.md](IOS.md): **modified/decrypted-looking 8.1 IPA with invalid signature**; sample-specific findings. No 9.0 code audit. |
 
 ### What changed in this review — 2026-09-24
 
@@ -329,6 +331,8 @@ The first three commands are local static inspection; `release` alone fetches th
 
 ## 12. Current public disclosures and release status
 
+For the **27 September** release check and new samples, see the [latest audit](RELEASE-AUDIT-2026-09-27.md#1-releases-and-provenance). The following is the historical 24 September snapshot.
+
 Checked **2026-09-24**. Statements below are attributed to their publishers; the server protections were not independently tested.
 
 **Release status.** Meta announced Muse on **8 September 2026**, initially rolling out in the US on iOS, Android and the web. [Meta launch announcement](https://about.fb.com/news/2026/09/introducing-muse-personal-ai-agent/). The live Mac production feed lists **3.0 / 1075746581**, matching the inspected bundle and DMG size ([captured metadata](evidence/13-release-feed.json)). The US App Store lists **8.1**, matching the iOS sample’s marketing version; this does not authenticate the sample. [App Store](https://apps.apple.com/us/app/muse-from-meta/id6760173601). Android’s newest distributed version was not established in this review.
@@ -348,4 +352,4 @@ The App Store’s linked [Muse privacy page](https://muse.ai/privacy) required l
 
 ---
 
-*Independent research by the repo owner, not affiliated with Meta. Analysis date: 2026-09-24. Static analysis only; the app was never run. If Meta disputes any finding, open an issue with specifics and it'll be corrected.*
+*Independent research by the repo owner, not affiliated with Meta. Original analysis: 2026-09-24; latest supplement: 2026-09-27. Native apps were not run; the supplement includes isolated browser-extension execution. If Meta disputes any finding, open an issue with specifics and it'll be corrected.*

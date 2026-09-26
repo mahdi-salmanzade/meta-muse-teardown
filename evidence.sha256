@@ -51,3 +51,10 @@ afb0d7228b52065c25d18259757b25c0f28fe07a682de5c73d5ae38cd2bce7e9  evidence-andro
 7cc13ec7cc9927c6c3e92234d045f2ccc79b5b2917203f065b380ff57e13cc5d  evidence-android/13-publish-path-gating.txt
 42804d2fe6c119bd77f53c1e259b0e9c4496f2dd74bce37b6d906841b7ad071d  evidence-android/15-consent-retention-android.txt
 37d880876a69e5b3e638845dc60eae9b1a3364ede4fa9f2229b3ce1ad75367ee  evidence-android/16-network-android.txt
+354daefb74ef40763f54fe8af597b69fd46607969adecf288307ed646f9bd5c3  evidence-updates/2026-09-27/01-release-status.json
+f11fe4a0b5c7347389f2266182893ddb94ec9cc95cad9694467be2d283c4a21e  evidence-updates/2026-09-27/02-macos-comparison.json
+a46ff2a9c2d6748870642e3c399aa028e8a65750a1fb7f07dc948a9682b463e7  evidence-updates/2026-09-27/03-android-comparison.json
+5978acba8ff48fb747f85f8194c10bae952dbe02648b0b0197b963349ec91a93  evidence-updates/2026-09-27/04-extension-unit-tests.json
+86c3ad825edceb3de8be01981c0b6812b85bad0d4d341ddddc0dec55800b9e0b  evidence-updates/2026-09-27/05-extension-browser-tests.json
+7faa30b54c05124f36aceb02d1495d0bca7d7ca7412f3b86f60825319f999b97  evidence-updates/2026-09-27/06-extension-excerpts.txt
+d121ec8fcb4a16212dc9dfaeed5c85bdf93f30b9c6832d63d4d84b1714cc459e  evidence-updates/2026-09-27/07-android-bytecode-excerpts.txt

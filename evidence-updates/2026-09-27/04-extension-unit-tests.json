@@ -1,0 +1,199 @@
+{
+  "scope": "Original shipped connection, pairing, protocol and event JS in a Node VM with mocked Chrome APIs, sockets and command results. No Muse app launch, real browser traffic, server acceptance or account isolation test.",
+  "extension_version": "1.0.8",
+  "input_sha256": {
+    "lib/protocol.js": "7b8955da708cb01f2e9573862a0d33bdbef974dea5c764ae7c405ad210d0d63a",
+    "lib/pairing-security.js": "0d584cdebcfc3ceb0e05d855f6ad807681b9555776db64605e2b1c8c2066d1c8",
+    "lib/blocked-sites.js": "61c71a0932e91c9df32b1834f57fc9fc92bc5739cee23e21cebb0bcc2b759435",
+    "lib/connection.js": "825503f87d41e7b34024a9cbe3ac62c6dfbd8319607b3e0dd0176350f8db136a",
+    "lib/events.js": "93c2483bd8688677e258b5c9a45fc8a02c5c1fb7518865ca8483f295b7a4b93c"
+  },
+  "tests_completed": 14,
+  "tests": [
+    {
+      "id": "B01",
+      "name": "Pause blocks a fresh command",
+      "observation": {
+        "command_executed": false,
+        "result": "paused"
+      }
+    },
+    {
+      "id": "B02",
+      "name": "Pause does not suppress browser event metadata",
+      "observation": {
+        "paused": true,
+        "frames_at_mock_socket": [
+          {
+            "type": "event",
+            "event": "browser.tab_activated",
+            "payload": {
+              "tab_id": 7,
+              "window_id": 1,
+              "url": "https://example.com/private?marker=SYNTHETIC",
+              "title": "SYNTHETIC_TITLE"
+            },
+            "ts_ms": 1801000000000
+          },
+          {
+            "type": "event",
+            "event": "browser.page_loaded",
+            "payload": {
+              "tab_id": 7,
+              "url": "https://example.com/private?marker=SYNTHETIC",
+              "title": "SYNTHETIC_TITLE"
+            },
+            "ts_ms": 1801000000000
+          },
+          {
+            "type": "event",
+            "event": "browser.url_changed",
+            "payload": {
+              "tab_id": 7,
+              "url": "https://example.com/private?marker=SYNTHETIC"
+            },
+            "ts_ms": 1801000000000
+          },
+          {
+            "type": "event",
+            "event": "browser.download_complete",
+            "payload": {
+              "id": 9,
+              "filename": "/synthetic/SYNTHETIC_FILE.pdf",
+              "url": "https://example.com/download",
+              "finalUrl": "https://example.com/download"
+            },
+            "ts_ms": 1801000000000
+          }
+        ]
+      }
+    },
+    {
+      "id": "B03",
+      "name": "Blocked-site metadata is suppressed",
+      "observation": {
+        "inputs": [
+          "https://hatch.meta.ai/private",
+          "https://a.internalfb.com/private",
+          "https://web.whatsapp.com/",
+          "file:///synthetic/private",
+          "http://localhost:9222/json"
+        ],
+        "frames_at_mock_socket": 0
+      }
+    },
+    {
+      "id": "B04",
+      "name": "Pause is not restored after worker reconstruction",
+      "observation": {
+        "persisted_cached_pause_before_restart": true,
+        "new_connection_paused": false,
+        "synthetic_command_executed": true
+      }
+    },
+    {
+      "id": "B05",
+      "name": "Unpair clears credentials but retains last command parameters",
+      "observation": {
+        "credential_removed": true,
+        "cached_last_command": {
+          "command": "page.type",
+          "params": {
+            "value": "SYNTHETIC_TYPED_VALUE",
+            "selector": "#synthetic"
+          },
+          "timestamp": 1801000000000
+        }
+      }
+    },
+    {
+      "id": "B06",
+      "name": "Unpaired browser events do not leave the connection",
+      "observation": {
+        "frames_after_unpair": 0
+      }
+    },
+    {
+      "id": "B07",
+      "name": "Expired credentials are loaded and passed to socket construction",
+      "observation": {
+        "expired_timestamp": 1,
+        "mock_socket_constructed": true,
+        "server_acceptance": "not tested"
+      }
+    },
+    {
+      "id": "B08",
+      "name": "Web pairing rejects insecure and foreign hosts",
+      "observation": {
+        "rejected": [
+          "ws://synthetic-a.metaaivm.com/ws",
+          "wss://example.com/ws",
+          "wss://x.metaaivm.com.example.com/ws",
+          "wss://metaaivm.com/ws"
+        ]
+      }
+    },
+    {
+      "id": "B09",
+      "name": "Retired native-lane credentials are discarded",
+      "observation": {
+        "mock_socket_constructed": false,
+        "credential_removed": true
+      }
+    },
+    {
+      "id": "B10",
+      "name": "A duplicate returns cached data even while paused",
+      "observation": {
+        "executions": 1,
+        "cached_result_replayed_while_paused": true
+      }
+    },
+    {
+      "id": "B11",
+      "name": "Unpair/re-pair retains the request-result cache",
+      "observation": {
+        "executions": 1,
+        "previous_connection_result_replayed_to_new_mock_socket": true,
+        "production_request_id_reuse": "not established"
+      }
+    },
+    {
+      "id": "B12",
+      "name": "An in-flight result can complete on a replacement connection",
+      "observation": {
+        "old_invocation_result_at_new_mock_socket": {
+          "type": "req",
+          "id": "synthetic-id-1",
+          "method": "node.invoke.result",
+          "params": {
+            "request_id": "in-flight-a",
+            "node_id": null,
+            "result": {
+              "ok": true,
+              "payload_json": "{\"marker\":\"SYNTHETIC_RESULT_FROM_A\"}"
+            }
+          }
+        },
+        "production_cross_account_exposure": "not tested"
+      }
+    },
+    {
+      "id": "B13",
+      "name": "Pause does not cancel an already-running command",
+      "observation": {
+        "paused": true,
+        "in_flight_result_sent": true
+      }
+    },
+    {
+      "id": "B14",
+      "name": "Invalid pairing event sources and lookalike senders are rejected",
+      "observation": {
+        "rejected_event_cases": 2,
+        "lookalike_sender_rejected": true
+      }
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 
 [macOS](README.md) · [Android](ANDROID.md) · [iOS](IOS.md) · [Research plan](RESEARCH-PLAN.md) · [Evidence index](EVIDENCE.md) · [Commit audit](COMMIT-AUDIT.md)
 
-One table per data type: **how** each build reaches it, whether it's fetched **on request** or sent **in the background**, whether history is **backfilled**, and what **approval check** applies. Everything here comes from static analysis of the three samples. Nothing was run. Cells marked *untested* are covered by the dynamic tests in the [research plan](RESEARCH-PLAN.md).
+One table per data type: **how** each build reaches it, whether it's fetched **on request** or sent **in the background**, whether history is **backfilled**, and what **approval check** applies. These tables describe the original static samples: Mac 3.0, Android 8.0 and unverified iOS 8.1. The [27 September supplement](RELEASE-AUDIT-2026-09-27.md) covers Mac 4.1, Android 9.0 and isolated browser-extension execution, including a changed Android network-state publishing path. Native app behavior remains untested; planned tests are in the [research plan](RESEARCH-PLAN.md).
 
 **Legend:** 🟢 on-request path identified · 🟠 background/forwarding path with consent controls indicated · 🔴 background path without a **local Muse category-gate check** · — no corresponding path established in this review. These labels do not prove successful uploads or complete gate coverage. OS grants, source settings, server policy and runtime state still matter.
 
@@ -124,4 +124,3 @@ The static evidence does **not** limit OHTTP to VM leasing: the mobile stacks al
 - **Crash reporting code targets Meta** and includes minidump/memory and diagnostic collectors; Android has logcat and permission-list fields. Which fields are populated and what is scrubbed remain untested; iOS sanitizer classes also exist.
 - **Third parties:** Google (Firebase Messaging, Play services: Advertising ID, location, sign-in, ML Kit), Spotify sign-in (Android), Stripe.js at checkout and Bing/Esri/USDA map tiles (macOS web), Sparkle updates (macOS). KaTeX/Mermaid load from jsDelivr **without integrity checks** (iOS, Android). Not identified in the inspected artifacts: Crashlytics, Firebase Analytics, AppsFlyer, Adjust, Amplitude, Mixpanel, Segment.
 - **Unexplained domains:** `willow606.com`, `exe.xyz` (allowed VM gateway domains) and `www.multimango.com` (macOS). Ownership unknown.
-

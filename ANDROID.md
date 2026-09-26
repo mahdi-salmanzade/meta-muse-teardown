@@ -1,5 +1,7 @@
 # Muse for Android (`com.facebook.aura` 8.0.0.21.168)
 
+**Update, 27 September:** [Android 9.0.0.11.178 follow-up](RELEASE-AUDIT-2026-09-27.md#3-what-changed-on-android) verifies the newer APK, compares its unchanged permissions and checks selected approval/publishing paths in DEX instructions. The report below remains the original 8.0 baseline.
+
 Static review of the supplied Android APK: **SMS, call logs, notification access, background location and 19 Health Connect data-category permissions**, with an approval-gated background publishing pipeline. These are shipped capabilities, not observed uploads. OS grants, user settings and account configuration still matter.
 
 **Reviewed 2026-09-24.** JADX output includes decompilation warnings, so control-flow conclusions are qualified; the app was never installed or run.

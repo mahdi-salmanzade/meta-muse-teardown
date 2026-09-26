@@ -1,0 +1,327 @@
+# Unmodified extension excerpts; shipped with both Mac 3.0 and 4.1.
+
+## extracted/release-audit-2026-09-27/Muse.app/Contents/Resources/chrome/lib/connection.js
+sha256: 825503f87d41e7b34024a9cbe3ac62c6dfbd8319607b3e0dd0176350f8db136a
+34:     this.ws = null;
+35:     this.nodeId = null;
+36:     this.registered = false;
+37:     this.paused = false;
+38:     this.credentialSource = null; // 'hatch-web' | 'manual' | null
+39:     this.hatchName = null;
+40:     this.avatarPath = null;
+41:     this.gatewayIdentity = null;
+42:     this.expiresAt = null;
+43:     this._wsUrl = null;
+44:     this.reconnectDelay = RECONNECT_BASE_MS;
+45:     this.pingTimer = null;
+46:     this.lastCommand = null;
+47:     this._pendingRequests = new Map();
+48:     this._listeners = new Set();
+49:     this._reconnecting = false;
+50:     this._connecting = false;
+51:     // request_id -> result (or null while in flight). Insertion-ordered and
+52:     // bounded; see `_handleInvoke`.
+53:     this._recentInvokes = new Map();
+54:   }
+55:
+56:   onChange(fn) {
+57:     this._listeners.add(fn);
+58:     return () => this._listeners.delete(fn);
+59:   }
+60:
+61:   _notify() {
+62:     const s = this.status();
+63:     for (const fn of this._listeners) fn(s);
+64:     try { chrome.storage.session.set({ _cachedStatus: s }); } catch {}
+65:     try { chrome.storage.local.set({ _cachedStatus: s }); } catch {}
+66:   }
+67:
+68:   status() {
+69:     return {
+70:       connected: this.ws?.readyState === WebSocket.OPEN,
+71:       registered: this.registered,
+72:       paused: this.paused,
+73:       nodeId: this.nodeId,
+74:       credentialSource: this.credentialSource,
+75:       gatewayIdentity: this.gatewayIdentity,
+76:       expiresAt: this.expiresAt,
+77:       hatchName: this.hatchName,
+78:       avatarUrl: this._buildAvatarUrl(),
+79:       avatarPath: resolveAvatarImagePath(this.avatarPath),
+80:       avatarStem: this.avatarPath || null,
+81:       fileserverBaseUrl: this._buildFsBaseUrl(),
+82:       lastCommand: this.lastCommand,
+83:       hasCredentials: !!this.credentialSource,
+84:     };
+85:   }
+129:   async disconnect() {
+130:     this._stopTimers();
+131:     this.registered = false;
+132:
+133:     if (this.ws) {
+134:       this._detachSocket(this.ws);
+135:       try { this.ws.close(1000, 'user disconnect'); } catch {}
+136:       this.ws = null;
+137:     }
+138:     this._notify();
+139:   }
+140:
+141:   async unpair() {
+142:     await this.disconnect();
+143:     await chrome.storage.local.remove(CRED_KEYS);
+144:     this.credentialSource = null;
+145:     this.hatchName = null;
+146:     this.avatarPath = null;
+147:     this.gatewayIdentity = null;
+148:     this.expiresAt = null;
+149:     this._wsUrl = null;
+150:     this._notify();
+151:   }
+152:
+153:   async _handleRemoteUnpair(reason, nodeId = null) {
+154:     if (nodeId && this.nodeId && nodeId !== this.nodeId) {
+155:       console.log(`[Hatch] Ignoring ${reason} for node ${nodeId}; local node is ${this.nodeId}`);
+156:       return;
+157:     }
+158:
+159:     console.log(`[Hatch] Server unpaired this node (${reason})`);
+160:     await this.unpair();
+161:   }
+162:
+163:   setPaused(paused) {
+164:     this.paused = paused;
+200:   async _loadStoredCredentials() {
+201:     const stored = await chrome.storage.local.get(CRED_KEYS);
+202:
+203:     // The 'endo' source came from the native-messaging lane, which is gone. It
+204:     // is also the one source `normalizeWsUrlForCredentialSource` never
+205:     // host-checked, so a credential planted by whatever last answered that
+206:     // socket would still be honoured here. Drop it and make the user re-pair.
+207:     // Checked ahead of the completeness test below so a half-written legacy
+208:     // record is cleared too, rather than left to linger under a dead source.
+209:     if (stored.credentialSource === 'endo') {
+210:       console.warn('[Hatch] Discarding credentials from the retired Endo native lane; re-pair via Hatch web');
+211:       await this._clearStoredCredentials();
+212:       return null;
+213:     }
+214:
+215:     if (stored.authToken && stored.wsUrl) {
+216:       const credentialSource = stored.credentialSource || 'manual';
+217:       const wsUrl = hatchPairingSecurity.normalizeWsUrlForCredentialSource(
+218:         stored.wsUrl,
+219:         credentialSource
+220:       );
+221:       if (!wsUrl) {
+222:         console.warn('[Hatch] Stored WebSocket URL failed validation; clearing credentials');
+223:         await this._clearStoredCredentials();
+224:         return null;
+225:       }
+226:       this.credentialSource = credentialSource;
+227:       this.gatewayIdentity = stored.gatewayIdentity || null;
+228:       this.expiresAt = typeof stored.expiresAt === 'number' ? stored.expiresAt : null;
+229:       this.hatchName = stored.hatchName || null;
+230:       this.avatarPath = stored.avatarPath || null;
+231:       this._wsUrl = wsUrl;
+232:       return { authToken: stored.authToken, wsUrl };
+233:     }
+234:     return null;
+235:   }
+509:     const command = params.command;
+510:     const cmdParams = params.params || {};
+511:
+512:     if (!requestId || !command) {
+513:       console.error('[Hatch] Invalid invoke — missing request_id or command', params);
+514:       return;
+515:     }
+516:
+517:     // Delivery is at-least-once: the gateway re-sends an invoke whose result it
+518:     // never saw — and `send` silently drops results whenever the socket isn't
+519:     // OPEN, so that happens in practice. Commands like `tabs.open` are not
+520:     // idempotent, so replay the recorded result rather than running it twice.
+521:     if (this._recentInvokes.has(requestId)) {
+522:       const previous = this._recentInvokes.get(requestId);
+523:       if (previous === null) {
+524:         console.log(`[Hatch] Ignoring retry of in-flight invoke ${requestId} (${command})`);
+525:       } else {
+526:         console.log(`[Hatch] Replaying cached result for duplicate invoke ${requestId} (${command})`);
+527:         this.send(makeInvokeResultMessage(requestId, this.nodeId, previous));
+528:       }
+529:       return;
+530:     }
+531:     this._rememberInvoke(requestId, null);
+532:
+533:     this.lastCommand = { command, params: cmdParams, timestamp: Date.now() };
+534:     this._notify();
+535:
+536:     if (this.paused) {
+537:       const result = { ok: false, error: { code: 'paused', message: 'Extension is paused' } };
+538:       this._rememberInvoke(requestId, result);
+539:       this.send(makeInvokeResultMessage(requestId, this.nodeId, result));
+540:       return;
+541:     }
+542:
+543:     let result;
+544:     try {
+545:       ensureCommandSupportLoaded();
+546:       result = await executeCommand(command, cmdParams);
+547:     } catch (err) {
+548:       result = { ok: false, error: { code: 'execution_error', message: err.message } };
+549:     }
+550:     this._rememberInvoke(requestId, result);
+551:     this.send(makeInvokeResultMessage(requestId, this.nodeId, result));
+552:   }
+553: }
+
+## extracted/release-audit-2026-09-27/Muse.app/Contents/Resources/chrome/lib/events.js
+sha256: 93c2483bd8688677e258b5c9a45fc8a02c5c1fb7518865ca8483f295b7a4b93c
+8:   _sendEvent = sendFn;
+9:
+10:   chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
+11:     chrome.tabs.get(tabId, (tab) => {
+12:       if (chrome.runtime.lastError) return;
+13:       emit('tab_activated', {
+14:         tab_id: tabId,
+15:         window_id: windowId,
+16:         url: tab.url,
+17:         pendingUrl: tab.pendingUrl,
+18:         title: tab.title,
+19:       });
+20:     });
+21:   });
+22:
+23:   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+24:     if (changeInfo.status === 'complete') {
+25:       emit('page_loaded', { tab_id: tabId, url: tab.url, title: tab.title });
+26:     }
+27:     if (changeInfo.url) {
+28:       emit('url_changed', { tab_id: tabId, url: changeInfo.url });
+29:     }
+30:   });
+31:
+32:   chrome.tabs.onCreated.addListener((tab) => {
+33:     emit('tab_created', { tab_id: tab.id, url: tab.pendingUrl || tab.url });
+34:   });
+35:
+36:   chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+37:     emit('tab_closed', {
+38:       tab_id: tabId,
+39:       window_id: removeInfo.windowId,
+40:       window_closing: removeInfo.isWindowClosing,
+41:     });
+42:   });
+43:
+44:   chrome.downloads.onChanged.addListener((delta) => {
+45:     if (delta.state?.current === 'complete') {
+46:       chrome.downloads.search({ id: delta.id }, (items) => {
+47:         if (chrome.runtime.lastError || !items[0]) return;
+48:         emit('download_complete', {
+49:           id: delta.id,
+50:           filename: items[0].filename,
+51:           url: items[0].url,
+52:           finalUrl: items[0].finalUrl,
+53:         });
+54:       });
+55:     }
+56:   });
+57:
+58:   chrome.notifications.onClicked.addListener((notificationId) => {
+59:     emit('notification_clicked', { notification_id: notificationId });
+60:   });
+63: function emit(eventType, payload) {
+64:   if (!_sendEvent) return;
+65:   // Central, not per-emitter: these fire on EVERY tab, agent-driven or not, so without this the
+66:   // gateway learns the URL and title of the user's Hatch and internalfb pages — a push channel
+67:   // the command-result filters never see. Covers any emitter whose URL is one of these fields.
+68:   const emitted = [payload?.url, payload?.pendingUrl, payload?.finalUrl];
+69:   const hasURL = emitted.some((candidate) => typeof candidate === 'string' && candidate.trim());
+70:   if (!hasURL && eventType !== 'tab_closed' && eventType !== 'notification_clicked') return;
+71:   if (payload?.title != null && (typeof payload.url !== 'string' || !payload.url.trim())) return;
+72:   if (emitted.some((candidate) => candidate != null && candidate !== '' && (
+73:     typeof candidate !== 'string' || hatchBlockedSites.isBlockedMetadataUrl(candidate)
+74:   ))) return;
+75:   _sendEvent({
+76:     type: 'event',
+77:     event: `browser.${eventType}`,
+78:     payload,
+79:     ts_ms: Date.now(),
+80:   });
+81: }
+
+## extracted/release-audit-2026-09-27/Muse.app/Contents/Resources/chrome/background.js
+sha256: a7d45793c120c10e29e5e382cee17157b4e1e87c65239fe39dd95a328274d6a3
+17: const connection = new HatchConnection();
+18: initEvents((event) => connection.send(event));
+19: let pendingHatchWebPairGatewayIdentity = null;
+293: // Chromium instance, the host stamps a .bundled marker file in the
+294: // extension directory. In bundled mode the extension operates locally
+295: // (commands invoked via CDP) and the node WebSocket system is disabled.
+296: let _isBundled = false;
+297: const _bundledReady = fetch(chrome.runtime.getURL('.bundled'))
+298:   .then((r) => { _isBundled = r.ok; })
+299:   .catch(() => { _isBundled = false; });
+300:
+301: let _lastAvatarStem = null;
+302: connection.onChange((status) => {
+303:   if (status.avatarStem && status.avatarStem !== _lastAvatarStem) {
+500: async function getStatusSnapshot() {
+501:   const live = connection.status();
+502:   if (live.connected || live.registered || live.credentialSource || live.lastCommand || live.nodeId) {
+503:     return live;
+504:   }
+505:
+506:   try {
+507:     const stored = await chrome.storage.local.get('_cachedStatus');
+508:     if (stored._cachedStatus) {
+509:       return {
+510:         ...stored._cachedStatus,
+511:         connected: false,
+512:         registered: false,
+513:       };
+514:     }
+515:   } catch {}
+516:
+517:   return live;
+518: }
+519:
+520: function maybeReconnect() {
+521:   if (_isBundled) return;
+522:   if (connection._connecting || connection._reconnecting) return;
+523:
+524:   const status = connection.status();
+525:   if (status.connected) return;
+549:     console.error('[Hatch] Install connect failed:', e);
+550:   }
+551: });
+552:
+553: chrome.runtime.onStartup.addListener(async () => {
+554:   console.log('[Hatch] Browser started');
+555:   await _bundledReady;
+556:
+557:   if (_isBundled) {
+558:     console.log('[Hatch] Bundled mode — skipping node connection');
+559:     return;
+560:   }
+561:
+562:   connection.connect()
+563:     .then(() => setAvatarIcon(connection.status()))
+564:     .catch((e) => console.error('[Hatch] Startup connect failed:', e));
+565: });
+566:
+567: chrome.alarms.onAlarm.addListener((alarm) => {
+568:   connection.handleAlarm(alarm.name);
+569: });
+570:
+617:
+618:   if (message.type === 'hatch_disconnect') {
+619:     connection
+620:       .unpair()
+621:       .then(() => sendResponse(connection.status()))
+622:       .catch((e) => sendResponse({ error: e.message }));
+623:     return true;
+624:   }
+625:
+626:   if (message.type === 'hatch_set_paused') {
+627:     connection.setPaused(message.paused);
+628:     sendResponse(connection.status());
+629:     return false;
+630:   }

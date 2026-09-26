@@ -1,0 +1,46 @@
+{
+  "scope": "Real isolated Chromium with the original extension, synthetic pages and a loopback gateway using the manual pairing path. No Meta login, cloud traffic, native Muse execution or production gateway acceptance tested.",
+  "chromium_version": "153.0.8010.12",
+  "extension_version": "1.0.8",
+  "source_sha256": {
+    "background.js": "a7d45793c120c10e29e5e382cee17157b4e1e87c65239fe39dd95a328274d6a3",
+    "lib/connection.js": "825503f87d41e7b34024a9cbe3ac62c6dfbd8319607b3e0dd0176350f8db136a",
+    "lib/events.js": "93c2483bd8688677e258b5c9a45fc8a02c5c1fb7518865ca8483f295b7a4b93c",
+    "lib/commands.js": "5bab4d8a44816ac676f1d0d9e283c6900c812d9c18d3fd025447892a81c1eca8"
+  },
+  "results": {
+    "paused_event_received_at_loopback_gateway": {
+      "type": "event",
+      "event": "browser.page_loaded",
+      "payload": {
+        "tab_id": 1472976281,
+        "url": "http://127.0.0.1:LOOPBACK_PORT/synthetic?marker=SYNTHETIC_URL",
+        "title": "SYNTHETIC_BROWSER_TITLE"
+      },
+      "ts_ms": 1790462326080
+    },
+    "fresh_command_while_paused": {
+      "ok": false,
+      "error": {
+        "code": "paused",
+        "message": "Extension is paused"
+      }
+    },
+    "pause_cached_before_browser_restart": true,
+    "pause_after_browser_restart": false,
+    "tabs_list_succeeded_after_browser_restart": true,
+    "synthetic_page_type_executed": true,
+    "after_unpair": {
+      "tokenPresent": false,
+      "lastCommand": {
+        "command": "page.type",
+        "params": {
+          "selector": "#synthetic",
+          "tab_id": 1472976344,
+          "value": "SYNTHETIC_TYPED_BROWSER_VALUE"
+        },
+        "timestamp": 1790462327008
+      }
+    }
+  }
+}

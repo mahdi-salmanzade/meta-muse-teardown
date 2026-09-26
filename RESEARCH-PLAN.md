@@ -4,7 +4,9 @@
 
 **Goal:** a complete, reproducible account of what Muse can access on each platform, what it sends to Meta, when, with what consent, and what can be deleted, separating **what the code shows** from **what the app actually does**.
 
-**Samples:** macOS 3.0 (`com.meta.endo`), Android 8.0.0.21.168 (`com.facebook.aura`), iOS 8.1.0 (`com.facebook.hatch`). Hashes in [EVIDENCE.md](EVIDENCE.md).
+**Samples:** macOS 3.0 and 4.1 (`com.meta.endo`), Android 8.0.0.21.168 and 9.0.0.11.178 (`com.facebook.aura`), unverified iOS 8.1.0 (`com.facebook.hatch`). iOS 9.0 is listed but not acquired. Hashes in [EVIDENCE.md](EVIDENCE.md).
+
+**Completed 27 September:** [Release and boundary audit](RELEASE-AUDIT-2026-09-27.md): verified newer Mac/Android packages, compared bundle and permission changes, checked selected Android branches in DEX disassembly, and exercised the original extension with 14 offline tests plus real isolated Chromium. Pause, restart and unpair persistence findings are reproduced with synthetic data and a loopback gateway. These do not complete logged-in native tests D1–D8.
 
 ---
 
@@ -22,7 +24,7 @@ The planned pass is complete, not an exhaustive security audit. iOS instruction-
 
 ## Phase 2: dynamic testing (needs a throwaway Meta account)
 
-Runs on a **rooted Android emulator** (and later a spare Mac/VM and a test iPhone), with a **throwaway Meta account** created by the repo owner and **synthetic data only**: fake SMS, contacts, calendar, notifications, photos and health samples. It never runs on a personal device or account.
+Use an identified **test Android device/emulator**, spare Mac/VM or test iPhone, with a **throwaway Meta account** created by the repo owner and **synthetic data only**: fake SMS, contacts, calendar, notifications, photos and health samples. Instrumentation-dependent tests may need a rooted emulator. The owner confirms a test device and throwaway account are available; device identity, connection and synthetic-only linked services remain to be confirmed. No logged-in native tests have been run. Do not use a personal device or account.
 
 | # | Test | Method | Answers |
 |---|---|---|---|

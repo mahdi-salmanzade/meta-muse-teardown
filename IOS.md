@@ -1,5 +1,7 @@
 # Muse for iOS (`com.facebook.hatch` 8.1.0)
 
+**Update, 27 September:** Apple's web listing shows **9.0**, while its lookup API still returns 8.1. [Release-check evidence and limits](RELEASE-AUDIT-2026-09-27.md#1-releases-and-provenance). No 9.0 IPA was obtained or audited; the findings below remain specific to the unverified 8.1 sample.
+
 **The supplied iOS sample contains HealthKit, HomeKit, background-location and photo-sync functionality, plus Shortcuts-based message forwarding.** These findings describe an unverified, decrypted-looking IPA. They are not proof that every feature is enabled or that any data was uploaded.
 
 [**iOS**](IOS.md) · [**macOS**](README.md) · [**Android**](ANDROID.md) · [**All evidence**](EVIDENCE.md)

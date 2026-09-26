@@ -1,6 +1,20 @@
-# Review log — 2026-09-24
+# Review log
 
 [Reports](README.md) · [Complete evidence index](EVIDENCE.md)
+
+## 27 September 2026 — release and boundary audit
+
+The [new supplement](RELEASE-AUDIT-2026-09-27.md) adds verified Mac 4.1 and Android 9.0.0.11.178 samples. Mac signing and the production feed's Ed25519 signature pass; a one-byte-modified artifact fails. The Android APK's v3 signature/source stamp pass, its signer matches the baseline and all 65 declared permissions are unchanged. Apple's web listing shows iOS 9.0 while lookup returns 8.1; no 9.0 code was acquired.
+
+The bundled browser extension is unchanged across the two Mac builds. Real isolated Chromium reproduces page-metadata transmission while paused, pause reset after browser restart, and retained last-command parameters after unpairing. Fourteen offline JavaScript tests also cover safeguards and pending/cached results across connection changes. Only synthetic data and a local gateway were used; production account isolation and server behavior remain untested.
+
+Android DEX checks confirm the network-state source's app-open/transient delivery and connection-dependent runner path, plus distinctions between missing-baseline `ALWAYS_ASK` and unmatched wire-value `AUTO_ALLOW`. JADX reported 183 reconstruction errors; those are not runtime app exceptions. New native credential strings are leads, not proven fixes.
+
+Seven evidence files and four reproduction helpers accompany the report. The original 53 evidence files are preserved. The owner has a test device and throwaway account; native testing remains pending identification of that device and synthetic-only service setup.
+
+Validation: 14 unit tests pass for both Mac extension copies with identical results; the real Chromium assertions pass. A separate regeneration matches all seven new evidence files. All 60 evidence checksums, JSON, script syntax and local Markdown links pass.
+
+## 24 September 2026 — original review
 
 This review checked the three available samples, every tracked evidence file, the report claims and the reproduction script. It added public-source research and new reproducible extracts. Another task added iOS notes during the review; those files have been retained with their limits made explicit.
 

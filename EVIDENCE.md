@@ -2,7 +2,7 @@
 
 [**iOS report**](IOS.md) · [**macOS report**](README.md) · [**Android report**](ANDROID.md) · [**Review log**](REVIEW.md) · [**Commit audit**](COMMIT-AUDIT.md)
 
-Every evidence file in the three folders is linked below. Original extraction notes are retained; new machine-readable files supplement them. Interpretive prose in older notes is not itself proof of runtime behavior. The platform reports explain corrections and the iOS sample’s failed integrity verification.
+Every evidence file in the three original platform folders and dated update folder is linked below. Original extraction notes are retained; new machine-readable files supplement them. Interpretive prose in older notes is not itself proof of runtime behavior. The platform reports explain corrections and the iOS sample’s failed integrity verification.
 
 The checksums establish the identity of the repository’s evidence files, not the authenticity of claims or of the original apps. Verify them from the repository root:
 
@@ -12,7 +12,21 @@ shasum -a 256 -c evidence.sha256
 
 The app archives, full extracted binaries and full decompiled source are excluded; the repository publishes hashes, metadata, bounded extracts and commentary. See the [reproduction instructions](README.md#11-reproduce-it-yourself) for which extracts can be rebuilt automatically. The banner is editorial artwork, not a captured application screenshot or technical evidence.
 
-**Total: 53 evidence files.**
+**Total: 60 evidence files.**
+
+## Release audit — 27 September 2026 — 7 files
+
+[Report and reproduction](RELEASE-AUDIT-2026-09-27.md). New Mac 4.1 and Android 9 samples, iOS listing metadata, original-extension tests using only synthetic data, and selected DEX instruction checks.
+
+| Evidence file | Contents |
+|---|---|
+| [01-release-status.json](evidence-updates/2026-09-27/01-release-status.json) | Release sources, saved timestamps and store discrepancies |
+| [02-macos-comparison.json](evidence-updates/2026-09-27/02-macos-comparison.json) | Signatures, tamper control, bundle and extension comparison |
+| [03-android-comparison.json](evidence-updates/2026-09-27/03-android-comparison.json) | APK signatures, permissions, DEX hashes and selected new classes |
+| [04-extension-unit-tests.json](evidence-updates/2026-09-27/04-extension-unit-tests.json) | 14 offline tests with mocked browser, sockets and command results |
+| [05-extension-browser-tests.json](evidence-updates/2026-09-27/05-extension-browser-tests.json) | Real Chromium, synthetic pages and loopback gateway observations |
+| [06-extension-excerpts.txt](evidence-updates/2026-09-27/06-extension-excerpts.txt) | Hashed original JavaScript excerpts |
+| [07-android-bytecode-excerpts.txt](evidence-updates/2026-09-27/07-android-bytecode-excerpts.txt) | Hashed source/DEX excerpts with instruction offsets |
 
 ## iOS — 19 files
 

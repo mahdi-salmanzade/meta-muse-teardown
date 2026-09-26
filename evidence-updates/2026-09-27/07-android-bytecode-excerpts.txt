@@ -1,0 +1,1781 @@
+# Android 9.0.0.11.178: selected source and DEX evidence. Static, not execution.
+
+## extracted/release-audit-2026-09-27/android-jadx/sources/com/facebook/aura/commands/network/NetworkStateDataSource.java
+sha256: 3f2b5eea657877c0871851ef41d95ba270f81eab61691dbe0784badb5788bbc3
+23: public final class NetworkStateDataSource implements DataSource, HatchDataSourceRegistration {
+24:     public static final String description = "Network connectivity snapshot reported when the app opens. `transport` is one of wifi, cellular, ethernet, vpn, other, or none (no active network). `hasInternet` is validated reachability, not just an association — a captive-portal WiFi is connected but has no internet. `isMetered` means the connection is pay-per-byte. WiFi details carry `rssiDbm`, the signal strength in dBm: it is NEGATIVE, and closer to zero is stronger (about -50 is excellent, about -80 is weak), so never describe it as a plain number or assume lower is worse. `rssi` is the same value under the older unitless key.";
+25:     public static final boolean emitsProactively = true;
+26:     public static final String sourceId = "network_state";
+27:     public static final boolean supportsBackfill = false;
+28:     public static final NetworkStateDataSource INSTANCE = new NetworkStateDataSource();
+29:     public static final List<String> permissionRequired = Collections.singletonList("android.permission.ACCESS_NETWORK_STATE");
+30:     public static final ProactiveTrigger proactiveTrigger = ProactiveTrigger.AppOpen.INSTANCE;
+31:     public static final ProactiveDelivery proactiveDelivery = ProactiveDelivery.TRANSIENT;
+32:
+
+## extracted/release-audit-2026-09-27/android-jadx/sources/com/facebook/aura/gateway/AuraProactiveSyncManager.java
+sha256: 9700ffbf48f2cf71c670990e1c8e1f371a7cda73d71f4234469dd041c0de72c0
+27: public final class AuraProactiveSyncManager {
+28:     public static final int $stable = 8;
+29:     public static final String DATATYPE_NOTIFICATIONS = "notifications";
+30:     public static final String DATATYPE_SMS = "sms";
+31:     public static final long DEBOUNCE_DELAY_SECONDS = 5;
+32:     public static final String KEY_DATATYPE = "proactive_sync_datatype";
+33:     public static final String LEGACY_NETWORK_STATE_WORK = "proactive_network_state_sync";
+34:     public static final String WORK_NOTIFICATIONS = "proactive_notifications_sync";
+35:     public static final /* synthetic */ C7CC<Object>[] $$delegatedProperties = C5wY.A1b(AuraProactiveSyncManager.class, "notificationSyncDebounceSeconds", "getNotificationSyncDebounceSeconds()I");
+36:     public static final AuraProactiveSyncManager INSTANCE = new AuraProactiveSyncManager();
+37:     public static final C1qo notificationSyncDebounceSeconds$delegate = AuraMobileConfigDelegatesKt.auraMobileConfigInt(MC.hatch_android.proactive_notification_sync_debounce_seconds);
+38:
+39:     public final String dataSourceFor(String str) {
+40:         C8630C4k.A0j(str, 0);
+41:         if (str.equals("notifications")) {
+42:             return "notifications";
+43:         }
+44:         if (str.equals("sms")) {
+45:             return "sms";
+46:         }
+47:         return null;
+48:     }
+49:
+50:     public final void enqueueAll(Context context) {
+51:         C8630C4k.A0j(context, 0);
+52:         if (C6ZS.A02().A00() != null) {
+53:             scheduleNotificationsSync(context);
+54:         }
+104:     public final void cancelAll(Context context) {
+105:         C6d4 c6d4A00 = C66h.A00(context);
+106:         c6d4A00.A08(WORK_NOTIFICATIONS);
+107:         c6d4A00.A08(LEGACY_NETWORK_STATE_WORK);
+108:     }
+109:
+110:     public final void cancelSync(Context context, String str) {
+111:         AnonymousClass004.A10(context, str);
+
+## extracted/release-audit-2026-09-27/android-jadx/sources/com/facebook/aura/permissions/defaults/PermissionDefaultMode.java
+sha256: 5ff51d59ba64d4cb138c0d32eeab5903cc54701b1905f909d91915304cf11aff
+27:     public final class Companion {
+28:         public final PermissionDefaultMode fromWire(String str) {
+29:             PermissionDefaultMode next;
+30:             Iterator<PermissionDefaultMode> it = PermissionDefaultMode.getEntries().iterator();
+31:             while (true) {
+32:                 if (!it.hasNext()) {
+33:                     next = null;
+34:                     break;
+35:                 }
+36:                 next = it.next();
+37:                 if (C8630C4k.areEqual(next.getWireValue(), str)) {
+38:                     break;
+39:                 }
+40:             }
+41:             PermissionDefaultMode permissionDefaultMode = next;
+42:             return permissionDefaultMode == null ? PermissionDefaultMode.AUTO_ALLOW : permissionDefaultMode;
+43:         }
+
+## extracted-apk/jadx/sources/com/facebook/aura/commands/network/NetworkStateDataSource.java
+sha256: ce1a6e09195cc70324387d482ef842396950950d345be0c6b8f7ffaee858c778
+26: /* JADX INFO: loaded from: classes3.dex */
+27: public final class NetworkStateDataSource implements DataSource, HatchDataSourceRegistration {
+28:     public static final String description = "Current network connectivity. `transport` is one of wifi, cellular, ethernet, vpn, other, or none (no active network). `hasInternet` is validated reachability, not just an association — a captive-portal WiFi is connected but has no internet. `isMetered` means the connection is pay-per-byte. WiFi details carry `rssiDbm`, the signal strength in dBm: it is NEGATIVE, and closer to zero is stronger (about -50 is excellent, about -80 is weak), so never describe it as a plain number or assume lower is worse. `rssi` is the same value under the older unitless key.";
+29:     public static final boolean emitsProactively = true;
+30:     public static final String sourceId = "network_state";
+31:     public static final boolean supportsBackfill = false;
+32:     public static final NetworkStateDataSource INSTANCE = new NetworkStateDataSource();
+33:     public static final List<String> permissionRequired = AnonymousClass002.A1D("android.permission.ACCESS_NETWORK_STATE");
+34:     public static final ProactiveTrigger proactiveTrigger = new ProactiveTrigger.CallerDriven("ConnectivityManager.NetworkCallback is owned by AuraNetworkMonitor (process-wide); NetworkStateCallbackStartupJob observes its state flow and forwards transitions to AuraProactiveSyncManager.maybeSyncNetworkState, which dedups by signature and enqueues the publish via AuraProactiveSyncWorker.");
+
+## extracted/release-audit-2026-09-27/android-smali/classes2.dex/com/facebook/aura/permissions/defaults/PermissionDefaultMode$Companion.smali
+sha256: 118913a8f2067842f50b5d1b9d4b4face149024e09b1089c77774f65acd7fff9
+# Blank/debug line directives omitted. File line numbers and DEX code-unit offsets retained.
+37: .method public final fromWire(Ljava/lang/String;)Lcom/facebook/aura/permissions/defaults/PermissionDefaultMode;
+38:     .registers 4
+40:     #@0
+42:     invoke-static {}, Lcom/facebook/aura/permissions/defaults/PermissionDefaultMode;->getEntries()LX/CCO;
+46:     #@3
+48:     move-result-object v0
+50:     #@4
+52:     invoke-interface {v0}, Ljava/util/List;->iterator()Ljava/util/Iterator;
+56:     #@7
+58:     move-result-object p0
+60:     #@8
+62:     :cond_8
+63:     invoke-interface {p0}, Ljava/util/Iterator;->hasNext()Z
+67:     #@b
+69:     move-result v0
+71:     #@c
+73:     if-eqz v0, :cond_26
+76:     #@e
+78:     invoke-interface {p0}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+82:     #@11
+84:     move-result-object v1
+86:     #@12
+88:     move-object v0, v1
+90:     #@13
+92:     check-cast v0, Lcom/facebook/aura/permissions/defaults/PermissionDefaultMode;
+95:     #@15
+97:     invoke-virtual {v0}, Lcom/facebook/aura/permissions/defaults/PermissionDefaultMode;->getWireValue()Ljava/lang/String;
+101:     #@18
+103:     move-result-object v0
+105:     #@19
+107:     invoke-static {v0, p1}, LX/C4k;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
+111:     #@1c
+113:     move-result v0
+115:     #@1d
+117:     if-eqz v0, :cond_8
+120:     #@1f
+122:     :goto_1f
+123:     check-cast v1, Lcom/facebook/aura/permissions/defaults/PermissionDefaultMode;
+126:     #@21
+128:     if-nez v1, :cond_25
+131:     #@23
+133:     sget-object v1, Lcom/facebook/aura/permissions/defaults/PermissionDefaultMode;->AUTO_ALLOW:Lcom/facebook/aura/permissions/defaults/PermissionDefaultMode;
+136:     #@25
+138:     :cond_25
+139:     return-object v1
+141:     #@26
+143:     :cond_26
+144:     const/4 v1, 0x0
+146:     #@27
+148:     goto :goto_1f
+149: .end method
+
+## extracted/release-audit-2026-09-27/android-smali/classes3.dex/com/facebook/aura/gateway/HatchNodeHitlGate.smali
+sha256: 5f95682d0ceb5d662d643eb23b65227ea13000bd2b0d4401ae6089bc52b1d9f2
+# Blank/debug line directives omitted. File line numbers and DEX code-unit offsets retained.
+229: .method private final ask(Lcom/facebook/aura/nodes/core/NodeHitlSpec;Lcom/facebook/aura/nodes/core/NodeHitlRequest;JLX/0Lb;)Ljava/lang/Object;
+230:     .registers 18
+231:     .annotation system Ldalvik/annotation/Signature;
+232:         value = {
+233:             "(",
+234:             "Lcom/facebook/aura/nodes/core/NodeHitlSpec;",
+235:             "Lcom/facebook/aura/nodes/core/NodeHitlRequest;",
+236:             "J",
+237:             "LX/0Lb<",
+238:             "-",
+239:             "Lcom/facebook/aura/nodes/core/NodeHitlResult;",
+240:             ">;)",
+241:             "Ljava/lang/Object;"
+242:         }
+243:     .end annotation
+245:     #@0
+247:     move-object v9, p2
+249:     #@1
+251:     move-object v6, p1
+253:     #@2
+255:     move-wide v7, p3
+257:     #@3
+259:     move-object/from16 v3, p5
+262:     #@5
+264:     instance-of v0, v3, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;
+267:     #@7
+269:     move-object p3, p0
+271:     #@8
+273:     if-eqz v0, :cond_d7
+276:     #@a
+278:     move-object p2, v3
+280:     #@b
+282:     check-cast p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;
+285:     #@d
+287:     iget v2, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->label:I
+290:     #@f
+292:     const/high16 v1, -0x80000000
+295:     #@11
+297:     and-int v0, v2, v1
+300:     #@13
+302:     if-eqz v0, :cond_d7
+305:     #@15
+307:     sub-int/2addr v2, v1
+309:     #@16
+311:     iput v2, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->label:I
+314:     #@18
+316:     :goto_18
+317:     iget-object p1, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->result:Ljava/lang/Object;
+320:     #@1a
+322:     sget-object p0, LX/0Pk;->A02:LX/0Pk;
+325:     #@1c
+327:     iget v0, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->label:I
+330:     #@1e
+332:     const/4 v11, 0x2
+334:     #@1f
+336:     const/4 v10, 0x1
+338:     #@20
+340:     if-eqz v0, :cond_4c
+343:     #@22
+345:     if-eq v0, v10, :cond_96
+348:     #@24
+350:     if-ne v0, v11, :cond_e9
+353:     #@26
+355:     iget-object v9, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->L$1:Ljava/lang/Object;
+358:     #@28
+360:     check-cast v9, Lcom/facebook/aura/nodes/core/NodeHitlRequest;
+363:     #@2a
+365:     iget-object v6, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->L$0:Ljava/lang/Object;
+368:     #@2c
+370:     check-cast v6, Lcom/facebook/aura/nodes/core/NodeHitlSpec;
+373:     #@2e
+375:     invoke-static {p1}, LX/91m;->A02(Ljava/lang/Object;)V
+379:     #@31
+381:     :cond_31
+382:     check-cast p1, Lcom/facebook/aura/gateway/AgentPermissionDecision;
+385:     #@33
+387:     if-nez p1, :cond_37
+390:     #@35
+392:     sget-object p1, Lcom/facebook/aura/gateway/AgentPermissionDecision;->DENY:Lcom/facebook/aura/gateway/AgentPermissionDecision;
+395:     #@37
+397:     :cond_37
+398:     invoke-virtual {p1}, Ljava/lang/Enum;->ordinal()I
+402:     #@3a
+404:     move-result v0
+406:     #@3b
+408:     const/4 v1, 0x0
+410:     #@3c
+412:     if-eq v0, v1, :cond_e3
+415:     #@3e
+417:     if-eq v0, v10, :cond_ee
+420:     #@40
+422:     if-ne v0, v11, :cond_de
+425:     #@42
+427:     iget-object v0, p3, Lcom/facebook/aura/gateway/HatchNodeHitlGate;->recentDecisions:Lcom/facebook/aura/gateway/NodeHitlRecentDecisions;
+430:     #@44
+432:     invoke-virtual {v0, v6, v1}, Lcom/facebook/aura/gateway/NodeHitlRecentDecisions;->record(Lcom/facebook/aura/nodes/core/NodeHitlSpec;Z)V
+436:     #@47
+438:     :cond_47
+439:     :goto_47
+440:     invoke-direct {p3, v9}, Lcom/facebook/aura/gateway/HatchNodeHitlGate;->denied(Lcom/facebook/aura/nodes/core/NodeHitlRequest;)Lcom/facebook/aura/nodes/core/NodeHitlResult;
+444:     #@4a
+446:     move-result-object p0
+448:     #@4b
+450:     return-object p0
+452:     #@4c
+454:     :cond_4c
+455:     invoke-static {p1}, LX/91m;->A02(Ljava/lang/Object;)V
+459:     #@4f
+461:     iget-object v1, v9, Lcom/facebook/aura/nodes/core/NodeHitlRequest;->kind:Lcom/facebook/aura/nodes/core/NodeHitlRequestKind;
+464:     #@51
+466:     sget-object v0, Lcom/facebook/aura/nodes/core/NodeHitlRequestKind;->PROACTIVE_SYNC:Lcom/facebook/aura/nodes/core/NodeHitlRequestKind;
+469:     #@53
+471:     if-eq v1, v0, :cond_47
+474:     #@55
+476:     iget-object v0, p3, Lcom/facebook/aura/gateway/HatchNodeHitlGate;->recentDecisions:Lcom/facebook/aura/gateway/NodeHitlRecentDecisions;
+479:     #@57
+481:     invoke-virtual {v0, v6}, Lcom/facebook/aura/gateway/NodeHitlRecentDecisions;->recentFor(Lcom/facebook/aura/nodes/core/NodeHitlSpec;)Ljava/lang/Boolean;
+485:     #@5a
+487:     move-result-object v0
+489:     #@5b
+491:     if-eqz v0, :cond_65
+494:     #@5d
+496:     invoke-virtual {v0}, Ljava/lang/Boolean;->booleanValue()Z
+500:     #@60
+502:     move-result v0
+504:     #@61
+506:     if-eqz v0, :cond_47
+509:     #@63
+511:     goto/16 :goto_f3
+514:     #@65
+516:     :cond_65
+517:     iget-boolean v0, v9, Lcom/facebook/aura/nodes/core/NodeHitlRequest;->canPrompt:Z
+520:     #@67
+522:     if-nez v0, :cond_7a
+525:     #@69
+527:     sget-object v0, Lcom/facebook/aura/gateway/NodeForegroundServiceState;->_isForeground:LX/0Sz;
+530:     #@6b
+532:     invoke-static {v0}, LX/3Si;->A1S(LX/0Sz;)Z
+536:     #@6e
+538:     move-result v0
+540:     #@6f
+542:     if-nez v0, :cond_7a
+545:     #@71
+547:     sget-object v0, Lcom/facebook/aura/gateway/HatchBackgroundSession;->_isActive:LX/0Sz;
+550:     #@73
+552:     invoke-static {v0}, LX/3Si;->A1S(LX/0Sz;)Z
+556:     #@76
+558:     move-result v0
+560:     #@77
+562:     if-nez v0, :cond_7a
+565:     #@79
+567:     goto :goto_47
+569:     #@7a
+571:     :cond_7a
+572:     sget-object v1, Lcom/facebook/aura/gateway/NodeHitlApprovalDetailsProvider;->INSTANCE:Lcom/facebook/aura/gateway/NodeHitlApprovalDetailsProvider;
+575:     #@7c
+577:     invoke-direct {p3}, Lcom/facebook/aura/gateway/HatchNodeHitlGate;->resolveAssistantName()Ljava/lang/String;
+581:     #@7f
+583:     move-result-object v0
+585:     #@80
+587:     invoke-virtual {v1, v6, v9, v0}, Lcom/facebook/aura/gateway/NodeHitlApprovalDetailsProvider;->buildApproval(Lcom/facebook/aura/nodes/core/NodeHitlSpec;Lcom/facebook/aura/nodes/core/NodeHitlRequest;Ljava/lang/String;)Lcom/facebook/aura/gateway/HatchAgentPermissionsRepository$AgentPermissionApproval;
+591:     #@83
+593:     move-result-object v1
+595:     #@84
+597:     iput-object v6, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->L$0:Ljava/lang/Object;
+600:     #@86
+602:     iput-object v9, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->L$1:Ljava/lang/Object;
+605:     #@88
+607:     const/4 v0, 0x0
+609:     #@89
+611:     iput-object v0, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->L$2:Ljava/lang/Object;
+614:     #@8b
+616:     iput-wide v7, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->J$0:J
+619:     #@8d
+621:     iput v10, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->label:I
+624:     #@8f
+626:     invoke-direct {p3, v1, v6, v9, p2}, Lcom/facebook/aura/gateway/HatchNodeHitlGate;->withServerCopy(Lcom/facebook/aura/gateway/HatchAgentPermissionsRepository$AgentPermissionApproval;Lcom/facebook/aura/nodes/core/NodeHitlSpec;Lcom/facebook/aura/nodes/core/NodeHitlRequest;LX/0Lb;)Ljava/lang/Object;
+630:     #@92
+632:     move-result-object p1
+634:     #@93
+636:     if-ne p1, p0, :cond_a3
+639:     #@95
+641:     return-object p0
+643:     #@96
+645:     :cond_96
+646:     iget-wide v7, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->J$0:J
+649:     #@98
+651:     iget-object v9, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->L$1:Ljava/lang/Object;
+654:     #@9a
+656:     check-cast v9, Lcom/facebook/aura/nodes/core/NodeHitlRequest;
+659:     #@9c
+661:     iget-object v6, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->L$0:Ljava/lang/Object;
+664:     #@9e
+666:     check-cast v6, Lcom/facebook/aura/nodes/core/NodeHitlSpec;
+669:     #@a0
+671:     invoke-static {p1}, LX/91m;->A02(Ljava/lang/Object;)V
+675:     #@a3
+677:     :cond_a3
+678:     check-cast p1, Lcom/facebook/aura/gateway/HatchAgentPermissionsRepository$AgentPermissionApproval;
+681:     #@a5
+683:     invoke-static {}, Landroid/os/SystemClock;->elapsedRealtime()J
+687:     #@a8
+689:     move-result-wide v4
+691:     #@a9
+693:     sub-long/2addr v4, v7
+695:     #@aa
+697:     invoke-virtual {v9}, Lcom/facebook/aura/nodes/core/NodeHitlRequest;->getEffectiveTimeoutMs()J
+701:     #@ad
+703:     move-result-wide v2
+705:     #@ae
+707:     sub-long/2addr v2, v4
+709:     #@af
+711:     const-wide/16 v0, 0xbb8
+714:     #@b1
+716:     sub-long/2addr v2, v0
+718:     #@b2
+720:     const-wide/16 p4, 0x3e8
+723:     #@b4
+725:     cmp-long v0, v2, p4
+728:     #@b6
+730:     if-gez v0, :cond_ba
+733:     #@b8
+735:     const-wide/16 v2, 0x3e8
+738:     #@ba
+740:     :cond_ba
+741:     const/4 v1, 0x0
+743:     #@bb
+745:     new-instance v0, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$decision$1;
+748:     #@bd
+750:     invoke-direct {v0, p3, p1, v1}, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$decision$1;-><init>(Lcom/facebook/aura/gateway/HatchNodeHitlGate;Lcom/facebook/aura/gateway/HatchAgentPermissionsRepository$AgentPermissionApproval;LX/0Lb;)V
+754:     #@c0
+756:     iput-object v6, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->L$0:Ljava/lang/Object;
+759:     #@c2
+761:     iput-object v9, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->L$1:Ljava/lang/Object;
+764:     #@c4
+766:     iput-object v1, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->L$2:Ljava/lang/Object;
+769:     #@c6
+771:     iput-object v1, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->L$3:Ljava/lang/Object;
+774:     #@c8
+776:     iput-wide v7, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->J$0:J
+779:     #@ca
+781:     iput-wide v4, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->J$1:J
+784:     #@cc
+786:     iput-wide v2, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->J$2:J
+789:     #@ce
+791:     iput v11, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;->label:I
+794:     #@d0
+796:     invoke-static {p2, v0, v2, v3}, LX/6va;->A01(LX/0Lb;LX/CJA;J)Ljava/lang/Object;
+800:     #@d3
+802:     move-result-object p1
+804:     #@d4
+806:     if-ne p1, p0, :cond_31
+809:     #@d6
+811:     return-object p0
+813:     #@d7
+815:     :cond_d7
+816:     new-instance p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;
+819:     #@d9
+821:     invoke-direct {p2, p0, v3}, Lcom/facebook/aura/gateway/HatchNodeHitlGate$ask$1;-><init>(Lcom/facebook/aura/gateway/HatchNodeHitlGate;LX/0Lb;)V
+825:     #@dc
+827:     goto/16 :goto_18
+830:     #@de
+832:     :cond_de
+833:     invoke-static {}, LX/001;->A15()Lkotlin/NoWhenBranchMatchedException;
+837:     #@e1
+839:     move-result-object v0
+841:     #@e2
+843:     throw v0
+845:     #@e3
+847:     :cond_e3
+848:     iget-object v0, p3, Lcom/facebook/aura/gateway/HatchNodeHitlGate;->recentDecisions:Lcom/facebook/aura/gateway/NodeHitlRecentDecisions;
+851:     #@e5
+853:     invoke-virtual {v0, v6, v10}, Lcom/facebook/aura/gateway/NodeHitlRecentDecisions;->record(Lcom/facebook/aura/nodes/core/NodeHitlSpec;Z)V
+857:     #@e8
+859:     goto :goto_f3
+861:     #@e9
+863:     :cond_e9
+864:     invoke-static {}, LX/001;->A0t()Ljava/lang/IllegalStateException;
+868:     #@ec
+870:     move-result-object v0
+872:     #@ed
+874:     throw v0
+876:     #@ee
+878:     :cond_ee
+879:     sget-object v0, Lcom/facebook/aura/nodes/core/NodeHitlMode;->ALLOW:Lcom/facebook/aura/nodes/core/NodeHitlMode;
+882:     #@f0
+884:     invoke-virtual {p3, v6, v0}, Lcom/facebook/aura/gateway/HatchNodeHitlGate;->setMode(Lcom/facebook/aura/nodes/core/NodeHitlSpec;Lcom/facebook/aura/nodes/core/NodeHitlMode;)V
+888:     #@f3
+890:     :goto_f3
+891:     sget-object p0, Lcom/facebook/aura/nodes/core/NodeHitlResult$Allowed;->INSTANCE:Lcom/facebook/aura/nodes/core/NodeHitlResult$Allowed;
+894:     #@f5
+896:     return-object p0
+897: .end method
+1134: .method private final resolveConnectorBaseline(Lcom/facebook/aura/nodes/core/NodeHitlRequest;LX/0Lb;)Ljava/lang/Object;
+1135:     .registers 10
+1136:     .annotation system Ldalvik/annotation/Signature;
+1137:         value = {
+1138:             "(",
+1139:             "Lcom/facebook/aura/nodes/core/NodeHitlRequest;",
+1140:             "LX/0Lb<",
+1141:             "-",
+1142:             "Lcom/facebook/aura/permissions/defaults/PermissionDefaultMode;",
+1143:             ">;)",
+1144:             "Ljava/lang/Object;"
+1145:         }
+1146:     .end annotation
+1148:     #@0
+1150:     instance-of v0, p2, Lcom/facebook/aura/gateway/HatchNodeHitlGate$resolveConnectorBaseline$1;
+1153:     #@2
+1155:     if-eqz v0, :cond_5d
+1158:     #@4
+1160:     move-object v4, p2
+1162:     #@5
+1164:     check-cast v4, Lcom/facebook/aura/gateway/HatchNodeHitlGate$resolveConnectorBaseline$1;
+1167:     #@7
+1169:     iget v2, v4, Lcom/facebook/aura/gateway/HatchNodeHitlGate$resolveConnectorBaseline$1;->label:I
+1172:     #@9
+1174:     const/high16 v1, -0x80000000
+1177:     #@b
+1179:     and-int v0, v2, v1
+1182:     #@d
+1184:     if-eqz v0, :cond_5d
+1187:     #@f
+1189:     sub-int/2addr v2, v1
+1191:     #@10
+1193:     iput v2, v4, Lcom/facebook/aura/gateway/HatchNodeHitlGate$resolveConnectorBaseline$1;->label:I
+1196:     #@12
+1198:     :goto_12
+1199:     iget-object v0, v4, Lcom/facebook/aura/gateway/HatchNodeHitlGate$resolveConnectorBaseline$1;->result:Ljava/lang/Object;
+1202:     #@14
+1204:     sget-object v5, LX/0Pk;->A02:LX/0Pk;
+1207:     #@16
+1209:     iget v1, v4, Lcom/facebook/aura/gateway/HatchNodeHitlGate$resolveConnectorBaseline$1;->label:I
+1212:     #@18
+1214:     const-string v3, "HatchNodeHitlGate"
+1217:     #@1a
+1219:     const/4 v6, 0x1
+1221:     #@1b
+1223:     if-eqz v1, :cond_2c
+1226:     #@1d
+1228:     if-ne v1, v6, :cond_63
+1231:     #@1f
+1233:     invoke-static {v0}, LX/91m;->A02(Ljava/lang/Object;)V
+1237:     #@22
+1239:     :cond_22
+1240:     if-nez v0, :cond_68
+1243:     #@24
+1245:     const-string v0, "Connector baseline fetch failed; failing closed"
+1248:     #@26
+1250:     invoke-static {v3, v0}, LX/80o;->A06(Ljava/lang/String;Ljava/lang/String;)V
+1254:     #@29
+1256:     :cond_29
+1257:     sget-object v5, Lcom/facebook/aura/permissions/defaults/PermissionDefaultMode;->ALWAYS_ASK:Lcom/facebook/aura/permissions/defaults/PermissionDefaultMode;
+1260:     #@2b
+1262:     return-object v5
+1264:     #@2c
+1266:     :cond_2c
+1267:     invoke-static {v0}, LX/91m;->A02(Ljava/lang/Object;)V
+1271:     #@2f
+1273:     iget-object v0, p0, Lcom/facebook/aura/gateway/HatchNodeHitlGate;->permissionSettings:Lcom/facebook/aura/permissions/defaults/PermissionSettingsRepository;
+1276:     #@31
+1278:     invoke-virtual {v0}, Lcom/facebook/aura/permissions/defaults/PermissionSettingsRepository;->cachedConnectorDefault()Lcom/facebook/aura/permissions/defaults/PermissionDefaultMode;
+1282:     #@34
+1284:     move-result-object v0
+1286:     #@35
+1288:     if-nez v0, :cond_68
+1291:     #@37
+1293:     iget-object v1, p1, Lcom/facebook/aura/nodes/core/NodeHitlRequest;->kind:Lcom/facebook/aura/nodes/core/NodeHitlRequestKind;
+1296:     #@39
+1298:     sget-object v0, Lcom/facebook/aura/nodes/core/NodeHitlRequestKind;->PROACTIVE_SYNC:Lcom/facebook/aura/nodes/core/NodeHitlRequestKind;
+1301:     #@3b
+1303:     if-eq v1, v0, :cond_29
+1306:     #@3d
+1308:     sget-object v1, Lcom/facebook/aura/gateway/HatchGatewayConnection;->Companion:Lcom/facebook/aura/gateway/HatchGatewayConnection$Companion;
+1311:     #@3f
+1313:     iget-object v0, p0, Lcom/facebook/aura/gateway/HatchNodeHitlGate;->userSession:LX/6QY;
+1316:     #@41
+1318:     invoke-virtual {v1, v0}, Lcom/facebook/aura/gateway/HatchGatewayConnection$Companion;->getInstance(LX/6QY;)Lcom/facebook/aura/gateway/HatchGatewayConnection;
+1322:     #@44
+1324:     move-result-object v0
+1326:     #@45
+1328:     invoke-virtual {v0}, Lcom/facebook/aura/gateway/HatchGatewayConnection;->isConnected()Z
+1332:     #@48
+1334:     move-result v0
+1336:     #@49
+1338:     if-eqz v0, :cond_29
+1341:     #@4b
+1343:     iget-object v2, p0, Lcom/facebook/aura/gateway/HatchNodeHitlGate;->permissionSettings:Lcom/facebook/aura/permissions/defaults/PermissionSettingsRepository;
+1346:     #@4d
+1348:     const/4 v0, 0x0
+1350:     #@4e
+1352:     iput-object v0, v4, Lcom/facebook/aura/gateway/HatchNodeHitlGate$resolveConnectorBaseline$1;->L$0:Ljava/lang/Object;
+1355:     #@50
+1357:     iput v6, v4, Lcom/facebook/aura/gateway/HatchNodeHitlGate$resolveConnectorBaseline$1;->I$0:I
+1360:     #@52
+1362:     iput v6, v4, Lcom/facebook/aura/gateway/HatchNodeHitlGate$resolveConnectorBaseline$1;->label:I
+1365:     #@54
+1367:     const-wide/16 v0, 0x1388
+1370:     #@56
+1372:     invoke-virtual {v2, v0, v1, v4}, Lcom/facebook/aura/permissions/defaults/PermissionSettingsRepository;->fetchConnectorDefault(JLX/0Lb;)Ljava/lang/Object;
+1376:     #@59
+1378:     move-result-object v0
+1380:     #@5a
+1382:     if-ne v0, v5, :cond_22
+1385:     #@5c
+1387:     return-object v5
+1389:     #@5d
+1391:     :cond_5d
+1392:     new-instance v4, Lcom/facebook/aura/gateway/HatchNodeHitlGate$resolveConnectorBaseline$1;
+1395:     #@5f
+1397:     invoke-direct {v4, p0, p2}, Lcom/facebook/aura/gateway/HatchNodeHitlGate$resolveConnectorBaseline$1;-><init>(Lcom/facebook/aura/gateway/HatchNodeHitlGate;LX/0Lb;)V
+1401:     #@62
+1403:     goto :goto_12
+1405:     #@63
+1407:     :cond_63
+1408:     invoke-static {}, LX/001;->A0t()Ljava/lang/IllegalStateException;
+1412:     #@66
+1414:     move-result-object v0
+1416:     #@67
+1418:     throw v0
+1420:     #@68
+1422:     :cond_68
+1423:     return-object v0
+1424: .end method
+
+## extracted/release-audit-2026-09-27/android-smali/classes3.dex/com/facebook/aura/nodes/core/NodeHitlCatalog.smali
+sha256: e2092b74cd4368adce9ea9755eba3f05980db1d8edc2efbd518719f0d7145940
+# Blank/debug line directives omitted. File line numbers and DEX code-unit offsets retained.
+371: .method public final forDataSource(Ljava/lang/String;)Lcom/facebook/aura/nodes/core/NodeHitlSpec;
+372:     .registers 3
+374:     #@0
+376:     const/4 v0, 0x0
+378:     #@1
+380:     invoke-static {p1, v0}, LX/C4k;->A0j(Ljava/lang/Object;I)V
+384:     #@4
+386:     invoke-virtual {p1}, Ljava/lang/String;->hashCode()I
+390:     #@7
+392:     move-result v0
+394:     #@8
+396:     sparse-switch v0, :sswitch_data_56
+400:     #@b
+402:     :cond_b
+403:     const/4 p1, 0x0
+405:     #@c
+407:     return-object p1
+409:     #@d
+411:     :sswitch_d
+412:     const-string v0, "sms"
+415:     #@f
+417:     invoke-virtual {p1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+421:     #@12
+423:     move-result v0
+425:     #@13
+427:     if-eqz v0, :cond_b
+430:     #@15
+432:     sget-object p0, Lcom/facebook/aura/nodes/core/NodeHitlGroup;->SMS:Lcom/facebook/aura/nodes/core/NodeHitlGroup;
+435:     #@17
+437:     goto :goto_4e
+439:     #@18
+441:     :sswitch_18
+442:     const-string v0, "call_log"
+445:     #@1a
+447:     invoke-virtual {p1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+451:     #@1d
+453:     move-result v0
+455:     #@1e
+457:     if-eqz v0, :cond_b
+460:     #@20
+462:     sget-object p0, Lcom/facebook/aura/nodes/core/NodeHitlGroup;->CALL_LOG:Lcom/facebook/aura/nodes/core/NodeHitlGroup;
+465:     #@22
+467:     goto :goto_4e
+469:     #@23
+471:     :sswitch_23
+472:     const-string v0, "calendar"
+475:     #@25
+477:     invoke-virtual {p1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+481:     #@28
+483:     move-result v0
+485:     #@29
+487:     if-eqz v0, :cond_b
+490:     #@2b
+492:     sget-object p0, Lcom/facebook/aura/nodes/core/NodeHitlGroup;->CALENDAR:Lcom/facebook/aura/nodes/core/NodeHitlGroup;
+495:     #@2d
+497:     goto :goto_4e
+499:     #@2e
+501:     :sswitch_2e
+502:     const-string v0, "contacts"
+505:     #@30
+507:     invoke-virtual {p1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+511:     #@33
+513:     move-result v0
+515:     #@34
+517:     if-eqz v0, :cond_b
+520:     #@36
+522:     sget-object p0, Lcom/facebook/aura/nodes/core/NodeHitlGroup;->CONTACTS:Lcom/facebook/aura/nodes/core/NodeHitlGroup;
+525:     #@38
+527:     goto :goto_4e
+529:     #@39
+531:     :sswitch_39
+532:     const-string v0, "health"
+535:     #@3b
+537:     invoke-virtual {p1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+541:     #@3e
+543:     move-result v0
+545:     #@3f
+547:     if-eqz v0, :cond_b
+550:     #@41
+552:     sget-object p0, Lcom/facebook/aura/nodes/core/NodeHitlGroup;->HEALTH:Lcom/facebook/aura/nodes/core/NodeHitlGroup;
+555:     #@43
+557:     goto :goto_4e
+559:     #@44
+561:     :sswitch_44
+562:     const-string v0, "notifications"
+565:     #@46
+567:     invoke-virtual {p1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+571:     #@49
+573:     move-result v0
+575:     #@4a
+577:     if-eqz v0, :cond_b
+580:     #@4c
+582:     sget-object p0, Lcom/facebook/aura/nodes/core/NodeHitlGroup;->NOTIFICATIONS:Lcom/facebook/aura/nodes/core/NodeHitlGroup;
+585:     #@4e
+587:     :goto_4e
+588:     sget-object v0, Lcom/facebook/aura/nodes/core/NodeHitlAccess;->READ:Lcom/facebook/aura/nodes/core/NodeHitlAccess;
+591:     #@50
+593:     new-instance p1, Lcom/facebook/aura/nodes/core/NodeHitlSpec;
+596:     #@52
+598:     invoke-direct {p1, p0, v0}, Lcom/facebook/aura/nodes/core/NodeHitlSpec;-><init>(Lcom/facebook/aura/nodes/core/NodeHitlGroup;Lcom/facebook/aura/nodes/core/NodeHitlAccess;)V
+602:     #@55
+604:     return-object p1
+606:     #@56
+608:     :sswitch_data_56
+609:     .sparse-switch
+610:         -0x48cafda4 -> :sswitch_39
+611:         -0x21d29fad -> :sswitch_2e
+612:         -0xaa104c2 -> :sswitch_23
+613:         -0xa45121d -> :sswitch_18
+614:         0x1bd59 -> :sswitch_d
+615:         0x4bd694e8 -> :sswitch_44
+616:     .end sparse-switch
+617: .end method
+
+## extracted/release-audit-2026-09-27/android-smali/classes3.dex/com/facebook/aura/commands/network/NetworkStateDataSource.smali
+sha256: 4764f8ac7a3233a93d63470c1db84ff0c64f1a9b55a425deba3c87ec0f0aa4a1
+# Blank/debug line directives omitted. File line numbers and DEX code-unit offsets retained.
+37: .method public static constructor <clinit>()V
+38:     .registers 1
+40:     #@0
+42:     new-instance v0, Lcom/facebook/aura/commands/network/NetworkStateDataSource;
+45:     #@2
+47:     invoke-direct {v0}, Ljava/lang/Object;-><init>()V
+51:     #@5
+53:     sput-object v0, Lcom/facebook/aura/commands/network/NetworkStateDataSource;->INSTANCE:Lcom/facebook/aura/commands/network/NetworkStateDataSource;
+56:     #@7
+58:     const-string v0, "android.permission.ACCESS_NETWORK_STATE"
+61:     #@9
+63:     invoke-static {v0}, Ljava/util/Collections;->singletonList(Ljava/lang/Object;)Ljava/util/List;
+67:     #@c
+69:     move-result-object v0
+71:     #@d
+73:     sput-object v0, Lcom/facebook/aura/commands/network/NetworkStateDataSource;->permissionRequired:Ljava/util/List;
+76:     #@f
+78:     sget-object v0, Lcom/facebook/aura/nodes/datasource/ProactiveTrigger$AppOpen;->INSTANCE:Lcom/facebook/aura/nodes/datasource/ProactiveTrigger$AppOpen;
+81:     #@11
+83:     sput-object v0, Lcom/facebook/aura/commands/network/NetworkStateDataSource;->proactiveTrigger:Lcom/facebook/aura/nodes/datasource/ProactiveTrigger;
+86:     #@13
+88:     sget-object v0, Lcom/facebook/aura/nodes/datasource/ProactiveDelivery;->TRANSIENT:Lcom/facebook/aura/nodes/datasource/ProactiveDelivery;
+91:     #@15
+93:     sput-object v0, Lcom/facebook/aura/commands/network/NetworkStateDataSource;->proactiveDelivery:Lcom/facebook/aura/nodes/datasource/ProactiveDelivery;
+96:     #@17
+98:     return-void
+99: .end method
+
+## extracted/release-audit-2026-09-27/android-smali/classes3.dex/com/facebook/aura/gateway/AuraProactiveSyncWorker.smali
+sha256: a30812c277d910e156727a8c5d5a725194ff8e27458fc0554be32218b9e88dfb
+# Blank/debug line directives omitted. File line numbers and DEX code-unit offsets retained.
+123: .method public doBackgroundWork(LX/0Lb;)Ljava/lang/Object;
+124:     .registers 21
+125:     .annotation system Ldalvik/annotation/Signature;
+126:         value = {
+127:             "(",
+128:             "LX/0Lb<",
+129:             "-",
+130:             "LX/5zp;",
+131:             ">;)",
+132:             "Ljava/lang/Object;"
+133:         }
+134:     .end annotation
+136:     #@0
+138:     move-object/from16 v3, p1
+141:     #@2
+143:     instance-of v0, v3, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;
+146:     #@4
+148:     move-object/from16 v7, p0
+151:     #@6
+153:     if-eqz v0, :cond_175
+156:     #@8
+158:     move-object v6, v3
+160:     #@9
+162:     check-cast v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;
+165:     #@b
+167:     iget v2, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->label:I
+170:     #@d
+172:     const/high16 v1, -0x80000000
+175:     #@f
+177:     and-int v0, v2, v1
+180:     #@11
+182:     if-eqz v0, :cond_175
+185:     #@13
+187:     sub-int/2addr v2, v1
+189:     #@14
+191:     iput v2, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->label:I
+194:     #@16
+196:     :goto_16
+197:     iget-object v11, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->result:Ljava/lang/Object;
+200:     #@18
+202:     sget-object v5, LX/0Pk;->A02:LX/0Pk;
+205:     #@1a
+207:     iget v0, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->label:I
+210:     #@1c
+212:     const/4 v4, 0x2
+214:     #@1d
+216:     const/4 v10, 0x1
+218:     #@1e
+220:     const-string v9, "; skipping"
+223:     #@20
+225:     const-string v3, "AuraProactiveSyncWorker"
+228:     #@22
+230:     if-eqz v0, :cond_6e
+233:     #@24
+235:     if-eq v0, v10, :cond_117
+238:     #@26
+240:     if-ne v0, v4, :cond_181
+243:     #@28
+245:     iget-object v0, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$2:Ljava/lang/Object;
+248:     #@2a
+250:     invoke-static {v0, v11}, LX/3Sk;->A0Y(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/String;
+254:     #@2d
+256:     move-result-object v13
+258:     #@2e
+260:     :cond_2e
+261:     check-cast v11, Lcom/facebook/aura/nodes/datasource/DataSourceResult;
+264:     #@30
+266:     sget-object v0, Lcom/facebook/aura/nodes/datasource/DataSourceResult$Ok;->INSTANCE:Lcom/facebook/aura/nodes/datasource/DataSourceResult$Ok;
+269:     #@32
+271:     invoke-static {v11, v0}, LX/C4k;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
+275:     #@35
+277:     move-result v0
+279:     #@36
+281:     if-nez v0, :cond_12d
+284:     #@38
+286:     sget-object v0, Lcom/facebook/aura/nodes/datasource/DataSourceResult$AlreadyReplied;->INSTANCE:Lcom/facebook/aura/nodes/datasource/DataSourceResult$AlreadyReplied;
+289:     #@3a
+291:     invoke-static {v11, v0}, LX/C4k;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
+295:     #@3d
+297:     move-result v0
+299:     #@3e
+301:     if-nez v0, :cond_12d
+304:     #@40
+306:     if-nez v11, :cond_52
+309:     #@42
+311:     const-string v0, "Gateway not connected for "
+314:     #@44
+316:     invoke-static {v0, v13}, LX/3Si;->A0p(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/StringBuilder;
+320:     #@47
+322:     move-result-object v4
+324:     #@48
+326:     const-string v2, " proactive sync"
+329:     #@4a
+331:     :goto_4a
+332:     invoke-static {v2, v3, v4}, LX/5wa;->A18(Ljava/lang/String;Ljava/lang/String;Ljava/lang/StringBuilder;)V
+336:     #@4d
+338:     invoke-direct {v7}, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker;->retryOrGiveUp()LX/5zp;
+342:     #@50
+344:     move-result-object v5
+346:     #@51
+348:     return-object v5
+350:     #@52
+352:     :cond_52
+353:     instance-of v0, v11, Lcom/facebook/aura/nodes/datasource/DataSourceResult$Error;
+356:     #@54
+358:     if-eqz v0, :cond_17c
+361:     #@56
+363:     check-cast v11, Lcom/facebook/aura/nodes/datasource/DataSourceResult$Error;
+366:     #@58
+368:     iget-object v1, v11, Lcom/facebook/aura/nodes/datasource/DataSourceResult$Error;->code:Ljava/lang/String;
+371:     #@5a
+373:     iget-object v2, v11, Lcom/facebook/aura/nodes/datasource/DataSourceResult$Error;->message:Ljava/lang/String;
+376:     #@5c
+378:     invoke-static {v13}, LX/3Si;->A0o(Ljava/lang/String;)Ljava/lang/StringBuilder;
+382:     #@5f
+384:     move-result-object v4
+386:     #@60
+388:     const-string v0, " proactive sync failed: "
+391:     #@62
+393:     invoke-virtual {v4, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+397:     #@65
+399:     invoke-virtual {v4, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+403:     #@68
+405:     const-string v0, " "
+408:     #@6a
+410:     invoke-virtual {v4, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+414:     #@6d
+416:     goto :goto_4a
+418:     #@6e
+420:     :cond_6e
+421:     invoke-static {v11}, LX/91m;->A02(Ljava/lang/Object;)V
+425:     #@71
+427:     iget-object v0, v7, LX/6dq;->mWorkerParams:Landroidx/work/WorkerParameters;
+430:     #@73
+432:     iget-object v1, v0, Landroidx/work/WorkerParameters;->A01:LX/6PJ;
+435:     #@75
+437:     const-string v0, "proactive_sync_datatype"
+440:     #@77
+442:     invoke-virtual {v1, v0}, LX/6PJ;->A00(Ljava/lang/String;)Ljava/lang/String;
+446:     #@7a
+448:     move-result-object v8
+450:     #@7b
+452:     if-nez v8, :cond_88
+455:     #@7d
+457:     const-string v0, "No datatype in inputData, skipping"
+460:     #@7f
+462:     :goto_7f
+463:     invoke-static {v3, v0}, LX/80o;->A06(Ljava/lang/String;Ljava/lang/String;)V
+467:     #@82
+469:     new-instance v5, LX/6Rd;
+472:     #@84
+474:     invoke-direct {v5}, LX/6Rd;-><init>()V
+478:     #@87
+480:     return-object v5
+482:     #@88
+484:     :cond_88
+485:     const-string v0, "network_state"
+488:     #@8a
+490:     invoke-virtual {v8, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+494:     #@8d
+496:     move-result v0
+498:     #@8e
+500:     if-nez v0, :cond_12d
+503:     #@90
+505:     invoke-static {}, LX/6ZS;->A02()LX/8CZ;
+509:     #@93
+511:     move-result-object v0
+513:     #@94
+515:     invoke-virtual {v0}, LX/8CZ;->A00()LX/6QY;
+519:     #@97
+521:     move-result-object v1
+523:     #@98
+525:     if-nez v1, :cond_aa
+528:     #@9a
+530:     const-string v0, "No user session, skipping "
+533:     #@9c
+535:     invoke-static {v0, v8}, LX/3Si;->A0p(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/StringBuilder;
+539:     #@9f
+541:     move-result-object v1
+543:     #@a0
+545:     const-string v0, " sync"
+548:     #@a2
+550:     invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+554:     #@a5
+556:     :goto_a5
+557:     invoke-virtual {v1}, Ljava/lang/Object;->toString()Ljava/lang/String;
+561:     #@a8
+563:     move-result-object v0
+565:     #@a9
+567:     goto :goto_7f
+569:     #@aa
+571:     :cond_aa
+572:     sget-object v2, Lcom/facebook/aura/gateway/AuraProactiveSyncManager;->INSTANCE:Lcom/facebook/aura/gateway/AuraProactiveSyncManager;
+575:     #@ac
+577:     iget-object v0, v7, LX/6dq;->mAppContext:Landroid/content/Context;
+580:     #@ae
+582:     invoke-static {v0}, LX/C4k;->A0f(Ljava/lang/Object;)V
+586:     #@b1
+588:     invoke-virtual {v2, v0, v8}, Lcom/facebook/aura/gateway/AuraProactiveSyncManager;->isProactiveSyncEnabled(Landroid/content/Context;Ljava/lang/String;)Z
+592:     #@b4
+594:     move-result v0
+596:     #@b5
+598:     if-eqz v0, :cond_12d
+601:     #@b7
+603:     invoke-virtual {v2, v8}, Lcom/facebook/aura/gateway/AuraProactiveSyncManager;->dataSourceFor(Ljava/lang/String;)Ljava/lang/String;
+607:     #@ba
+609:     move-result-object v13
+611:     #@bb
+613:     if-nez v13, :cond_c4
+616:     #@bd
+618:     const-string v0, "Unknown datatype with no data source mapping: "
+621:     #@bf
+623:     invoke-static {v0, v8}, LX/3Si;->A0p(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/StringBuilder;
+627:     #@c2
+629:     move-result-object v1
+631:     #@c3
+633:     goto :goto_a5
+635:     #@c4
+637:     :cond_c4
+638:     sget-object v2, Lcom/facebook/aura/nodes/HatchNodeClient;->Companion:Lcom/facebook/aura/nodes/HatchNodeClient$Companion;
+641:     #@c6
+643:     iget-object v0, v7, LX/6dq;->mAppContext:Landroid/content/Context;
+646:     #@c8
+648:     invoke-static {v0}, LX/C4k;->A0f(Ljava/lang/Object;)V
+652:     #@cb
+654:     invoke-virtual {v2, v1, v0}, Lcom/facebook/aura/nodes/HatchNodeClient$Companion;->getInstance(LX/6QY;Landroid/content/Context;)Lcom/facebook/aura/nodes/HatchNodeClient;
+658:     #@ce
+660:     move-result-object v8
+662:     #@cf
+664:     iget-object v0, v8, Lcom/facebook/aura/nodes/HatchNodeClient;->dataSourceRegistry:Lcom/facebook/aura/nodes/registry/HatchDataSourceRegistry;
+667:     #@d1
+669:     invoke-virtual {v0, v13}, Lcom/facebook/aura/nodes/registry/HatchDataSourceRegistry;->find(Ljava/lang/String;)Lcom/facebook/aura/nodes/datasource/DataSource;
+673:     #@d4
+675:     move-result-object v2
+677:     #@d5
+679:     if-nez v2, :cond_e1
+682:     #@d7
+684:     const-string v0, "No DataSource registered for "
+687:     #@d9
+689:     invoke-static {v0, v13}, LX/3Si;->A0p(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/StringBuilder;
+693:     #@dc
+695:     move-result-object v1
+697:     #@dd
+699:     invoke-virtual {v1, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+703:     #@e0
+705:     goto :goto_a5
+707:     #@e1
+709:     :cond_e1
+710:     invoke-virtual {v8, v2}, Lcom/facebook/aura/nodes/HatchNodeClient;->isSourcePermissionGranted(Lcom/facebook/aura/nodes/datasource/DataSource;)Z
+714:     #@e4
+716:     move-result v0
+718:     #@e5
+720:     if-eqz v0, :cond_12d
+723:     #@e7
+725:     sget-object v0, Lcom/facebook/aura/nodes/core/NodeHitlCatalog;->INSTANCE:Lcom/facebook/aura/nodes/core/NodeHitlCatalog;
+728:     #@e9
+730:     invoke-virtual {v0, v13}, Lcom/facebook/aura/nodes/core/NodeHitlCatalog;->forDataSource(Ljava/lang/String;)Lcom/facebook/aura/nodes/core/NodeHitlSpec;
+734:     #@ec
+736:     move-result-object v9
+738:     #@ed
+740:     if-eqz v9, :cond_133
+743:     #@ef
+745:     sget-object v0, Lcom/facebook/aura/gateway/HatchNodeHitlGate;->Companion:Lcom/facebook/aura/gateway/HatchNodeHitlGate$Companion;
+748:     #@f1
+750:     invoke-virtual {v0, v1}, Lcom/facebook/aura/gateway/HatchNodeHitlGate$Companion;->getInstance(LX/6QY;)Lcom/facebook/aura/gateway/HatchNodeHitlGate;
+754:     #@f4
+756:     move-result-object v0
+758:     #@f5
+760:     sget-object v12, Lcom/facebook/aura/nodes/core/NodeHitlRequestKind;->PROACTIVE_SYNC:Lcom/facebook/aura/nodes/core/NodeHitlRequestKind;
+763:     #@f7
+765:     const/4 v14, 0x0
+767:     #@f8
+769:     const/4 v15, 0x0
+771:     #@f9
+773:     new-instance v11, Lcom/facebook/aura/nodes/core/NodeHitlRequest;
+776:     #@fb
+778:     move-object/from16 v16, v14
+781:     #@fd
+783:     move-object/from16 v17, v14
+786:     #@ff
+788:     invoke-direct/range {v11 .. v17}, Lcom/facebook/aura/nodes/core/NodeHitlRequest;-><init>(Lcom/facebook/aura/nodes/core/NodeHitlRequestKind;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/Long;)V
+792:     #@102
+794:     iput-object v14, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$0:Ljava/lang/Object;
+797:     #@104
+799:     iput-object v1, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$1:Ljava/lang/Object;
+802:     #@106
+804:     iput-object v13, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$2:Ljava/lang/Object;
+807:     #@108
+809:     iput-object v8, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$3:Ljava/lang/Object;
+812:     #@10a
+814:     iput-object v2, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$4:Ljava/lang/Object;
+817:     #@10c
+819:     iput-object v14, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$5:Ljava/lang/Object;
+822:     #@10e
+824:     iput v10, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->label:I
+827:     #@110
+829:     invoke-virtual {v0, v9, v11, v6}, Lcom/facebook/aura/gateway/HatchNodeHitlGate;->check(Lcom/facebook/aura/nodes/core/NodeHitlSpec;Lcom/facebook/aura/nodes/core/NodeHitlRequest;LX/0Lb;)Ljava/lang/Object;
+833:     #@113
+835:     move-result-object v11
+837:     #@114
+839:     if-ne v11, v5, :cond_129
+842:     #@116
+844:     return-object v5
+846:     #@117
+848:     :cond_117
+849:     iget-object v2, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$4:Ljava/lang/Object;
+852:     #@119
+854:     check-cast v2, Lcom/facebook/aura/nodes/datasource/DataSource;
+857:     #@11b
+859:     iget-object v8, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$3:Ljava/lang/Object;
+862:     #@11d
+864:     check-cast v8, Lcom/facebook/aura/nodes/HatchNodeClient;
+867:     #@11f
+869:     iget-object v13, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$2:Ljava/lang/Object;
+872:     #@121
+874:     check-cast v13, Ljava/lang/String;
+877:     #@123
+879:     iget-object v0, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$1:Ljava/lang/Object;
+882:     #@125
+884:     invoke-static {v0, v11}, LX/91m;->A01(Ljava/lang/Object;Ljava/lang/Object;)LX/6QY;
+888:     #@128
+890:     move-result-object v1
+892:     #@129
+894:     :cond_129
+895:     instance-of v0, v11, Lcom/facebook/aura/nodes/core/NodeHitlResult$Denied;
+898:     #@12b
+900:     if-eqz v0, :cond_133
+903:     #@12d
+905:     :cond_12d
+906:     new-instance v5, LX/6Re;
+909:     #@12f
+911:     invoke-direct {v5}, LX/6Re;-><init>()V
+915:     #@132
+917:     return-object v5
+919:     #@133
+921:     :cond_133
+922:     invoke-static {}, LX/5wY;->A0k()Ljava/lang/String;
+926:     #@136
+928:     move-result-object v15
+930:     #@137
+932:     iget-object v0, v8, Lcom/facebook/aura/nodes/HatchNodeClient;->dataSourcePublishSink:Lcom/facebook/aura/nodes/datasource/DataSourcePublishSink;
+935:     #@139
+937:     const/4 v9, 0x0
+939:     #@13a
+941:     new-instance v14, Lcom/facebook/aura/nodes/datasource/DataSourceContext;
+944:     #@13c
+946:     move-object/from16 p0, v9
+949:     #@13e
+951:     move-object/from16 v16, v9
+954:     #@140
+956:     move-object/from16 v17, v1
+959:     #@142
+961:     move-object/from16 v18, v0
+964:     #@144
+966:     invoke-direct/range {v14 .. v19}, Lcom/facebook/aura/nodes/datasource/DataSourceContext;-><init>(Ljava/lang/String;Ljava/lang/String;LX/6QY;Lcom/facebook/aura/nodes/datasource/DataSourcePublishSink;Lcom/facebook/aura/nodes/datasource/InvokeResultAck;)V
+970:     #@147
+972:     sget-object v8, Lcom/facebook/aura/nodes/transport/HatchNodeOperationLease;->INSTANCE:Lcom/facebook/aura/nodes/transport/HatchNodeOperationLease;
+975:     #@149
+977:     const-string v0, "proactive_worker:"
+980:     #@14b
+982:     invoke-static {v0, v13}, LX/CAB;->A0X(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+986:     #@14e
+988:     move-result-object v0
+990:     #@14f
+992:     new-instance v15, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$syncResult$1;
+995:     #@151
+997:     move-object/from16 v16, v1
+1000:     #@153
+1002:     move-object/from16 v17, v7
+1005:     #@155
+1007:     move-object/from16 v18, v2
+1010:     #@157
+1012:     move-object/from16 p0, v14
+1015:     #@159
+1017:     move-object/from16 p1, v9
+1020:     #@15b
+1022:     invoke-direct/range {v15 .. v20}, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$syncResult$1;-><init>(LX/6QY;Lcom/facebook/aura/gateway/AuraProactiveSyncWorker;Lcom/facebook/aura/nodes/datasource/DataSource;Lcom/facebook/aura/nodes/datasource/DataSourceContext;LX/0Lb;)V
+1026:     #@15e
+1028:     iput-object v9, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$0:Ljava/lang/Object;
+1031:     #@160
+1033:     iput-object v9, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$1:Ljava/lang/Object;
+1036:     #@162
+1038:     iput-object v13, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$2:Ljava/lang/Object;
+1041:     #@164
+1043:     iput-object v9, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$3:Ljava/lang/Object;
+1046:     #@166
+1048:     iput-object v9, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$4:Ljava/lang/Object;
+1051:     #@168
+1053:     iput-object v9, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$5:Ljava/lang/Object;
+1056:     #@16a
+1058:     iput-object v9, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->L$6:Ljava/lang/Object;
+1061:     #@16c
+1063:     iput v4, v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;->label:I
+1066:     #@16e
+1068:     invoke-virtual {v8, v0, v15, v6}, Lcom/facebook/aura/nodes/transport/HatchNodeOperationLease;->withLease(Ljava/lang/String;LX/CJ9;LX/0Lb;)Ljava/lang/Object;
+1072:     #@171
+1074:     move-result-object v11
+1076:     #@172
+1078:     if-ne v11, v5, :cond_2e
+1081:     #@174
+1083:     return-object v5
+1085:     #@175
+1087:     :cond_175
+1088:     new-instance v6, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;
+1091:     #@177
+1093:     invoke-direct {v6, v7, v3}, Lcom/facebook/aura/gateway/AuraProactiveSyncWorker$doBackgroundWork$1;-><init>(Lcom/facebook/aura/gateway/AuraProactiveSyncWorker;LX/0Lb;)V
+1097:     #@17a
+1099:     goto/16 :goto_16
+1102:     #@17c
+1104:     :cond_17c
+1105:     invoke-static {}, LX/001;->A15()Lkotlin/NoWhenBranchMatchedException;
+1109:     #@17f
+1111:     move-result-object v0
+1113:     #@180
+1115:     throw v0
+1117:     #@181
+1119:     :cond_181
+1120:     invoke-static {}, LX/001;->A0t()Ljava/lang/IllegalStateException;
+1124:     #@184
+1126:     move-result-object v0
+1128:     #@185
+1130:     throw v0
+1131: .end method
+
+## extracted/release-audit-2026-09-27/android-smali/classes3.dex/com/facebook/aura/nodes/datasource/ProactiveSyncRunner.smali
+sha256: 5c81a3aa3a899a5f707205d139b1cf143c02e3c2d27b5d966224cc393f52e25f
+# Blank/debug line directives omitted. File line numbers and DEX code-unit offsets retained.
+338: .method public final run(Lcom/facebook/aura/nodes/datasource/DataSource;Ljava/lang/String;LX/6QY;Lcom/facebook/aura/nodes/datasource/DataSourcePublishSink;Lcom/facebook/aura/nodes/core/NodeHitlGate;Lcom/facebook/aura/nodes/datasource/ProactiveConnectionGate;LX/0Lb;)Ljava/lang/Object;
+339:     .registers 27
+340:     .annotation system Ldalvik/annotation/Signature;
+341:         value = {
+342:             "(",
+343:             "Lcom/facebook/aura/nodes/datasource/DataSource;",
+344:             "Ljava/lang/String;",
+345:             "LX/6QY;",
+346:             "Lcom/facebook/aura/nodes/datasource/DataSourcePublishSink;",
+347:             "Lcom/facebook/aura/nodes/core/NodeHitlGate;",
+348:             "Lcom/facebook/aura/nodes/datasource/ProactiveConnectionGate;",
+349:             "LX/0Lb<",
+350:             "-",
+351:             "Lcom/facebook/aura/nodes/datasource/DataSourceResult;",
+352:             ">;)",
+353:             "Ljava/lang/Object;"
+354:         }
+355:     .end annotation
+357:     #@0
+359:     move-object/from16 v12, p4
+362:     #@2
+364:     move-object/from16 v11, p6
+367:     #@4
+369:     move-object/from16 v6, p7
+372:     #@6
+374:     move-object/from16 v4, p3
+377:     #@8
+379:     move-object/from16 v3, p2
+382:     #@a
+384:     move-object/from16 v2, p1
+387:     #@c
+389:     instance-of v0, v6, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;
+392:     #@e
+394:     move-object/from16 v14, p0
+397:     #@10
+399:     if-eqz v0, :cond_42
+402:     #@12
+404:     move-object v10, v6
+406:     #@13
+408:     check-cast v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;
+411:     #@15
+413:     iget v5, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->label:I
+416:     #@17
+418:     const/high16 v1, -0x80000000
+421:     #@19
+423:     and-int v0, v5, v1
+426:     #@1b
+428:     if-eqz v0, :cond_42
+431:     #@1d
+433:     sub-int/2addr v5, v1
+435:     #@1e
+437:     iput v5, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->label:I
+440:     #@20
+442:     :goto_20
+443:     iget-object v1, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->result:Ljava/lang/Object;
+446:     #@22
+448:     sget-object v9, LX/0Pk;->A02:LX/0Pk;
+451:     #@24
+453:     iget v0, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->label:I
+456:     #@26
+458:     const/4 v8, 0x4
+460:     #@27
+462:     const/4 v7, 0x3
+464:     #@28
+466:     const/4 v6, 0x1
+468:     #@29
+470:     const/4 v5, 0x2
+472:     #@2a
+474:     const-string v16, "ProactiveSyncRunner"
+477:     #@2c
+479:     if-eqz v0, :cond_78
+482:     #@2e
+484:     if-eq v0, v6, :cond_b8
+487:     #@30
+489:     if-eq v0, v5, :cond_59
+492:     #@32
+494:     if-eq v0, v7, :cond_4d
+497:     #@34
+499:     if-ne v0, v8, :cond_48
+502:     #@36
+504:     iget v3, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->I$2:I
+507:     #@38
+509:     iget-object v6, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$8:Ljava/lang/Object;
+512:     #@3a
+514:     check-cast v6, LX/0Jf;
+517:     #@3c
+519:     iget-object v2, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$0:Ljava/lang/Object;
+522:     #@3e
+524:     check-cast v2, Lcom/facebook/aura/nodes/datasource/DataSource;
+527:     #@40
+529:     goto/16 :goto_1c8
+532:     #@42
+534:     :cond_42
+535:     new-instance v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;
+538:     #@44
+540:     invoke-direct {v10, v14, v6}, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;-><init>(Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner;LX/0Lb;)V
+544:     #@47
+546:     goto :goto_20
+548:     #@48
+550:     :cond_48
+551:     invoke-static {}, LX/001;->A0t()Ljava/lang/IllegalStateException;
+555:     #@4b
+557:     move-result-object v0
+559:     #@4c
+561:     throw v0
+563:     #@4d
+565:     :cond_4d
+566:     iget v3, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->I$2:I
+569:     #@4f
+571:     iget-object v6, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$8:Ljava/lang/Object;
+574:     #@51
+576:     check-cast v6, LX/0Jf;
+579:     #@53
+581:     iget-object v2, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$0:Ljava/lang/Object;
+584:     #@55
+586:     check-cast v2, Lcom/facebook/aura/nodes/datasource/DataSource;
+589:     #@57
+591:     goto/16 :goto_1ce
+594:     #@59
+596:     :cond_59
+597:     iget v0, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->I$0:I
+600:     #@5b
+602:     iget-object v6, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$8:Ljava/lang/Object;
+605:     #@5d
+607:     check-cast v6, LX/0Jf;
+610:     #@5f
+612:     iget-object v11, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$5:Ljava/lang/Object;
+615:     #@61
+617:     check-cast v11, Lcom/facebook/aura/nodes/datasource/ProactiveConnectionGate;
+620:     #@63
+622:     iget-object v12, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$3:Ljava/lang/Object;
+625:     #@65
+627:     check-cast v12, Lcom/facebook/aura/nodes/datasource/DataSourcePublishSink;
+630:     #@67
+632:     iget-object v4, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$2:Ljava/lang/Object;
+635:     #@69
+637:     check-cast v4, LX/6QY;
+640:     #@6b
+642:     iget-object v3, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$1:Ljava/lang/Object;
+645:     #@6d
+647:     check-cast v3, Ljava/lang/String;
+650:     #@6f
+652:     iget-object v2, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$0:Ljava/lang/Object;
+655:     #@71
+657:     check-cast v2, Lcom/facebook/aura/nodes/datasource/DataSource;
+660:     #@73
+662:     invoke-static {v1}, LX/91m;->A02(Ljava/lang/Object;)V
+666:     #@76
+668:     goto/16 :goto_12a
+671:     #@78
+673:     :cond_78
+674:     invoke-static {v1}, LX/91m;->A02(Ljava/lang/Object;)V
+678:     #@7b
+680:     sget-object v1, Lcom/facebook/aura/nodes/core/NodeHitlCatalog;->INSTANCE:Lcom/facebook/aura/nodes/core/NodeHitlCatalog;
+683:     #@7d
+685:     invoke-interface {v2}, Lcom/facebook/aura/nodes/datasource/DataSource;->getSourceId()Ljava/lang/String;
+689:     #@80
+691:     move-result-object v0
+693:     #@81
+695:     invoke-virtual {v1, v0}, Lcom/facebook/aura/nodes/core/NodeHitlCatalog;->forDataSource(Ljava/lang/String;)Lcom/facebook/aura/nodes/core/NodeHitlSpec;
+699:     #@84
+701:     move-result-object v1
+703:     #@85
+705:     if-eqz v1, :cond_d4
+708:     #@87
+710:     sget-object v18, Lcom/facebook/aura/nodes/core/NodeHitlRequestKind;->PROACTIVE_SYNC:Lcom/facebook/aura/nodes/core/NodeHitlRequestKind;
+713:     #@89
+715:     invoke-interface {v2}, Lcom/facebook/aura/nodes/datasource/DataSource;->getSourceId()Ljava/lang/String;
+719:     #@8c
+721:     move-result-object p0
+723:     #@8d
+725:     const/4 v0, 0x0
+727:     #@8e
+729:     const/16 p2, 0x0
+732:     #@90
+734:     new-instance v13, Lcom/facebook/aura/nodes/core/NodeHitlRequest;
+737:     #@92
+739:     move-object/from16 p3, v0
+742:     #@94
+744:     move-object/from16 p4, v0
+747:     #@96
+749:     move-object/from16 p1, v0
+752:     #@98
+754:     move-object/from16 v17, v13
+757:     #@9a
+759:     invoke-direct/range {v17 .. v23}, Lcom/facebook/aura/nodes/core/NodeHitlRequest;-><init>(Lcom/facebook/aura/nodes/core/NodeHitlRequestKind;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/Long;)V
+763:     #@9d
+765:     iput-object v2, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$0:Ljava/lang/Object;
+768:     #@9f
+770:     iput-object v3, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$1:Ljava/lang/Object;
+773:     #@a1
+775:     iput-object v4, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$2:Ljava/lang/Object;
+778:     #@a3
+780:     iput-object v12, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$3:Ljava/lang/Object;
+783:     #@a5
+785:     iput-object v0, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$4:Ljava/lang/Object;
+788:     #@a7
+790:     iput-object v11, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$5:Ljava/lang/Object;
+793:     #@a9
+795:     iput-object v0, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$6:Ljava/lang/Object;
+798:     #@ab
+800:     iput-object v0, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$7:Ljava/lang/Object;
+803:     #@ad
+805:     iput v6, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->label:I
+808:     #@af
+810:     move-object/from16 v0, p5
+813:     #@b1
+815:     invoke-interface {v0, v1, v13, v10}, Lcom/facebook/aura/nodes/core/NodeHitlGate;->check(Lcom/facebook/aura/nodes/core/NodeHitlSpec;Lcom/facebook/aura/nodes/core/NodeHitlRequest;LX/0Lb;)Ljava/lang/Object;
+819:     #@b4
+821:     move-result-object v1
+823:     #@b5
+825:     if-ne v1, v9, :cond_cf
+828:     #@b7
+830:     return-object v9
+832:     #@b8
+834:     :cond_b8
+835:     iget-object v11, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$5:Ljava/lang/Object;
+838:     #@ba
+840:     check-cast v11, Lcom/facebook/aura/nodes/datasource/ProactiveConnectionGate;
+843:     #@bc
+845:     iget-object v12, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$3:Ljava/lang/Object;
+848:     #@be
+850:     check-cast v12, Lcom/facebook/aura/nodes/datasource/DataSourcePublishSink;
+853:     #@c0
+855:     iget-object v4, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$2:Ljava/lang/Object;
+858:     #@c2
+860:     check-cast v4, LX/6QY;
+863:     #@c4
+865:     iget-object v3, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$1:Ljava/lang/Object;
+868:     #@c6
+870:     check-cast v3, Ljava/lang/String;
+873:     #@c8
+875:     iget-object v2, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$0:Ljava/lang/Object;
+878:     #@ca
+880:     check-cast v2, Lcom/facebook/aura/nodes/datasource/DataSource;
+883:     #@cc
+885:     invoke-static {v1}, LX/91m;->A02(Ljava/lang/Object;)V
+889:     #@cf
+891:     :cond_cf
+892:     instance-of v0, v1, Lcom/facebook/aura/nodes/core/NodeHitlResult$Denied;
+895:     #@d1
+897:     if-eqz v0, :cond_d4
+900:     #@d3
+902:     goto :goto_fd
+904:     #@d4
+906:     :cond_d4
+907:     invoke-interface {v2}, Lcom/facebook/aura/nodes/datasource/DataSource;->getPermissionRequired()Ljava/util/List;
+911:     #@d7
+913:     move-result-object v0
+915:     #@d8
+917:     invoke-interface {v0}, Ljava/util/List;->iterator()Ljava/util/Iterator;
+921:     #@db
+923:     move-result-object v13
+925:     #@dc
+927:     :cond_dc
+928:     invoke-interface {v13}, Ljava/util/Iterator;->hasNext()Z
+932:     #@df
+934:     move-result v0
+936:     #@e0
+938:     if-eqz v0, :cond_103
+941:     #@e2
+943:     invoke-interface {v13}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+947:     #@e5
+949:     move-result-object v6
+951:     #@e6
+953:     move-object v1, v6
+955:     #@e7
+957:     check-cast v1, Ljava/lang/String;
+960:     #@e9
+962:     const-string v0, "android.permission."
+965:     #@eb
+967:     invoke-static {v1, v0}, LX/3Si;->A1P(Ljava/lang/String;Ljava/lang/String;)Z
+971:     #@ee
+973:     move-result v0
+975:     #@ef
+977:     if-eqz v0, :cond_dc
+980:     #@f1
+982:     invoke-static {}, LX/90T;->A00()Landroid/app/Application;
+986:     #@f4
+988:     move-result-object v0
+990:     #@f5
+992:     invoke-virtual {v0, v1}, Landroid/content/Context;->checkSelfPermission(Ljava/lang/String;)I
+996:     #@f8
+998:     move-result v0
+1000:     #@f9
+1002:     if-eqz v0, :cond_dc
+1005:     #@fb
+1007:     if-eqz v6, :cond_103
+1010:     #@fd
+1012:     :goto_fd
+1013:     invoke-interface {v2}, Lcom/facebook/aura/nodes/datasource/DataSource;->getSourceId()Ljava/lang/String;
+1017:     #@100
+1019:     sget-object v1, Lcom/facebook/aura/nodes/datasource/DataSourceResult$Ok;->INSTANCE:Lcom/facebook/aura/nodes/datasource/DataSourceResult$Ok;
+1022:     #@102
+1024:     return-object v1
+1026:     #@103
+1028:     :cond_103
+1029:     invoke-interface {v2}, Lcom/facebook/aura/nodes/datasource/DataSource;->getSourceId()Ljava/lang/String;
+1033:     #@106
+1035:     move-result-object v0
+1037:     #@107
+1039:     invoke-direct {v14, v0}, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner;->lockFor(Ljava/lang/String;)LX/0Jf;
+1043:     #@10a
+1045:     move-result-object v6
+1047:     #@10b
+1049:     iput-object v2, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$0:Ljava/lang/Object;
+1052:     #@10d
+1054:     iput-object v3, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$1:Ljava/lang/Object;
+1057:     #@10f
+1059:     iput-object v4, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$2:Ljava/lang/Object;
+1062:     #@111
+1064:     iput-object v12, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$3:Ljava/lang/Object;
+1067:     #@113
+1069:     const/4 v1, 0x0
+1071:     #@114
+1073:     iput-object v1, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$4:Ljava/lang/Object;
+1076:     #@116
+1078:     iput-object v11, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$5:Ljava/lang/Object;
+1081:     #@118
+1083:     iput-object v1, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$6:Ljava/lang/Object;
+1086:     #@11a
+1088:     iput-object v1, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$7:Ljava/lang/Object;
+1091:     #@11c
+1093:     iput-object v6, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$8:Ljava/lang/Object;
+1096:     #@11e
+1098:     const/4 v0, 0x0
+1100:     #@11f
+1102:     iput v0, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->I$0:I
+1105:     #@121
+1107:     iput v5, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->label:I
+1110:     #@123
+1112:     invoke-interface {v6, v1, v10}, LX/0Jf;->AO7(Ljava/lang/Object;LX/0Lb;)Ljava/lang/Object;
+1116:     #@126
+1118:     move-result-object v1
+1120:     #@127
+1122:     if-ne v1, v9, :cond_12a
+1125:     #@129
+1127:     return-object v9
+1129:     #@12a
+1131:     :cond_12a
+1132:     :goto_12a
+1133:     :try_start_12a
+1134:     invoke-interface {v2}, Lcom/facebook/aura/nodes/datasource/DataSource;->getProactiveDelivery()Lcom/facebook/aura/nodes/datasource/ProactiveDelivery;
+1138:     #@12d
+1140:     move-result-object v1
+1142:     #@12e
+1144:     sget-object v14, Lcom/facebook/aura/nodes/datasource/ProactiveDelivery;->TRANSIENT:Lcom/facebook/aura/nodes/datasource/ProactiveDelivery;
+1147:     #@130
+1149:     if-ne v1, v14, :cond_13f
+1152:     #@132
+1154:     invoke-interface {v11}, Lcom/facebook/aura/nodes/datasource/ProactiveConnectionGate;->isConnected()Z
+1158:     #@135
+1160:     move-result v1
+1162:     #@136
+1164:     if-nez v1, :cond_13f
+1167:     #@138
+1169:     invoke-interface {v2}, Lcom/facebook/aura/nodes/datasource/DataSource;->getSourceId()Ljava/lang/String;
+1173:     #@13b
+1175:     sget-object v1, Lcom/facebook/aura/nodes/datasource/DataSourceResult$Ok;->INSTANCE:Lcom/facebook/aura/nodes/datasource/DataSourceResult$Ok;
+1178:     #@13d
+1180:     goto/16 :goto_210
+1183:     #@13f
+1185:     :cond_13f
+1186:     const/4 v13, 0x0
+1188:     #@140
+1190:     new-instance v5, Lcom/facebook/aura/nodes/datasource/DataSourceContext;
+1193:     #@142
+1195:     move-object/from16 v17, v5
+1198:     #@144
+1200:     move-object/from16 v18, v3
+1203:     #@146
+1205:     move-object/from16 p0, v13
+1208:     #@148
+1210:     move-object/from16 p1, v4
+1213:     #@14a
+1215:     move-object/from16 p2, v12
+1218:     #@14c
+1220:     move-object/from16 p3, v13
+1223:     #@14e
+1225:     invoke-direct/range {v17 .. v22}, Lcom/facebook/aura/nodes/datasource/DataSourceContext;-><init>(Ljava/lang/String;Ljava/lang/String;LX/6QY;Lcom/facebook/aura/nodes/datasource/DataSourcePublishSink;Lcom/facebook/aura/nodes/datasource/InvokeResultAck;)V
+1229:     #@151
+1231:     sget-object v15, Lcom/facebook/aura/perf/HatchNodeQplLogger;->INSTANCE:Lcom/facebook/aura/perf/HatchNodeQplLogger;
+1234:     #@153
+1236:     invoke-interface {v2}, Lcom/facebook/aura/nodes/datasource/DataSource;->getSourceId()Ljava/lang/String;
+1240:     #@156
+1242:     move-result-object v12
+1244:     #@157
+1246:     sget-object v3, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner;->INSTANCE:Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner;
+1249:     #@159
+1251:     invoke-interface {v2}, Lcom/facebook/aura/nodes/datasource/DataSource;->getProactiveTrigger()Lcom/facebook/aura/nodes/datasource/ProactiveTrigger;
+1255:     #@15c
+1257:     move-result-object v1
+1259:     #@15d
+1261:     invoke-direct {v3, v1}, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner;->triggerTypeValue(Lcom/facebook/aura/nodes/datasource/ProactiveTrigger;)Ljava/lang/String;
+1265:     #@160
+1267:     move-result-object v3
+1269:     #@161
+1271:     check-cast v4, LX/8Cd;
+1274:     #@163
+1276:     iget-object v1, v4, LX/8Cd;->A01:Ljava/lang/String;
+1279:     #@165
+1281:     invoke-virtual {v15, v12, v3, v1}, Lcom/facebook/aura/perf/HatchNodeQplLogger;->startProactiveSync(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
+1285:     #@168
+1287:     move-result v3
+1288:     :try_end_169
+1289:     .catchall {:try_start_12a .. :try_end_169} :catchall_228
+1291:     #@169
+1293:     :try_start_169
+1294:     invoke-interface {v2}, Lcom/facebook/aura/nodes/datasource/DataSource;->getProactiveDelivery()Lcom/facebook/aura/nodes/datasource/ProactiveDelivery;
+1298:     #@16c
+1300:     move-result-object v1
+1302:     #@16d
+1304:     if-ne v1, v14, :cond_193
+1307:     #@16f
+1309:     iput-object v2, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$0:Ljava/lang/Object;
+1312:     #@171
+1314:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$1:Ljava/lang/Object;
+1317:     #@173
+1319:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$2:Ljava/lang/Object;
+1322:     #@175
+1324:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$3:Ljava/lang/Object;
+1327:     #@177
+1329:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$4:Ljava/lang/Object;
+1332:     #@179
+1334:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$5:Ljava/lang/Object;
+1337:     #@17b
+1339:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$6:Ljava/lang/Object;
+1342:     #@17d
+1344:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$7:Ljava/lang/Object;
+1347:     #@17f
+1349:     iput-object v6, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$8:Ljava/lang/Object;
+1352:     #@181
+1354:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$9:Ljava/lang/Object;
+1357:     #@183
+1359:     iput v0, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->I$0:I
+1362:     #@185
+1364:     const/4 v0, 0x0
+1366:     #@186
+1368:     iput v0, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->I$1:I
+1371:     #@188
+1373:     iput v3, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->I$2:I
+1376:     #@18a
+1378:     iput v7, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->label:I
+1381:     #@18c
+1383:     invoke-interface {v2, v5, v10}, Lcom/facebook/aura/nodes/datasource/DataSource;->proactiveSync(Lcom/facebook/aura/nodes/datasource/DataSourceContext;LX/0Lb;)Ljava/lang/Object;
+1387:     #@18f
+1389:     move-result-object v1
+1391:     #@190
+1393:     if-ne v1, v9, :cond_1d1
+1396:     #@192
+1398:     return-object v9
+1400:     #@193
+1402:     :cond_193
+1403:     sget-object v7, Lcom/facebook/aura/nodes/transport/HatchNodeOperationLease;->INSTANCE:Lcom/facebook/aura/nodes/transport/HatchNodeOperationLease;
+1406:     #@195
+1408:     invoke-interface {v2}, Lcom/facebook/aura/nodes/datasource/DataSource;->getSourceId()Ljava/lang/String;
+1412:     #@198
+1414:     move-result-object v4
+1416:     #@199
+1418:     const-string v1, "proactive:"
+1421:     #@19b
+1423:     invoke-static {v1, v4}, LX/CAB;->A0X(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+1427:     #@19e
+1429:     move-result-object v4
+1431:     #@19f
+1433:     new-instance v1, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$2$result$1;
+1436:     #@1a1
+1438:     invoke-direct {v1, v11, v2, v5, v13}, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$2$result$1;-><init>(Lcom/facebook/aura/nodes/datasource/ProactiveConnectionGate;Lcom/facebook/aura/nodes/datasource/DataSource;Lcom/facebook/aura/nodes/datasource/DataSourceContext;LX/0Lb;)V
+1442:     #@1a4
+1444:     iput-object v2, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$0:Ljava/lang/Object;
+1447:     #@1a6
+1449:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$1:Ljava/lang/Object;
+1452:     #@1a8
+1454:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$2:Ljava/lang/Object;
+1457:     #@1aa
+1459:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$3:Ljava/lang/Object;
+1462:     #@1ac
+1464:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$4:Ljava/lang/Object;
+1467:     #@1ae
+1469:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$5:Ljava/lang/Object;
+1472:     #@1b0
+1474:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$6:Ljava/lang/Object;
+1477:     #@1b2
+1479:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$7:Ljava/lang/Object;
+1482:     #@1b4
+1484:     iput-object v6, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$8:Ljava/lang/Object;
+1487:     #@1b6
+1489:     iput-object v13, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->L$9:Ljava/lang/Object;
+1492:     #@1b8
+1494:     iput v0, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->I$0:I
+1497:     #@1ba
+1499:     const/4 v0, 0x0
+1501:     #@1bb
+1503:     iput v0, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->I$1:I
+1506:     #@1bd
+1508:     iput v3, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->I$2:I
+1511:     #@1bf
+1513:     iput v8, v10, Lcom/facebook/aura/nodes/datasource/ProactiveSyncRunner$run$1;->label:I
+1516:     #@1c1
+1518:     invoke-virtual {v7, v4, v1, v10}, Lcom/facebook/aura/nodes/transport/HatchNodeOperationLease;->withLease(Ljava/lang/String;LX/CJ9;LX/0Lb;)Ljava/lang/Object;
+1522:     #@1c4
+1524:     move-result-object v1
+1526:     #@1c5
+1528:     if-ne v1, v9, :cond_1cb
+1531:     #@1c7
+1533:     return-object v9
+1535:     #@1c8
+1537:     :goto_1c8
+1538:     invoke-static {v1}, LX/91m;->A02(Ljava/lang/Object;)V
+1542:     #@1cb
+1544:     :cond_1cb
+1545:     check-cast v1, Lcom/facebook/aura/nodes/datasource/DataSourceResult;
+1548:     #@1cd
+1550:     goto :goto_1d3
+1552:     #@1ce
+1554:     :goto_1ce
+1555:     invoke-static {v1}, LX/91m;->A02(Ljava/lang/Object;)V
+1559:     #@1d1
+1561:     :cond_1d1
+1562:     check-cast v1, Lcom/facebook/aura/nodes/datasource/DataSourceResult;
+1565:     #@1d3
+1567:     :goto_1d3
+1568:     instance-of v0, v1, Lcom/facebook/aura/nodes/datasource/DataSourceResult$Error;
+1571:     #@1d5
+1573:     if-eqz v0, :cond_1f6
+1576:     #@1d7
+1578:     invoke-interface {v2}, Lcom/facebook/aura/nodes/datasource/DataSource;->getSourceId()Ljava/lang/String;
+1582:     #@1da
+1584:     move-result-object v7
+1586:     #@1db
+1588:     move-object v5, v1
+1590:     #@1dc
+1592:     check-cast v5, Lcom/facebook/aura/nodes/datasource/DataSourceResult$Error;
+1595:     #@1de
+1597:     iget-object v4, v5, Lcom/facebook/aura/nodes/datasource/DataSourceResult$Error;->code:Ljava/lang/String;
+1600:     #@1e0
+1602:     const-string v2, "proactiveSync failed source="
+1605:     #@1e2
+1607:     const-string v0, " code="
+1610:     #@1e4
+1612:     invoke-static {v2, v7, v0, v4}, LX/CAB;->A0o(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+1616:     #@1e7
+1618:     move-result-object v2
+1620:     #@1e8
+1622:     move-object/from16 v0, v16
+1625:     #@1ea
+1627:     invoke-static {v0, v2}, LX/80o;->A06(Ljava/lang/String;Ljava/lang/String;)V
+1631:     #@1ed
+1633:     sget-object v4, Lcom/facebook/aura/perf/HatchNodeQplLogger;->INSTANCE:Lcom/facebook/aura/perf/HatchNodeQplLogger;
+1636:     #@1ef
+1638:     iget-object v2, v5, Lcom/facebook/aura/nodes/datasource/DataSourceResult$Error;->code:Ljava/lang/String;
+1641:     #@1f1
+1643:     const/4 v0, 0x0
+1645:     #@1f2
+1647:     invoke-virtual {v4, v3, v2, v0}, Lcom/facebook/aura/perf/HatchNodeQplLogger;->proactiveFailure(ILjava/lang/String;Ljava/lang/Throwable;)V
+1651:     #@1f5
+1653:     goto :goto_210
+1655:     #@1f6
+1657:     :cond_1f6
+1658:     sget-object v0, Lcom/facebook/aura/nodes/datasource/DataSourceResult$Ok;->INSTANCE:Lcom/facebook/aura/nodes/datasource/DataSourceResult$Ok;
+1661:     #@1f8
+1663:     invoke-static {v1, v0}, LX/C4k;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
+1667:     #@1fb
+1669:     move-result v0
+1671:     #@1fc
+1673:     if-nez v0, :cond_20b
+1676:     #@1fe
+1678:     sget-object v0, Lcom/facebook/aura/nodes/datasource/DataSourceResult$AlreadyReplied;->INSTANCE:Lcom/facebook/aura/nodes/datasource/DataSourceResult$AlreadyReplied;
+1681:     #@200
+1683:     invoke-static {v1, v0}, LX/C4k;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
+1687:     #@203
+1689:     move-result v0
+1691:     #@204
+1693:     if-nez v0, :cond_20b
+1696:     #@206
+1698:     invoke-static {}, LX/001;->A15()Lkotlin/NoWhenBranchMatchedException;
+1702:     #@209
+1704:     move-result-object v0
+1706:     #@20a
+1708:     throw v0
+1710:     #@20b
+1712:     :cond_20b
+1713:     sget-object v0, Lcom/facebook/aura/perf/HatchNodeQplLogger;->INSTANCE:Lcom/facebook/aura/perf/HatchNodeQplLogger;
+1716:     #@20d
+1718:     invoke-virtual {v0, v3}, Lcom/facebook/aura/perf/HatchNodeQplLogger;->proactiveSuccess(I)V
+1719:     :try_end_210
+1720:     .catch Ljava/util/concurrent/CancellationException; {:try_start_169 .. :try_end_210} :catch_217
+1721:     .catchall {:try_start_169 .. :try_end_210} :catchall_215
+1725:     #@210
+1727:     :goto_210
+1728:     const/4 v0, 0x0
+1730:     #@211
+1732:     invoke-interface {v6, v0}, LX/0Jf;->AfN(Ljava/lang/Object;)V
+1736:     #@214
+1738:     return-object v1
+1740:     #@215
+1742:     :catchall_215
+1743:     move-exception v2
+1745:     #@216
+1747:     goto :goto_220
+1749:     #@217
+1751:     :catch_217
+1752:     move-exception v2
+1754:     #@218
+1756:     :try_start_218
+1757:     sget-object v1, Lcom/facebook/aura/perf/HatchNodeQplLogger;->INSTANCE:Lcom/facebook/aura/perf/HatchNodeQplLogger;
+1760:     #@21a
+1762:     const-string v0, "cancelled"
+1765:     #@21c
+1767:     invoke-virtual {v1, v3, v0}, Lcom/facebook/aura/perf/HatchNodeQplLogger;->proactiveCancelled(ILjava/lang/String;)V
+1771:     #@21f
+1773:     goto :goto_227
+1775:     #@220
+1777:     :goto_220
+1778:     sget-object v1, Lcom/facebook/aura/perf/HatchNodeQplLogger;->INSTANCE:Lcom/facebook/aura/perf/HatchNodeQplLogger;
+1781:     #@222
+1783:     const-string v0, "internal_error"
+1786:     #@224
+1788:     invoke-virtual {v1, v3, v0, v2}, Lcom/facebook/aura/perf/HatchNodeQplLogger;->proactiveFailure(ILjava/lang/String;Ljava/lang/Throwable;)V
+1792:     #@227
+1794:     :goto_227
+1795:     throw v2
+1796:     :try_end_228
+1797:     .catchall {:try_start_218 .. :try_end_228} :catchall_228
+1799:     #@228
+1801:     :catchall_228
+1802:     move-exception v1
+1804:     #@229
+1806:     const/4 v0, 0x0
+1808:     #@22a
+1810:     invoke-interface {v6, v0}, LX/0Jf;->AfN(Ljava/lang/Object;)V
+1814:     #@22d
+1816:     throw v1
+1817: .end method

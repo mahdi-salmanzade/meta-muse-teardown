@@ -1,0 +1,48 @@
+{
+  "review_date": "2026-09-27",
+  "macos": {
+    "source": "https://www.facebook.com/endo/release/appcast.xml?channel=production",
+    "saved_at_utc": "2026-09-26T22:28:23.034689+00:00",
+    "raw_sha256": "71f3bf5fbb68deae786bd6ee639d107b6884246af3a82782f6161391980b2d3d",
+    "items": [
+      {
+        "version": "4.1",
+        "build": "1077426479",
+        "published": "Fri, 25 Sep 2026 15:20:49 -0700",
+        "bytes": 35748449,
+        "ed25519_signature": "O12Ea4GaiEcKDZ4lp8t+AxlE1PO1g0ADlc8IgbXCsU9zomynU5rx9/vXFkR+xAti9qw8eBU/tpRUb93S4iRrDQ=="
+      }
+    ],
+    "note": "Transient signed CDN download URL omitted. Artifact signature verification is in 02."
+  },
+  "ios_web": {
+    "source": "https://apps.apple.com/us/app/muse-from-meta/id6760173601",
+    "saved_at_utc": "2026-09-26T22:30:36.773353+00:00",
+    "raw_sha256": "b3c198a3527ee9ed8b465faa6b5b41d28d139edbd94ec57824551097b940973f",
+    "latest_version_shelf": [
+      {
+        "primarySubtitle": "Version 9.0",
+        "secondarySubtitle": "Sat Sep 26 2026 18:41:05 GMT+0000 (Coordinated Universal Time)",
+        "text": "Muse now works with more of your favorite apps, so your personal agent can do more for you."
+      }
+    ]
+  },
+  "ios_lookup": {
+    "source": "https://itunes.apple.com/lookup?id=6760173601&country=us",
+    "saved_at_utc": "2026-09-26T22:30:13.149426+00:00",
+    "raw_sha256": "05127322d115bf488b6b7b6c78e7885a9493ef742ebaeed03db9d91b84dd0b5e",
+    "fields": {
+      "trackId": 6760173601,
+      "bundleId": "com.facebook.hatch",
+      "version": "8.1",
+      "currentVersionReleaseDate": "2026-09-23T01:47:36Z"
+    }
+  },
+  "ios_limit": "Website lists 9.0; lookup API returned 8.1. No 9.0 IPA acquired or audited; cannot establish every regional/account rollout.",
+  "android": {
+    "acquisition": "https://d.apkpure.net/b/APK/com.facebook.aura?versionCode=1061401140",
+    "saved_at_utc": "2026-09-26T22:34:49.902022+00:00",
+    "corroborating_catalog": "https://com-facebook-aura.en.uptodown.com/android",
+    "note": "Third-party artifact, version/signature independently inspected in 03. Not claimed to be the newest build in every Play rollout."
+  }
+}
