@@ -1,12 +1,23 @@
 # Muse for Android (`com.facebook.aura` 8.0.0.21.168)
 
-**Update, 27 September:** [Android 9.0.0.11.178 follow-up](RELEASE-AUDIT-2026-09-27.md#3-what-changed-on-android) verifies the newer APK, compares its unchanged permissions and checks selected approval/publishing paths in DEX instructions. The report below remains the original 8.0 baseline.
+**Muse asks permission, but on Android the permission decides when your data goes to Meta, not whether it ends up there.** The agent does not run on your phone. It runs in a Meta-hosted VM. Everything it reads for you comes back to that VM as a tool result (`client.invoke.result`). Everything it keeps in sync is published to the VM gateway (`client.data_source.publish`). That is the product working as designed, not a bug.
 
-Static review of the supplied Android APK: **SMS, call logs, notification access, background location and 19 Health Connect data-category permissions**, with an approval-gated background publishing pipeline. These are shipped capabilities, not observed uploads. OS grants, user settings and account configuration still matter.
+The Android app is built to read and upload:
 
-**Reviewed 2026-09-24.** JADX output includes decompilation warnings, so control-flow conclusions are qualified; the app was never installed or run.
+- **SMS and call logs**, with ongoing sync after you connect.
+- **Notifications from all apps by default**, once Notification access is granted: app, title, body and sender.
+- **19 Health Connect data categories**, plus the extra permissions for older history and background reads.
+- **Background location**, with geofence crossings that publish coordinates.
+- **Contacts and calendar**, with ongoing sync.
+- **History backfill** for SMS, call log, contacts, calendar and health. In the 9.0 audit the server-sent start date has **no lower bound**, while the Messages, Call Log and Health consent sheets say "shared after you connect".
 
-[**iOS**](IOS.md) · [**macOS**](README.md) · [**Android**](ANDROID.md) · [**All evidence**](EVIDENCE.md)
+Once the data is there, the app's own text says previous data shared "won't be removed unless you choose to delete it" when you disconnect, deleted messages "may stay in the agent's memory", connector info is part of interactions Meta "may use to improve AI", and granting support access means "your data will no longer be confidential". The client training switch falls back to on. The gates are weaker than they look: a server-supplied account baseline decides whether reads run without a prompt, location and network-state paths have no Muse approval step, and the in-app per-source sync switch defaults on with no code path that turns it off; the only in-app control left is the per-category approval mode (9.0 audit). Consent is also one person's. SMS threads, call logs, contacts and notifications describe other people who never agreed.
+
+**Assessment:** Muse is spyware by design. The conclusion and the audit's limits are in [§8](#8-summary).
+
+**Reviewed 2026-09-24** against the 8.0 APK. JADX output includes decompilation warnings, so control-flow conclusions are qualified; the app was never installed or run. **27 September:** the [9.0.0.11.178 follow-up](RELEASE-AUDIT-2026-09-27.md#3-what-changed-on-android) and the [spyware audit](SPYWARE-VERDICT-2026-09-27.md) checked the newer APK at the byte and DEX-instruction level. Where they correct or extend this file, the text is marked **9.0 audit**. Those notes come from 9.0; the rest of this file documents 8.0.
+
+[**iOS**](IOS.md) · [**macOS**](README.md) · [**Android**](ANDROID.md) · [**All evidence**](EVIDENCE.md) · [**Spyware verdict**](SPYWARE-VERDICT-2026-09-27.md)
 
 ---
 
@@ -23,6 +34,8 @@ Static review of the supplied Android APK: **SMS, call logs, notification access
 | Source Stamp | Verified, signed by Google (`CN=Android, O=Google Inc.`), consistent with Google Play distribution |
 
 APK v3 integrity and the source stamp verify. The displayed certificate identity is Meta; its subject name alone is not an independent trust anchor. This review has not compared the signing key against a separately obtained official-store copy ([`01-signature.txt`](evidence-android/01-signature.txt)).
+
+**9.0 audit:** every byte of the 9.0 APK is accounted for, both code-transparency signatures verify (41/41 and 44/44 files), the signing certificate matches this 8.0 sample, and no dynamic code loading or downloaded modules were found ([spyware audit §1](SPYWARE-VERDICT-2026-09-27.md#1-integrity-every-byte-accounted-for)).
 
 ## 2. Permissions
 
@@ -71,6 +84,8 @@ network.state          background.session
 
 Many command categories belong to an approval ("human-in-the-loop") group in `nodes/core/NodeHitlGroup.java`: `SMS`, `SMS_SEND`, `CALL_LOG`, `PHONE_CALL`, `NOTIFICATIONS`, `LOCATION`, `HEALTH`, `PHOTOS`, `CONTACTS`, `CALENDAR`, … Where a category mapping exists, saved permissions and the baseline determine whether approval is needed. Mapped **proactive sync** paths use the gate as `NodeHitlRequestKind.PROACTIVE_SYNC` (`nodes/datasource/ProactiveSyncRunner.java`). If no permission default is cached, `HatchNodeHitlGate` **fails closed to `ALWAYS_ASK`** ([`10-review-corrections.txt`](evidence-android/10-review-corrections.txt)). The inspected gate allows persisted allowed modes, denies denied modes, and returns a denial for proactive requests that would otherwise need a prompt. This is evidence of permission checks, not a runtime proof of every path or default.
 
+**9.0 audit:** an unset category resolves by access type. Unset **reads** resolve to allow; unset **writes** resolve to ask. The server baseline can only turn an allowed read into ask, never relax a write. So sending SMS, placing calls, acting on notifications and editing contacts or calendar prompt unless the user chose "allow". Reading SMS, call logs, contacts, calendar, notifications and (once the server flag is on) photos does not prompt when the category is unset and the baseline is `auto_allow`.
+
 ### Which background paths the gate actually covers
 
 The reviewed background publish paths ([`13-publish-path-gating.txt`](evidence-android/13-publish-path-gating.txt)) show **the gate isn't enforced at the network sink**. Each caller checks it only if `NodeHitlCatalog.forDataSource()` returns a spec, and it does so for **six sources only**: `health`, `contacts`, `calendar`, `call_log`, `sms`, `notifications` (`nodes/core/NodeHitlCatalog.java`). The `LOCATION` approval group exists, but no data source is mapped to it.
@@ -81,10 +96,17 @@ The reviewed background publish paths ([`13-publish-path-gating.txt`](evidence-a
 | Health sync | Health Connect changes | **yes** (once the gateway is attached) | health samples |
 | Notification listener → `publishNow` | posted notifications, subject to access/filtering | **yes** | notification content |
 | **Geofence crossing** → `LocationDataSource.publishNow` | entering/leaving a geofence | **no** | **latitude, longitude, timestamp, geofence name** |
-| **`network_state`** proactive sync | network change, app attach, boot | **no** | **Wi-Fi SSID, BSSID**, RSSI, link speed, **carrier name**, roaming, VPN on/off |
-| `battery` | power broadcasts | **no** | battery state |
-| `data_source.backfill` | agent/server command | yes | history |
+| **`location.get`** command (9.0 audit) | agent/server command | **no** (Android location permission only) | current location |
+| **`network_state`** proactive sync | 8.0: network change, app attach, boot. 9.0: app open, gateway connected | **no** | **Wi-Fi SSID, BSSID**, RSSI, link speed, **carrier name**, roaming, VPN on/off |
+| `battery` | 8.0: power broadcasts. 9.0: app open | **no** | battery state |
+| `data_source.backfill` | agent/server command | yes; silent when the category is unset and the baseline is `auto_allow` | history, **no lower date bound** (9.0 audit) |
 | Photo upload worker | `photos.upload` command | yes, when queued (retries aren't re-checked) | photos |
+
+**9.0 audit corrections to this table:**
+
+- **`location.get` is also unmapped**, not only geofences. `NodeHitlCatalog.forCommand` returns null for `location.get` and for `geofence.set`, `geofence.list` and `geofence.remove`. Remote location reads run with only the Android location grant, and a backgrounded read depends only on the background-location grant that `geofence.set` requests. The in-app "Share location" setting (Never / When using the app / Always) only mirrors the Android permission. Geofence crossings do post a local "Location reminders" notification.
+- **`network_state` and `battery` fire on app open in 9.0** (`ProactiveTrigger.AppOpen`, `TRANSIENT` delivery), not on boot or in the background. They run on every foreground resume of a signed-in session once the gateway connects. The old 8.0 connectivity-change worker returns early for `network_state`. The commands `network.state` and `battery.get` are also unmapped. No compiled user-facing string describes Wi-Fi name, BSSID, carrier or network reporting (server-delivered UI and the privacy policy were not checked). SSID and BSSID are filled only when fine location is granted.
+- **Photos** are covered in [§6](#6-photos).
 
 Nuances:
 
@@ -98,6 +120,8 @@ return permissionDefaultMode == null ? PermissionDefaultMode.AUTO_ALLOW : permis
 ```
 
 For the six gated categories, a **server-returned, user-editable account setting supplies the fallback when there is no per-category override**. The settings UI also writes this value. An omitted/unrecognized field in a successfully parsed response differs from no cached response: the latter fails closed for unset proactive reads. The client code cannot tell us the production value. It's test D1 in the [research plan](RESEARCH-PLAN.md).
+
+**9.0 audit:** the setting is labelled "Connector defaults" in Settings → Permissions, and only that screen writes it. Onboarding never asks about it, so a new account starts with whatever value the server sends. The bundled label for `auto_allow` reads "Ask for some actions: Before every write and some read actions". For device reads, `auto_allow` means no read prompts at all, so the label understates what it allows. The server can also replace that copy. The per-source switch `slv_data_source_<id>` defaults to on, and its only writer, `HatchDataSourceRegistry.setUserEnabled`, has no caller. So that sync switch cannot be turned off in the app. The remaining in-app control is the per-category approval mode on the connector-permissions screen, which only the user (or an "allow always" answer) can set.
 
 ## 4. Proactive sync: data published in the background
 
@@ -116,7 +140,7 @@ startup/gateway/HatchProactiveSyncCatchUpJob.java
 
 > *"MetaHealthQuery observer polls Health Connect Changes API; HealthSyncManager debounces fires and drives the sync through ProactiveSyncRunner onto the client.data_source.publish sink."*
 
-The code describes polling health-data changes and publishing through the proactive-sync runner. `HealthSyncStartupJob` registers startup work; permissions and the approval gate can prevent collection/publishing.
+The code describes polling health-data changes and publishing through the proactive-sync runner. `HealthSyncStartupJob` registers startup work; permissions and the approval gate can prevent collection/publishing. **9.0 audit:** the health connector also sits behind the server flag `hatch_android.health_connect_connector_enabled`. The finder read its compiled default as off; a verifier could not confirm that from the bytes, because the flag read passes no explicit default. Before the gateway attaches, publish frames are dropped, so nothing is sent early.
 
 **Location:**
 
@@ -127,9 +151,11 @@ The code describes polling health-data changes and publishing through the proact
 
 **Notifications:** see §5.
 
-**After reboot:** `HatchBootReceiver` enqueues a proactive-sync bootstrap, re-registers geofences, alarms and reminders, and logs `"Forced notification listener rebind via component-enabled toggle"`.
+**After reboot:** `HatchBootReceiver` enqueues a proactive-sync bootstrap, re-registers geofences, alarms and reminders, and logs `"Forced notification listener rebind via component-enabled toggle"`. **9.0 audit:** the listener rebind runs only after an app update, not after a reboot, and geofences are re-armed only while both location grants remain.
 
 **Backfill** (bulk history import) exists for **SMS, call log, contacts, calendar and health**: `SmsBackfillStrategy`, `CallLogBackfillStrategy`, `ContactsBackfillStrategy`, `HealthBackfillStrategy`. SMS and call log take a `start_date` window (`"start_date is required for sms backfill"`). SMS keeps sync cursors `last_synced_sms_date_ms` and `recently_published_message_ids` and has a `readProactiveMessages` path.
+
+**9.0 audit: backfill has no lower date bound.** The server sends `data_source.backfill` over the gateway. The client requires a `start_date` but accepts any ISO-8601 date for SMS, call log, contacts, calendar and health. `DataSourcePublishPipeline.deliver` walks the whole window back in 30-day chunks and publishes each chunk through `client.data_source.publish`. Nothing clamps the window to the connect date or to the SMS sync cursor. The consent copy does not match for three of the five sources. Calendar and Contacts say the agent will "store existing information". Messages, Call Log and Health say "shared after you connect". The gate runs as `DATA_SOURCE_BACKFILL`. If it asks, the prompt shows the start date. It runs silently when the category is unset and the baseline is `auto_allow`, or after "allow always". Whether Meta's server ever requests a window from before the connect date cannot be seen in the client.
 
 ## 5. The notification listener: broad access, with filters and OS limits
 
@@ -148,7 +174,7 @@ android.messagingStyleUser     android.selfDisplayName   android.picture
 MessagingStyle  InboxStyle  BigPictureStyle  CallStyle   app_package   category
 ```
 
-Notification payloads can contain sender names, message bodies and multi-message summaries. `android.picture` is also inspected. This is not evidence that the full chat history, every image or every message from the originating app is available.
+Notification payloads can contain sender names, message bodies and multi-message summaries. This is not evidence that the full chat history, every image or every message from the originating app is available. **9.0 audit:** `android.picture` is only a presence check. The serialized keys are `key`, `app_package`, `title`, `category`, `body`, `sender`, `dedup_key` and `timestamp`. No image bytes are compressed, encoded or sent.
 
 **Default: all apps.** From `gateway/store/HatchGatewayPrefsStore.java`:
 
@@ -166,11 +192,15 @@ return strA01 != null ? PhoneNotificationsAccessMode.valueOf(strA01) : PhoneNoti
 
 ### Training, deletion and support access (app text)
 
-- The client AI-training fallback is on: `HatchAiTrainingApi.DEFAULT_ENABLED = true`; the response-model fallback is also true. Fresh-account server state remains untested.
-- Generic connector footer: *"Info from this connector is part of your AI interactions, which we use to improve AI at Meta."* Health Connect has a distinct variant saying **“may use”** (resource `0x7f1206e7`). This is disclosure language, not a trace of raw records entering training.
+What the app says happens to the data once it is on Meta's side:
+
+- The client AI-training fallback is on: `HatchAiTrainingApi.DEFAULT_ENABLED = true`, the local starting value of a setting the server refreshes. The response-model fallback is also true. Fresh-account server state remains untested. The opt-out text is forward-looking: interactions "won't be used to improve AI at Meta **after** you turn this off".
+- Custom and cloud connector footer: *"Info from this connector is part of your AI interactions, which we use to improve AI at Meta."* Every on-device connector footer, including SMS, call log, notifications, location and Health Connect (resource `0x7f1206e7`), says the info is part of your interactions with Muse, *"which we **may use** to improve AI at Meta."* This audit did not trace records into training.
+- Disconnecting: *"You can ask your agent to delete this info at any time, or disconnect from Calendar in your device's settings to prevent future syncing."* Disconnecting stops future syncing. The disconnect sheet for connected apps (`0x7f1206c4`) adds: *"Previous data shared with %1$s won't be removed unless you choose to delete it."*
 - Deleting a message: *"Messages you delete are removed from the conversation but may stay in the agent's memory."*
 - Support access: *"Allowing access means your chats, memory, and files will be visible to support and your data will no longer be confidential."*
-- The consent sheets for SMS, notifications, health and location describe sharing **after** you connect. The code still declares `supportsBackfill = true` for SMS, call log and health.
+- Operator access: the gateway protocol carries `ssh.operator.updated`, the status of **Meta operator SSH access** to your VM (`v1/ssh/operator/enable`, `/disable`) ([`16-network-android.txt`](evidence-android/16-network-android.txt)).
+- The consent sheets for SMS, call log, notifications, health and location describe sharing **after** you connect. The code still declares `supportsBackfill = true` for SMS, call log and health, and in 9.0 that backfill has no lower date bound ([§4](#4-proactive-sync-data-published-in-the-background)).
 
 Details: [CROSS-PLATFORM.md](CROSS-PLATFORM.md#consent-defaults-and-retention-what-the-apps-say) · [`15-consent-retention-android.txt`](evidence-android/15-consent-retention-android.txt).
 
@@ -185,6 +215,8 @@ Details: [CROSS-PLATFORM.md](CROSS-PLATFORM.md#consent-defaults-and-retention-wh
 
 The inspected `photos.upload` interface is batch-oriented, with on-device labeling and a background upload queue. This does not establish a whole-library mirror, prove no other upload route exists, or mean photos outside the user’s granted access are scanned.
 
+**9.0 audit:** the photo commands are switched by the server flag `hatch_media_sync.is_nodes_media_enabled`, whose compiled default is off. When Meta turns it on, `photos.upload` is classed as a photo **read**, so under an `auto_allow` baseline an upload of up to 50 photos runs with no prompt. "Look up photos" and "Copy photos to your library" share one saved permission (`photos_read`), so allowing search also allows upload. When a prompt does appear, its copy names the upload.
+
 ## 7. Other notable pieces
 
 ([`09-notable.txt`](evidence-android/09-notable.txt))
@@ -196,30 +228,49 @@ The inspected `photos.upload` interface is batch-oriented, with on-device labeli
 - **`HatchXInstallReferrerReceiver`** + `AD_ID` + Facebook `analytics2` uploaders: standard Meta attribution and analytics.
 - **Oxygen preloads SDK** (`com.facebook.oxygen.preloads…`): Meta's first-party SDK tied to its preloaded-app infrastructure.
 
+**9.0 audit additions:**
+
+- The on-device MCP server is in-process (`LocalMCPServer`/`LocalMCPClient` over JNI) with no socket or listen strings.
+- **`libtrafficnts.so`** is new in 9.0: Meta network telemetry (bandwidth, congestion and reachability probes) with cell-ID and BSSID data structures. It starts only when the server flag `hatch_android_traffic_nts_v2.init_services_enabled` is on, and its compiled default is off. Muse hard-codes its radio-signal (cell ID/BSSID) provider and mobile prober off.
+- **`PerfettoTraceReceiver`** is exported with no permission. Any installed app can make Muse load and start the Perfetto tracing SDK. Reading traces still needs a privileged consumer such as adb. Low severity.
+- Analytics batches go to `graph.<domain>/logging_client_events` with a hard-coded consent value that takes no user input. The traced analytics calls carry metadata, not data-source content. Attribution sends the advertising ID, subject to a server setting ([findings data](evidence-updates/2026-09-27/08-spyware-audit-findings.json)).
+
 ## 8. Summary
+
+Every data path below is built to end at the Meta-hosted VM, through one gateway: `client.invoke.result` carries command results and `client.data_source.publish` carries sync and backfill.
 
 | Shipped capability / observation | Static evidence |
 |---|---|
 | Read & send SMS, bulk SMS backfill | `READ_SMS`/`SEND_SMS`, `SmsDataSource`, `SmsBackfillStrategy` |
 | Read call history, backfill | `READ_CALL_LOG`, `CallLogDataSource`, `CallLogBackfillStrategy` |
+| History backfill with **no lower date bound** (9.0 audit), while Messages, Call Log and Health copy says "shared after you connect" | `data_source.backfill`, `DataSourcePublishPipeline.deliver`, strings `0x7f1206d5`, `0x7f1206d1`, `0x7f1206d3` (8.0 resource IDs, [`15-consent-retention-android.txt`](evidence-android/15-consent-retention-android.txt)) |
 | Place phone calls | `CALL_PHONE`, `phone.dial` |
-| Read exposed notifications and invoke available notification actions, subject to grants/filters | `NodeNotificationListenerService`, `NotificationSerializer`, `notifications.action`, default `ALL` |
+| Read exposed notifications from **all apps by default** and invoke available notification actions, subject to grants/filters | `NodeNotificationListenerService`, `NotificationSerializer`, `notifications.action`, default `ALL` |
 | No app-level OTP conclusion; Android 15+ redaction applies to untrusted listeners | bounded keyword search plus Android platform documentation |
 | Background location + geofence pushes, **no local category-gate check on crossings** | `ACCESS_BACKGROUND_LOCATION`, `LocationDataSource.publishNow`, `NodeHitlCatalog` (6 gated sources) |
-| Wi-Fi SSID/BSSID + carrier published in background, **no local category-gate check** | `commands/network/NetworkStateHandlerKt.java`, `AuraProactiveSyncWorker` |
-| Server-returned baseline for unset categories: omitted/unrecognized field → `AUTO_ALLOW`; no cache → proactive deny | `PermissionDefaultMode.fromWire` |
+| Remote `location.get` and geofence commands with **no Muse approval step**; Android location permission only (9.0 audit) | `NodeHitlCatalog.forCommand` returns null |
+| Wi-Fi SSID/BSSID (only with the fine-location grant) + carrier published with **no local category-gate check**: in the background (8.0); on every app open with the gateway connected (9.0 audit) | `commands/network/NetworkStateHandlerKt.java`, `AuraProactiveSyncWorker`; 9.0 `NetworkStateDataSource` (`AppOpen`/`TRANSIENT`) |
+| Server-returned baseline for unset categories: omitted/unrecognized field → `AUTO_ALLOW`; no cache → proactive deny. Unset reads allow; unset writes ask | `PermissionDefaultMode.fromWire`, `NodeHitlMode.defaultFor` |
+| Per-source sync switch defaults on and nothing in the app turns it off; only per-category approval modes remain (9.0 audit) | `slv_data_source_<id>` read with default `true`; `HatchDataSourceRegistry.setUserEnabled` has no caller |
 | 19 health-data category permissions, extended history/background access requested, proactive publishing code | Health Connect perms, `HealthSyncManager` → `client.data_source.publish` |
+| Deleted messages "may stay in the agent's memory"; support access ends confidentiality; training fallback on | app strings; `HatchAiTrainingApi.DEFAULT_ENABLED = true` |
 | Server-initiated commands | manifest: *"Execute server-initiated device commands…"* |
 | Re-registers work after boot/update, subject to OS restrictions | `HatchBootReceiver` |
 | Cross-app identity sharing with certificate allow-list checks | exported `FoaPhoneIdProvider` (`com.facebook.GET_PHONE_ID`) |
 
+### Conclusion
+
+**Assessment: Muse is spyware by design.** On Android it is built for surveillance-grade collection of a person's messages, call history, contacts, calendar, notifications from all apps, health data and location, and, when Meta enables it, photos. The code copies that data to Meta's servers. The app's own text says data already shared is not removed on disconnect unless you choose to delete it, deleted messages may stay in the agent's memory, and connector info may be used to improve AI at Meta. The consent screens are the mechanism of collection, not a limit on it. Each grant decides when another category starts flowing to the Meta VM. After that, a server-supplied account baseline decides whether later reads ask at all, and the backfill start date comes from the server, not from the connect date. The consent is also one person's. The SMS threads, call logs, contacts and notifications it is built to collect describe people who never agreed.
+
+**Limits:** static audit of the 8.0 APK plus the 9.0 follow-up; it found no hidden or covert collection channel and did not observe live traffic. The collection runs through the channels described above and is disclosed in consent text, except where noted: network-state reporting has no in-app disclosure, and backfill can reach history older than the "shared after you connect" copy suggests.
+
 ## 9. Remove it
 
 1. Settings → Apps → Special app access → **Notification access** → turn Muse **off**.
-2. Settings → Apps → Muse → Permissions → deny **SMS, Call logs, Phone, Location, Contacts, Calendar, Photos, Camera, Microphone, Nearby devices**.
+2. Settings → Apps → Muse → Permissions → deny **SMS, Call logs, Phone, Location, Contacts, Calendar, Photos, Camera, Microphone, Nearby devices**. Use the Android controls: in 9.0 Muse's per-source sync switch has no working off path, and location is gated only by the Android permission.
 3. Health Connect → App permissions → Muse → **Remove all** and delete Muse's data access.
 4. Settings → Apps → Default apps → **Digital assistant app**: switch away from Muse if it was set.
-5. Disconnect connectors and uninstall. Use Muse’s current account/data controls to request removal of previously uploaded data; this review has not verified a Muse-specific Accounts Center deletion workflow. Uninstalling does not demonstrate cloud deletion.
+5. Disconnect connectors and uninstall. Per the app's text, disconnecting prevents future syncing; deleting what was already shared is a separate request. Use Muse’s current account/data controls to request removal of previously uploaded data; this review has not verified a Muse-specific Accounts Center deletion workflow. Uninstalling does not demonstrate cloud deletion.
 
 ## 10. Reproduce the Android checks
 
@@ -235,6 +286,8 @@ python3 scripts/collect-review-evidence.py android /tmp/muse-jadx/sources eviden
 ```
 
 JADX can report errors and still write partial output. Record its version and warnings, and do not treat decompiled coroutine control flow as equivalent to verified source. The collector rebuilds the new review excerpts/count; it does not recreate all earlier evidence files. Compare fresh manifest output with the committed permission list before relying on its derived count.
+
+The **9.0 audit** notes in this file come from the 9.0.0.11.178 APK (sha256 `fc4e70f48915a86094329b8b1f5941ea6eccc78d1dfee1d7a73638e7162194e3`). Their smali locations, verifier votes and corrections are in [`08-spyware-audit-findings.json`](evidence-updates/2026-09-27/08-spyware-audit-findings.json), with DEX excerpts in [`07-android-bytecode-excerpts.txt`](evidence-updates/2026-09-27/07-android-bytecode-excerpts.txt).
 
 ---
 
