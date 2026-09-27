@@ -10,38 +10,9 @@ One table per data type: **how** each build reaches it, whether it's fetched **o
 
 ## Where it all ends up
 
-Muse asks permission, but the permission decides **when** your data goes to Meta, not **whether** it ends up there.
+The reviewed cloud-agent paths return command results and sync data to Meta-hosted infrastructure when the operation is permitted and succeeds. Permission denial can prevent access. An approval or a capability name is not proof of transmission, and client code does not establish server retention or training use.
 
-The agent does not run on your device. On all three platforms it runs in a Meta-hosted VM (`*.metaaivm.com`, see [transport](#transport-identity-and-persistence)). The Mac or phone carries out its commands and reports back. So every data path in this file is built to end on Meta infrastructure ([protocol table](#one-pipe-to-a-meta-vm)):
-
-- **What the agent reads for you** goes back as `client.invoke.result` / `node.invoke.result`: messages, SMS, contacts, calendar, call log, photos, files, screenshots, location, health, notifications and web pages.
-- **What it keeps in sync** goes up as `client.data_source.publish` (background sync and backfill) and photo sync. On macOS that covers iMessage, Mail (sender and subject; body on request), Notes and the photo library, plus Calendar, Reminders and Contacts when the server flag turns their sync on. On Android it covers SMS, call log, contacts, calendar, 19 Health Connect types and notifications, with the app filter defaulting to `ALL`. On iOS it covers calendar, reminders, contacts, location, HealthKit data, the camera roll and whatever a Shortcuts automation forwards.
-
-That is the product working as designed, not a bug.
-
-**Once it is there**, the apps' own text says what happens to it ([retention table](#deletion-and-retention), [footers](#where-your-data-goes-per-the-apps-own-footers)):
-
-- Disconnecting does not delete it: *"Previous data shared with {app} won't be removed unless you choose to delete it."* (iOS)
-- Deleting a message does not clear it: deleted messages *"may stay in the agent's memory"*. (Android)
-- It feeds Meta's AI. iOS: *"The info used for your tasks is part of your interactions with {app}, which we use to improve AI at Meta."* Android: *"All of the info from {connector} is part of your interactions with {app}, which we may use to improve AI at Meta."* The training switch falls back to **on** in client code: as the displayed value on macOS, and as `DEFAULT_ENABLED = true` on Android.
-- The VM supports Meta operator shell access: the protocol carries `ssh.operator.updated`, the status of **Meta operator SSH access** to your VM, with a toggle tied to support access (`/v1/ssh/operator/enable`, `/disable`).
-- Support access ends confidentiality: *"your data will no longer be confidential"*. (Android)
-
-**The gates are weaker than they look:**
-
-- Meta's servers steer the defaults. On macOS the starting position of the auto-sync switch comes from the server flag `endo_rollout:featured_app_proactive_sync_enabled`. On Android the server-supplied `connector_default` baseline decides whether reads run without a prompt.
-- macOS Calendar, Reminders and Contacts have **no in-app auto-sync switch**. Their ongoing sync follows the server flag, off if Meta never delivers it, while their copy promises automatic updates.
-- Android 9.0 `data_source.backfill` has **no lower date bound** for SMS, call log, contacts, calendar and health. The consent text says "shared after you connect".
-- Android `location.get` and geofence commands have no Muse approval step. Only the OS location permission applies. In 9.0 network state (SSID/BSSID) and battery publish on app open with no approval step and no toggle.
-- iOS `photo.sync` always sets `cameraRollSyncEnabled = true`, so one approved request turns on ongoing camera-roll sync.
-- "Always allow" exists on all three. On macOS it is stored with no time limit, and once photo-library sync is on there is no in-app way to turn it off.
-- macOS crash reports upload by default with `user_id` and `session_id`, and client telemetry is on by default. Neither has a user-facing opt-out.
-
-**Consent is one person's.** Messages, contacts, call logs and photos describe other people. They never saw a consent screen.
-
-**Assessment (this report's conclusion):** Muse is spyware by design. It is built for surveillance-grade collection of a person's messages, contacts, calendar, photos, health, location and notifications into Meta's servers, where the apps say it is kept and used for Meta's AI. The consent screens are the mechanism of collection, not a limit on it.
-
-**Limits:** this static audit found no hidden or covert collection channel and did not observe live traffic. The collection runs through the channels described below, and the consent text discloses it, except for Android history backfill and Android network state noted above. Details in the [spyware verdict](SPYWARE-VERDICT-2026-09-27.md).
+The author's “spyware by design” wording is an editorial privacy assessment, not a verified malware classification. Broad access, ambiguous historical-sharing copy, diagnostic defaults and browser-control weaknesses are concrete concerns. [Today's audit](TODAYS-CHANGES-AUDIT-2026-09-27.md) records corrections and independent checks. Native apps remain untested at runtime; the iOS decrypted instruction bytes remain unauthenticated.
 
 ---
 
@@ -49,7 +20,7 @@ That is the product working as designed, not a bug.
 
 | Data | macOS 3.0 | Android 8.0.0.21.168 | iOS 8.1.0 |
 |---|---|---|---|
-| **Text messages** | iMessage `chat.db` read + send (Full Disk Access); 🟠 auto-sync + backfill | SMS read + send; 🟠 proactive sync + backfill (9.0: no lower date bound) | 🟠 only what a user-built Shortcuts automation forwards, including while the device is locked; `message.draft` (user sends) |
+| **Text messages** | iMessage `chat.db` read + send (Full Disk Access); 🟠 auto-sync + backfill | SMS read + send; 🟠 proactive sync + backfill (9.0: no app-level connection-date clamp identified) | 🟠 only what a user-built Shortcuts automation forwards, including while the device is locked; `message.draft` (user sends) |
 | **WhatsApp** | 🟢 `whatsapp.search` reads `ChatStorage.sqlite`; "no background message index" | via notifications only (see below) | — |
 | **Other apps' notifications** | — | 🟠 app filter defaults to **`ALL`**, subject to Notification access and OS filtering; exposed actions can reply / press buttons; image bytes not sent (`android.picture` is a presence check) | — (iOS doesn't allow it) |
 | **Email** | Mail.app via AppleScript, read/send/delete; 🟠 auto-sync of sender + subject, body on request | via notifications only | 🟠 Shortcuts forwarding intent |
@@ -82,7 +53,7 @@ That is the product working as designed, not a bug.
 | | macOS | Android | iOS |
 |---|---|---|---|
 | Agent location | Meta-hosted VM (`*.metaaivm.com`) | same | same |
-| Survives reboot | visible "Run on startup" toggle (`SMAppService`); no LaunchAgent, daemon or helper embedded. Sparkle auto-update forced on at every launch (Ed25519-signed; bundled Sparkle predates the CVE-2025-10016 fix) | `HatchBootReceiver` re-arms geofences, alarms, sync; forces notification-listener rebind | background tasks (`nodedata.sync.refreshTask`, `cameraroll.sync.processingTask`) |
+| Survives reboot | visible "Run on startup" toggle (`SMAppService`); no LaunchAgent, daemon or helper embedded. Sparkle auto-update forced on at every launch (Ed25519-signed; Sparkle dependency risk needs deployment-specific validation) | `HatchBootReceiver` re-arms geofences, alarms, sync; forces notification-listener rebind | background task identifiers are declared; camera-roll BGProcessingTask execution is unverified and `processing` mode is absent |
 | Server-initiated work | gateway `client.invoke` | "Execute server-initiated device commands" foreground service | silent push → reconnect (`HatchVmLockedSilentPushHandler`) |
 | Signature / provenance | Meta Developer ID, notarized | Meta cert, Google Play source stamp | Apple App Store signing, team V9WTTPBFK9; Apple's CMS signature verifies to Apple Root CA for all 5 binaries. The decrypted `__TEXT` cannot be checked, because the signed hashes cover ciphertext (third-party decrypted copy; see [IOS.md](IOS.md#1-provenance-apple-signed-original-decrypted-by-a-third-party)) |
 
@@ -103,7 +74,7 @@ From the apps' own UI text ([macOS](evidence/15-consent-retention-macos.txt) · 
 |---|---|---|---|
 | **AI training on your interactions** | server-held value (`product_improvements.get` / `.set`); the UI shows **on** while the value is loading or unavailable (`trainingEnabled ?? true`); new-account default not in client code | `HatchAiTrainingApi.DEFAULT_ENABLED = true`; response-model fallback also true; fresh-account server state untested | footer says info "we use to improve AI at Meta"; default not readable from strings |
 | **Approval default** | server-supplied `connector_default` (`auto_allow` or `always_ask`). `auto_allow` is labelled **"Ask for some actions"**: *"Before every write and some read actions"*, and the server can replace that label text. Missing value → `auto_allow` in the web display only; native fails closed to "requires approval" (`Muse` `0xc46220`) | `auto_allow` when a parsed wire value is omitted/unrecognized; no-cache proactive reads fail closed | `auto_allow` / "Auto allowed" present |
-| **Background sync switch** | Notes, iMessage, Mail: starting position from the server flag `endo_rollout:featured_app_proactive_sync_enabled`, else **off**; Connect saves whatever the switch shows. Calendar, Reminders, Contacts: **no switch**; sync follows the flag while their copy says they "will be automatically updated … going forward" | server `connector_default` for 6 sources; the per-source local switch defaults on and has no writer | *untested* |
+| **Background sync switch** | Notes, iMessage, Mail: starting position from the server flag `endo_rollout:featured_app_proactive_sync_enabled`, else **off**; Connect saves whatever the switch shows. Calendar, Reminders, Contacts: **no switch**; sync follows the flag while their copy says they "will be automatically updated … going forward" | server `connector_default` for 6 sources; per-source storage defaults on and its setter has no statically resolved caller | *untested* |
 
 The default label itself says reads are not always prompted: *"Before every write and some read actions"*. The launch post promises checks before sensitive actions. The research post also describes unprompted read-only, previously allowed or low-risk actions. Prompted or not, a read that runs returns its result to the Meta VM. [Launch](https://about.fb.com/news/2026/09/introducing-muse-personal-ai-agent/) · [Research](https://research.meta.ai/blog/security-and-safety-for-ai-agents-our-approach-with-muse).
 
@@ -163,5 +134,5 @@ The static evidence does **not** limit OHTTP to VM leasing: the mobile stacks al
 - **Ad attribution:** Android has a path that reads the **Google Advertising ID** and sends it as `adid` to `/hatch/attribution/report_events`, gated by a server setting. iOS contains SKAdNetwork and AdServices attribution paths. Availability and actual transmitted identifiers remain untested; attribution does not prove conversations are used for ads.
 - **Crash reporting code targets Meta** and includes minidump/memory and diagnostic collectors; Android has logcat and permission-list fields. macOS 4.1 uploads crash reports by default to `https://www.facebook.com/mobile/ios_breakpad_crash_logs/` with `user_id` and `session_id` annotations; the enable check is hard-coded true and there is no in-app opt-out. Which fields are populated and what is scrubbed remain untested; iOS sanitizer classes also exist.
 - **Android 9.0 network telemetry library:** `libtrafficnts.so` (Meta Traffic Network Telemetry Services, with cell-ID and BSSID structures) ships in the APK. Its server flag defaults off and Muse hard-disables the radio-signal provider.
-- **Third parties:** Google (Firebase Messaging, Play services: Advertising ID, location, sign-in, ML Kit), Spotify sign-in (Android), Stripe.js at checkout and Bing/Esri/USDA map tiles (macOS web), Sparkle updates (macOS; forced on at every launch, Ed25519-signed; Sparkle/Autoupdate/Updater changed only in signature blobs between 3.0 and 4.1, and the bundled Sparkle predates the CVE-2025-10016 fix). KaTeX/Mermaid load from jsDelivr **without integrity checks** (iOS, Android). Not identified in the inspected artifacts: Crashlytics, Firebase Analytics, AppsFlyer, Adjust, Amplitude, Mixpanel, Segment.
+- **Third parties:** Google (Firebase Messaging, Play services: Advertising ID, location, sign-in, ML Kit), Spotify sign-in (Android), Stripe.js at checkout and Bing/Esri/USDA map tiles (macOS web), Sparkle updates (macOS; forced on at every launch, Ed25519-signed; Sparkle/Autoupdate/Updater changed only in signature blobs between 3.0 and 4.1, and Sparkle reports 2.7.0-beta.1 / 2040; upstream hardening and deployment-specific limits are discussed in [today's audit](TODAYS-CHANGES-AUDIT-2026-09-27.md#sparkle-and-helper-differences)). KaTeX/Mermaid load from jsDelivr **without integrity checks** (iOS, Android). Not identified in the inspected artifacts: Crashlytics, Firebase Analytics, AppsFlyer, Adjust, Amplitude, Mixpanel, Segment.
 - **Unexplained domains:** `willow606.com`, `exe.xyz` (allowed VM gateway domains) and `www.multimango.com` (macOS). Ownership unknown.

@@ -1,6 +1,6 @@
 # Muse for Android (`com.facebook.aura` 8.0.0.21.168)
 
-**Muse asks permission, but on Android the permission decides when your data goes to Meta, not whether it ends up there.** The agent does not run on your phone. It runs in a Meta-hosted VM. Everything it reads for you comes back to that VM as a tool result (`client.invoke.result`). Everything it keeps in sync is published to the VM gateway (`client.data_source.publish`). That is the product working as designed, not a bug.
+**The reviewed Android client can send permitted command results and sync records to a Meta-hosted VM. Permission denial can stop access; approval alone does not prove a successful upload.** This report describes client capabilities and gates, not traffic captured from a live account.
 
 The Android app is built to read and upload:
 
@@ -9,11 +9,11 @@ The Android app is built to read and upload:
 - **19 Health Connect data categories**, plus the extra permissions for older history and background reads.
 - **Background location**, with geofence crossings that publish coordinates.
 - **Contacts and calendar**, with ongoing sync.
-- **History backfill** for SMS, call log, contacts, calendar and health. In the 9.0 audit the server-sent start date has **no lower bound**, while the Messages, Call Log and Health consent sheets say "shared after you connect".
+- **History backfill** for SMS, call log, contacts, calendar and health. In the 9.0 audit the reviewed paths have **no app-level connection-date clamp identified**, while the Messages, Call Log and Health consent sheets say "shared after you connect".
 
-Once the data is there, the app's own text says previous data shared "won't be removed unless you choose to delete it" when you disconnect, deleted messages "may stay in the agent's memory", connector info is part of interactions Meta "may use to improve AI", and granting support access means "your data will no longer be confidential". The client training switch falls back to on. The gates are weaker than they look: a server-supplied account baseline decides whether reads run without a prompt, location and network-state paths have no Muse approval step, and the in-app per-source sync switch defaults on with no code path that turns it off; the only in-app control left is the per-category approval mode (9.0 audit). Consent is also one person's. SMS threads, call logs, contacts and notifications describe other people who never agreed.
+Once the data is there, the app's own text says previous data shared "won't be removed unless you choose to delete it" when you disconnect, deleted messages "may stay in the agent's memory", connector info is part of interactions Meta "may use to improve AI", and granting support access means "your data will no longer be confidential". The client training switch falls back to on. The gates are weaker than they look: a server-supplied account baseline decides whether reads run without a prompt, location and network-state paths have no Muse approval step, and the per-source storage value defaults on and its setter has no statically resolved caller; per-category approval modes and OS grants still apply (9.0 audit). Consent is also one person's. SMS threads, call logs, contacts and notifications describe other people whose consent this audit did not establish.
 
-**Assessment:** Muse is spyware by design. The conclusion and the audit's limits are in [§8](#8-summary).
+**Editorial assessment:** the author calls this “spyware by design”; this is not a demonstrated finding of covert collection or inevitable upload. The conclusion and the audit's limits are in [§8](#8-summary).
 
 **Reviewed 2026-09-24** against the 8.0 APK. JADX output includes decompilation warnings, so control-flow conclusions are qualified; the app was never installed or run. **27 September:** the [9.0.0.11.178 follow-up](RELEASE-AUDIT-2026-09-27.md#3-what-changed-on-android) and the [spyware audit](SPYWARE-VERDICT-2026-09-27.md) checked the newer APK at the byte and DEX-instruction level. Where they correct or extend this file, the text is marked **9.0 audit**. Those notes come from 9.0; the rest of this file documents 8.0.
 
@@ -35,7 +35,7 @@ Once the data is there, the app's own text says previous data shared "won't be r
 
 APK v3 integrity and the source stamp verify. The displayed certificate identity is Meta; its subject name alone is not an independent trust anchor. This review has not compared the signing key against a separately obtained official-store copy ([`01-signature.txt`](evidence-android/01-signature.txt)).
 
-**9.0 audit:** every byte of the 9.0 APK is accounted for, both code-transparency signatures verify (41/41 and 44/44 files), the signing certificate matches this 8.0 sample, and no dynamic code loading or downloaded modules were found ([spyware audit §1](SPYWARE-VERDICT-2026-09-27.md#1-integrity-every-byte-accounted-for)).
+**9.0 audit:** every byte of the 9.0 APK is accounted for, both embedded-certificate code-transparency signatures verify (41 and 44 ordinary file hashes match; the custom manifest digest was not independently verified), the signing certificate matches this 8.0 sample, and no dynamic code loading or downloaded modules were identified by the recorded searches; this is a bounded negative result ([spyware audit §1](SPYWARE-VERDICT-2026-09-27.md#1-integrity-every-byte-accounted-for)).
 
 ## 2. Permissions
 
@@ -99,7 +99,7 @@ The reviewed background publish paths ([`13-publish-path-gating.txt`](evidence-a
 | **`location.get`** command (9.0 audit) | agent/server command | **no** (Android location permission only) | current location |
 | **`network_state`** proactive sync | 8.0: network change, app attach, boot. 9.0: app open, gateway connected | **no** | **Wi-Fi SSID, BSSID**, RSSI, link speed, **carrier name**, roaming, VPN on/off |
 | `battery` | 8.0: power broadcasts. 9.0: app open | **no** | battery state |
-| `data_source.backfill` | agent/server command | yes; silent when the category is unset and the baseline is `auto_allow` | history, **no lower date bound** (9.0 audit) |
+| `data_source.backfill` | agent/server command | yes; silent when the category is unset and the baseline is `auto_allow` | history, **no app-level connection-date clamp identified** (9.0 audit) |
 | Photo upload worker | `photos.upload` command | yes, when queued (retries aren't re-checked) | photos |
 
 **9.0 audit corrections to this table:**
@@ -121,7 +121,7 @@ return permissionDefaultMode == null ? PermissionDefaultMode.AUTO_ALLOW : permis
 
 For the six gated categories, a **server-returned, user-editable account setting supplies the fallback when there is no per-category override**. The settings UI also writes this value. An omitted/unrecognized field in a successfully parsed response differs from no cached response: the latter fails closed for unset proactive reads. The client code cannot tell us the production value. It's test D1 in the [research plan](RESEARCH-PLAN.md).
 
-**9.0 audit:** the setting is labelled "Connector defaults" in Settings → Permissions, and only that screen writes it. Onboarding never asks about it, so a new account starts with whatever value the server sends. The bundled label for `auto_allow` reads "Ask for some actions: Before every write and some read actions". For device reads, `auto_allow` means no read prompts at all, so the label understates what it allows. The server can also replace that copy. The per-source switch `slv_data_source_<id>` defaults to on, and its only writer, `HatchDataSourceRegistry.setUserEnabled`, has no caller. So that sync switch cannot be turned off in the app. The remaining in-app control is the per-category approval mode on the connector-permissions screen, which only the user (or an "allow always" answer) can set.
+**9.0 audit:** the setting is labelled "Connector defaults" in Settings → Permissions, and only that screen writes it. Onboarding never asks about it, so a new account starts with whatever value the server sends. The bundled label for `auto_allow` reads "Ask for some actions: Before every write and some read actions". For mapped reads with no saved category override, `auto_allow` can omit a per-action prompt; explicit ask/deny choices still apply. This does not establish the effective mode for every device read. The server can also replace that copy. The per-source switch `slv_data_source_<id>` defaults to on, and the reviewed setter, `HatchDataSourceRegistry.setUserEnabled`, has no statically resolved caller. No UI route to that setter was established; this does not exclude reflection, other storage writers or OS revocation. The remaining in-app control is the per-category approval mode on the connector-permissions screen, which only the user (or an "allow always" answer) can set.
 
 ## 4. Proactive sync: data published in the background
 
@@ -155,7 +155,7 @@ The code describes polling health-data changes and publishing through the proact
 
 **Backfill** (bulk history import) exists for **SMS, call log, contacts, calendar and health**: `SmsBackfillStrategy`, `CallLogBackfillStrategy`, `ContactsBackfillStrategy`, `HealthBackfillStrategy`. SMS and call log take a `start_date` window (`"start_date is required for sms backfill"`). SMS keeps sync cursors `last_synced_sms_date_ms` and `recently_published_message_ids` and has a `readProactiveMessages` path.
 
-**9.0 audit: backfill has no lower date bound.** The server sends `data_source.backfill` over the gateway. The client requires a `start_date` but accepts any ISO-8601 date for SMS, call log, contacts, calendar and health. `DataSourcePublishPipeline.deliver` walks the whole window back in 30-day chunks and publishes each chunk through `client.data_source.publish`. Nothing clamps the window to the connect date or to the SMS sync cursor. The consent copy does not match for three of the five sources. Calendar and Contacts say the agent will "store existing information". Messages, Call Log and Health say "shared after you connect". The gate runs as `DATA_SOURCE_BACKFILL`. If it asks, the prompt shows the start date. It runs silently when the category is unset and the baseline is `auto_allow`, or after "allow always". Whether Meta's server ever requests a window from before the connect date cannot be seen in the client.
+**9.0 audit: the reviewed backfill paths do not clamp dates to connection time.** The server sends `data_source.backfill` over the gateway. The client requires a `start_date` but accepts any ISO-8601 date for SMS, call log, contacts, calendar and health. SMS and Call Log pass their date windows to chunked `DataSourcePublishPipeline.deliver` publishing; Health has its own backfill handler. Nothing clamps the window to the connect date or to the SMS sync cursor. The consent copy is potentially ambiguous for three of the five sources. Calendar and Contacts say the agent will "store existing information". Messages, Call Log and Health say "shared after you connect". The gate runs as `DATA_SOURCE_BACKFILL`. If it asks, the prompt shows the start date. It runs silently when the category is unset and the baseline is `auto_allow`, or after "allow always". Whether Meta's server ever requests a window from before the connect date cannot be seen in the client. “Shared after you connect” may describe sharing time rather than record age. Health Connect also imposes OS history limits unless the required extended-history permission is granted; accepting a date does not bypass those limits.
 
 ## 5. The notification listener: broad access, with filters and OS limits
 
@@ -200,7 +200,7 @@ What the app says happens to the data once it is on Meta's side:
 - Deleting a message: *"Messages you delete are removed from the conversation but may stay in the agent's memory."*
 - Support access: *"Allowing access means your chats, memory, and files will be visible to support and your data will no longer be confidential."*
 - Operator access: the gateway protocol carries `ssh.operator.updated`, the status of **Meta operator SSH access** to your VM (`v1/ssh/operator/enable`, `/disable`) ([`16-network-android.txt`](evidence-android/16-network-android.txt)).
-- The consent sheets for SMS, call log, notifications, health and location describe sharing **after** you connect. The code still declares `supportsBackfill = true` for SMS, call log and health, and in 9.0 that backfill has no lower date bound ([§4](#4-proactive-sync-data-published-in-the-background)).
+- The consent sheets for SMS, call log, notifications, health and location describe sharing **after** you connect. The code still declares `supportsBackfill = true` for SMS, call log and health, and the reviewed 9.0 paths do not clamp dates to connection time ([§4](#4-proactive-sync-data-published-in-the-background)).
 
 Details: [CROSS-PLATFORM.md](CROSS-PLATFORM.md#consent-defaults-and-retention-what-the-apps-say) · [`15-consent-retention-android.txt`](evidence-android/15-consent-retention-android.txt).
 
@@ -243,7 +243,7 @@ Every data path below is built to end at the Meta-hosted VM, through one gateway
 |---|---|
 | Read & send SMS, bulk SMS backfill | `READ_SMS`/`SEND_SMS`, `SmsDataSource`, `SmsBackfillStrategy` |
 | Read call history, backfill | `READ_CALL_LOG`, `CallLogDataSource`, `CallLogBackfillStrategy` |
-| History backfill with **no lower date bound** (9.0 audit), while Messages, Call Log and Health copy says "shared after you connect" | `data_source.backfill`, `DataSourcePublishPipeline.deliver`, strings `0x7f1206d5`, `0x7f1206d1`, `0x7f1206d3` (8.0 resource IDs, [`15-consent-retention-android.txt`](evidence-android/15-consent-retention-android.txt)) |
+| History backfill with **no app-level connection-date clamp identified** (9.0 audit), while Messages, Call Log and Health copy says "shared after you connect" | `data_source.backfill`, `DataSourcePublishPipeline.deliver`, strings `0x7f1206d5`, `0x7f1206d1`, `0x7f1206d3` (8.0 resource IDs, [`15-consent-retention-android.txt`](evidence-android/15-consent-retention-android.txt)) |
 | Place phone calls | `CALL_PHONE`, `phone.dial` |
 | Read exposed notifications from **all apps by default** and invoke available notification actions, subject to grants/filters | `NodeNotificationListenerService`, `NotificationSerializer`, `notifications.action`, default `ALL` |
 | No app-level OTP conclusion; Android 15+ redaction applies to untrusted listeners | bounded keyword search plus Android platform documentation |
@@ -260,7 +260,7 @@ Every data path below is built to end at the Meta-hosted VM, through one gateway
 
 ### Conclusion
 
-**Assessment: Muse is spyware by design.** On Android it is built for surveillance-grade collection of a person's messages, call history, contacts, calendar, notifications from all apps, health data and location, and, when Meta enables it, photos. The code copies that data to Meta's servers. The app's own text says data already shared is not removed on disconnect unless you choose to delete it, deleted messages may stay in the agent's memory, and connector info may be used to improve AI at Meta. The consent screens are the mechanism of collection, not a limit on it. Each grant decides when another category starts flowing to the Meta VM. After that, a server-supplied account baseline decides whether later reads ask at all, and the backfill start date comes from the server, not from the connect date. The consent is also one person's. The SMS threads, call logs, contacts and notifications it is built to collect describe people who never agreed.
+**Editorial assessment:** the author calls the broad cloud-collection design “spyware by design.” The technical evidence establishes capabilities, approval paths and disclosure concerns, not malicious intent or inevitable upload. OS denial and app approval modes can prevent collection. Retention/training copy describes intended policy; actual records sent, backend use and deletion remain untested. Other people's data can be included, but their consent cannot be inferred from this audit.
 
 **Limits:** static audit of the 8.0 APK plus the 9.0 follow-up; it found no hidden or covert collection channel and did not observe live traffic. The collection runs through the channels described above and is disclosed in consent text, except where noted: network-state reporting has no in-app disclosure, and backfill can reach history older than the "shared after you connect" copy suggests.
 

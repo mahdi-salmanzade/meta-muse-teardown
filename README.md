@@ -4,25 +4,13 @@
 
 [**Spyware verdict**](SPYWARE-VERDICT-2026-09-27.md) · [**iOS**](IOS.md) · [**macOS**](#1-is-this-really-metas-app) · [**Android**](ANDROID.md) · [**All evidence**](EVIDENCE.md) · [**Review updates**](REVIEW.md)
 
-**Muse asks permission. The permission decides when your data goes to Meta, not whether it ends up there.**
+**Muse's reviewed client paths can send sensitive data to a Meta-hosted agent. Permission gates matter: denying access can prevent a read or sync; granting access can permit cloud processing and ongoing updates.** The records actually sent depend on the command, connector, OS grants, approval settings and server configuration.
 
-The Muse agent does not run on your device. It runs in a Meta-hosted VM, and the app on your Mac or phone is a node that the VM reaches into. Everything the agent reads for you goes back to that VM as a tool result (`client.invoke.result` / `node.invoke.result`). Everything the app keeps in sync goes there too (`client.data_source.publish`, history backfill, photo sync). The code copies it to Meta infrastructure by design. That is the product working as intended, not a bug.
+The privacy concerns are substantial: broad message, contact, photo, location and health access; history backfill; background sync; default-enabled diagnostic channels; and data about people other than the account holder. The app's copy says disconnecting does not delete previously shared data and that deleted chat messages may remain in agent memory. Connector footers discuss AI improvement, but this audit does not establish that every raw record enters training or how the opt-out is enforced.
 
-Once your data is there, the apps' own text says:
+**Editorial assessment:** the author describes this design as “spyware by design.” That is a privacy judgment about the breadth and control of collection, **not a demonstrated finding of covert collection, malicious intent, inevitable upload or an OS-permission bypass**. The technical findings and their limits stand independently of that label.
 
-- Disconnecting does not delete it: *"Previous data shared with {app} won't be removed unless you choose to delete it."*
-- Chat messages you delete *"may stay in the agent's memory"* (Android, iOS).
-- Connector info *"is part of your AI interactions, which we use to improve AI at Meta"* (Android). Meta's launch post says training is on by default. The client code falls back to on: `DEFAULT_ENABLED = true` on Android, and the Mac switch shows on until Meta's server returns the stored value.
-- The protocol carries the status of **Meta operator SSH access** to your VM (`ssh.operator.updated`).
-- Granting support access means *"your data will no longer be confidential."*
-
-The gates are also weaker than they look. Meta's servers set key defaults: the starting position of the Mac "Keep … up to date" switch and the Android `connector_default` baseline. Android history backfill has no lower date bound, although the copy says "shared after you connect". Mac Calendar, Reminders and Contacts have no in-app auto-sync switch. On Mac, "Allow always" never expires. Android location and network-state paths have no Muse approval step. iOS `photo.sync` always turns on ongoing camera-roll sync, and its tool text does not say so. Mac crash reports (with a `user_id`) and telemetry upload by default with no user opt-out.
-
-And consent is one person's. Messages, contacts, call logs and photos describe other people who never agreed.
-
-**Conclusion (this report's assessment): Muse is spyware by design.** It is built for surveillance-grade collection of a person's messages, contacts, calendar, photos, health, location and notifications into Meta's servers, where the apps say it is kept and used for Meta's AI. The consent screens are the mechanism of collection, not a limit on it. The full argument is in [§8](#8-is-muse-spyware). The byte-level audit behind it is the [27 September spyware verdict](SPYWARE-VERDICT-2026-09-27.md).
-
-**Limits:** static audit only. It found no hidden or covert collection channel and did not observe live traffic; the collection runs through the channels described and is disclosed in consent text, except where noted (Android history backfill, Android network state, Mac Calendar/Reminders/Contacts sync). No native Muse app was launched and no Meta account was connected. The only code run was the browser extension, against synthetic data. Strings and decompiled code do not show successful execution or server-side enforcement.
+**Verification update:** [today's changes audited](TODAYS-CHANGES-AUDIT-2026-09-27.md). Native app findings are static. The browser findings were reproduced with synthetic data and a local gateway; no native Muse app or Meta account was used. The decrypted iOS instruction bytes remain unauthenticated despite valid signatures over metadata.
 
 **Latest audit — [27 September 2026](RELEASE-AUDIT-2026-09-27.md):** verified macOS **4.1** and Android **9.0.0.11.178** samples. The unchanged bundled browser extension sends page metadata while paused, resets pause after browser restart, and retains the last command's parameters after unpairing. These behaviors were reproduced in isolated Chromium with synthetic data and a local gateway. iOS **9.0** is listed by Apple but its code has not been audited. See the supplement for version differences, evidence and limits.
 
@@ -42,13 +30,13 @@ A static teardown of **Muse 3.0 for macOS** (`com.meta.endo`), plus Android and 
 |---|---|---|
 | macOS | 3.0 / `1075746581`; follow-up 4.1 / `1077426479` | This page covers 3.0. [4.1 supplement](RELEASE-AUDIT-2026-09-27.md): verified Developer ID and update signature; bundle comparison and browser tests. |
 | Android | 8.0.0.21.168; follow-up 9.0.0.11.178 (`com.facebook.aura`) | [ANDROID.md](ANDROID.md) covers 8.0. [9.0 supplement](RELEASE-AUDIT-2026-09-27.md): matching signer, unchanged 65 permission entries, selected DEX control-flow checks. |
-| iOS | 8.1.0 / `1074192126` (`com.facebook.hatch`); 9.0 listing only | [IOS.md](IOS.md): **third-party decrypted 8.1 IPA**. Apple's CMS signature verifies for all five binaries; only the decrypted `__TEXT` cannot be checked ([verdict §1](SPYWARE-VERDICT-2026-09-27.md#1-integrity-every-byte-accounted-for)). No 9.0 code audit. |
+| iOS | 8.1.0 / `1074192126` (`com.facebook.hatch`); 9.0 listing only | [IOS.md](IOS.md): **third-party decrypted 8.1 IPA**. Apple's CMS signature verifies for all five binaries; decrypted instructions remain unauthenticated, and the whole-app signature still fails ([verdict §1](SPYWARE-VERDICT-2026-09-27.md#1-integrity-every-byte-accounted-for)). No 9.0 code audit. |
 
 ### What changed in this review — 2026-09-27
 
 - Reframed the summary and [§8](#8-is-muse-spyware) around where the data ends up, using the [spyware verdict](SPYWARE-VERDICT-2026-09-27.md).
 - Corrected [§4](#4-what-it-uploads-in-the-background): the Mac auto-sync default comes from a Meta server flag, not the web fallback. Calendar, Reminders and Contacts have no in-app switch. The `auto_allow` fallback is display-only. The training value is held on Meta's server. Crash reports and telemetry are on by default.
-- iOS: Apple's CMS signature verifies for all five binaries. The earlier "invalid signature" wording understated it.
+- iOS: Apple's CMS signature verifies for all five binaries. The whole-app signature still fails; metadata verification does not authenticate decrypted instructions.
 
 ### What changed in this review — 2026-09-24
 
@@ -216,7 +204,7 @@ The copy describes automatic sharing, and distinguishes email metadata from body
 - The web dialog has a fallback, `autoSync.enabled ?? true`, but it has no effect. Whenever native shows the switch, it sends a value.
 - The real order is: the user's stored choice (`nodeAutoSync.<id>`), then the server flag `endo_rollout:featured_app_proactive_sync_enabled`, then false.
 - For **Notes, iMessage and Mail**, the switch starts wherever the server flag puts it. Connect saves whatever the switch shows, touched or not. After that, the stored choice wins over the flag.
-- **Calendar, Reminders and Contacts get no in-app switch at all**, in the consent dialog or in Settings. Their stored choice is never written, so their ongoing sync follows the server flag: off if Meta never delivers it, on if it does, with no control in the app either way. Their consent copy still says the data *"will be automatically updated with the latest information from your device going forward."* The "Keep calendar / reminders / contacts up to date" copy above ships in the web bundle, but native code never sends a switch for these three.
+- **Calendar, Reminders and Contacts get no in-app switch at all**, in the consent dialog or in Settings. No writer of a stored choice for these three was found in the reviewed UI, so the resolver falls back to the server flag: off if absent or false, potentially on if true. A delivered flag is not necessarily true, and other permission/connector gates still apply. Their consent copy still says the data *"will be automatically updated with the latest information from your device going forward."* The "Keep calendar / reminders / contacts up to date" copy above ships in the web bundle, but native code never sends a switch for these three.
 
 The flag's production value is not visible in the app, and the flag is not in the app's registered MetaConfig key list. The logic is the same in 3.0 and 4.1 (`Muse` 4.1 resolver `0x1001334bc`, flag lookup `0x1001335a8`, Calendar/Reminders/Contacts set `0x10042f440`). Earlier bridge and pairing evidence: [`12-permission-and-pairing-review.txt`](evidence/12-permission-and-pairing-review.txt).
 
@@ -232,7 +220,7 @@ media_sync_manifest.json
 media_sync_enabled
 ```
 
-These strings establish background media-upload and deduplication machinery. The 27 September audit settled the default: `media_sync_enabled` is off until set. The agent command `media_library.sync` turns it on and starts the background timer, behind a per-command approval card and the macOS Photos prompt. After that it persists across launches. "Allow always" on that card never expires, and there is no in-app revocation. **The date range, media types and whether the entire library is uploaded are still not established.** `media_sync_last_date` and permission/skip paths are also present. The previous whole-library conclusion was too strong.
+These strings establish background media-upload and deduplication machinery. The 27 September audit settled the default: `media_sync_enabled` is off until set. The agent command `media_library.sync` turns it on and starts the background timer, behind a per-command approval card and the macOS Photos prompt. After that it persists across launches. The inspected copy says “Always allow” choices do not expire; no photo-sync off-switch was found in the reviewed web UI. That is not proof that permission revocation is impossible. **The date range, media types and whether the entire library is uploaded are still not established.** `media_sync_last_date` and permission/skip paths are also present. The previous whole-library conclusion was too strong.
 
 ### Training and approval defaults
 
@@ -242,9 +230,9 @@ These strings establish background media-upload and deduplication machinery. The
 
 ### Crash reports, telemetry and updates (Mac 4.1)
 
-- **Crash reports upload by default** to `https://www.facebook.com/mobile/ios_breakpad_crash_logs/`, with `user_id` and `session_id` annotations. The enable check is hard-coded true, and there is no in-app opt-out. Minidumps carry thread stacks, registers and module lists, which can include fragments of in-memory content. Which account identifier fills `user_id` was not resolved.
+- **Crash upload code is enabled by default** to `https://www.facebook.com/mobile/ios_breakpad_crash_logs/`, with `user_id` and `session_id` annotations. The enable check is hard-coded true, and there is no in-app opt-out. Minidumps carry thread stacks, registers and module lists, which can include fragments of in-memory content. Which account identifier fills `user_id` was not resolved.
 - **Client telemetry is on by default.** Its only switch sits in internal settings that only Meta employees see (`hatch_web:ecto1_is_employee`).
-- **Auto-update is switched on in code each time the updater starts, which is logged at launch** (12-hour checks, automatic download; a pending update shows in Settings as "Install update"). Updates are Ed25519-signed. The bundled Sparkle is an unreleased mid-2024 snapshot that predates the CVE-2025-10016 fix. Sparkle, Autoupdate and Updater changed only inside their signature blobs between 3.0 and 4.1.
+- **Auto-update is switched on in code each time the updater starts, which is logged at launch** (12-hour checks, automatic download; a pending update shows in Settings as "Install update"). Updates are Ed25519-signed. The bundled Sparkle reports `2.7.0-beta.1` / build `2040`, predating upstream 2.7.2 installer hardening. Applicability and exploitability require checking the shipped custom build and privileged update path; no exploit was reproduced. See [verification](TODAYS-CHANGES-AUDIT-2026-09-27.md#sparkle-and-helper-differences). Sparkle, Autoupdate and Updater changed only inside their signature blobs between 3.0 and 4.1.
 
 Details and quotes: [CROSS-PLATFORM.md](CROSS-PLATFORM.md#consent-defaults-and-retention-what-the-apps-say) · [`15-consent-retention-macos.txt`](evidence/15-consent-retention-macos.txt) · [verdict §3 and §5](SPYWARE-VERDICT-2026-09-27.md#3-findings-that-survived-verification) · [`08-spyware-audit-findings.json`](evidence-updates/2026-09-27/08-spyware-audit-findings.json).
 
@@ -286,7 +274,7 @@ These permissions support broad screen observation and input automation. Sensiti
 - `expiresAt` is received and stored, but **never checked against the clock**. Expiry is enforced only if Meta's server rejects the token.
 - **Local "Disconnect" clears stored credentials and closes the socket.** No explicit revoke request appears in that path; whether the server invalidates the token is untested. Close codes (4001/≥4000), `node.unpaired` and registration errors can also trigger local credential clearing.
 - The extension **reconnects automatically**, with no user action, on browser start, on install/update, on a 1-minute heartbeat alarm, when the popup opens, and on backoff retries.
-- **"Pause" is held in memory only**, so it silently resets whenever Chrome restarts the extension's service worker.
+- **"Pause" is not restored from cached status.** A browser restart reset it in the synthetic Chromium test. The flag is also written into `_cachedStatus`, so “held in memory only” is inaccurate; every worker-suspension scenario was not tested.
 - The last agent command's parameters (e.g. text the agent typed into a page) remain in plaintext `_cachedStatus` in extension storage, **even after unpairing**.
 - Manual pairing accepts any `ws://` or `wss://` host and keeps it across restarts. Only the extension's own pages can trigger it, and none currently does.
 - Scope: all of this applies to a standalone Chrome install. When a `.bundled` marker file is present, the code skips the node connection entirely. Whether Muse.app writes that marker wasn't established.
@@ -305,51 +293,25 @@ It isn't referenced by filename in the native binary, the web bundle or the exte
 
 ## 8. Is Muse spyware?
 
-**This report's assessment: yes, by design.** The argument has five parts. The facts under each part come from the static evidence linked here and in the [27 September verdict](SPYWARE-VERDICT-2026-09-27.md).
+**The author's “spyware by design” label is an editorial privacy assessment.** The verified findings establish broad cloud-agent capabilities and specific control weaknesses. They do not establish malicious intent, covert collection, or that permission denial is ineffective.
 
-### The permission gate does not settle it
+### What permission does and does not establish
 
-Muse does ask. The OS asks for Full Disk Access, Photos, Contacts, Health or location, and Muse shows connect screens and approval cards. That is real. The point is what it controls. The gate decides **when** data leaves the device, not **whether** it ends up at Meta.
+OS permissions and Muse's approval modes can prevent access. Once a permitted command or sync runs successfully, the reviewed return/publish paths can send its output to the Meta-hosted VM. An approval alone is not proof of a successful upload: a command may fail, return an empty or filtered result, or be blocked by another gate. “Allow always” permits later actions; it does not by itself prove continuous collection. The [protocol table](CROSS-PLATFORM.md#one-pipe-to-a-meta-vm) describes the relevant paths.
 
-The agent is not on your device. It runs in a Meta-hosted VM ([§2](#2-architecture-your-mac-as-a-node-for-a-meta-vm)). To read your messages for you, it has to receive them where it runs. The protocol has three paths for that ([CROSS-PLATFORM.md](CROSS-PLATFORM.md#one-pipe-to-a-meta-vm)):
+### Documented privacy concerns
 
-| Path | What it carries | What starts it |
-|---|---|---|
-| `client.invoke.result` / `node.invoke.result` | Results of agent commands: messages, SMS, contacts, calendar, call log, photos, files, screenshots, location, health, notifications, web pages | Each command the agent runs on your device |
-| `client.data_source.publish` | Background sync and history backfill | "Keep … up to date" switches; the Mac server flag for Calendar, Reminders and Contacts; server-sent `data_source.backfill` |
-| Photo sync | Photo bytes and file names, to the VM file server | MediaSync (Mac), camera-roll sync (iOS), `photos.upload` (Android, behind a server flag that defaults off) |
+- **Retention:** the apps say disconnecting does not remove previously shared data; deleted messages may remain in agent memory. Actual retention periods, reset coverage and backend erasure remain untested.
+- **AI improvement:** local-connector copy says data “may” be used to improve AI; custom-connector/task copy uses “we use.” Defaults and opt-outs must be distinguished from proof that particular raw records entered training.
+- **Defaults and controls:** Mac sync can inherit a server flag where no stored choice exists. The reviewed UI exposes no auto-sync switch for Calendar, Reminders or Contacts. Android's approval baseline is server-held and user-editable; no cached baseline fails closed. A missing category gate is not absence of every OS or app control.
+- **Historical access:** Android SMS, call-log and health backfill can request pre-connection history, subject to grants and approval. “Shared after you connect” is ambiguous about record age. Calendar and Contacts explicitly disclose existing information. Health Connect's history restrictions still apply. No pre-connection production upload was observed.
+- **Browser controls:** paused page metadata, pause reset after browser restart, and cached command parameters after unpairing were reproduced. Standalone web pairing can be attempted again after Disconnect; success requires the server to issue credentials.
+- **Diagnostics:** the reviewed Mac crash provider returns enabled, and the web telemetry preference defaults on. No ordinary-user in-app opt-out was found in the reviewed paths. Actual payload contents and transmission were not measured.
+- **Other people's data:** connectors can disclose correspondents' or contacts' information. Those people are not shown the account holder's Muse prompt; this audit cannot establish whether they consented elsewhere.
 
-So every "Allow" on a read or a sync is a copy to Meta. "Allow once" sends one result. "Allow always" and "Keep … up to date" send a stream. Declining keeps that item on the device, but then the agent cannot do the task. The product works by sending the data. That is the design, not a bug.
+### Limits
 
-### Where the data ends up, per the apps' own text
-
-- **Disconnecting does not delete it.** *"Previous data shared with {app} won't be removed unless you choose to delete it."* (Mac web bundle, Android, iOS.) iOS message forwarding: *"Messages already shared are not deleted."*
-- **Deleting a chat message may not remove it.** *"Messages you delete are removed from the conversation but may stay in the agent's memory."* (Android, iOS.)
-- **It feeds Meta's AI.** Android connector copy: *"Info from this connector is part of your AI interactions, which we use to improve AI at Meta."* iOS: *"The info used for your tasks is part of your interactions with {appName}, which we use to improve AI at Meta."* Meta's launch post says training is on by default, with an opt-out. The client code falls back to on ([§4](#training-and-approval-defaults)).
-- **Meta operators can be given SSH access to your VM.** The protocol carries `ssh.operator.updated`, the status of Meta operator SSH access, on iOS and Android. The toggle routes (`/v1/ssh/operator/enable`, `/disable`) appear on all three platforms. iOS ties it to a support-access toggle. Meta's own post says current VM protections do not cryptographically prevent the Meta access needed to run the service ([§12](#12-current-public-disclosures-and-release-status)).
-- **Support access ends confidentiality.** *"Allowing access means your chats, memory, and files will be visible to support and your data will no longer be confidential."* (Android, iOS.)
-
-Quotes: [`15-consent-retention-macos.txt`](evidence/15-consent-retention-macos.txt) · [`15-consent-retention-android.txt`](evidence-android/15-consent-retention-android.txt) · [`15-consent-retention-ios.txt`](evidence-ios/15-consent-retention-ios.txt) · [`16-network-cross-platform.txt`](evidence/16-network-cross-platform.txt).
-
-### The gates are weaker than they look
-
-- **Meta's servers steer the defaults.** Mac: the starting position of the "Keep … up to date" switch for Notes, iMessage and Mail comes from the server flag `endo_rollout:featured_app_proactive_sync_enabled` ([§4](#4-what-it-uploads-in-the-background)). Android: an unset read category runs without a prompt when the cached server `connector_default` baseline is `auto_allow` or an unrecognised value, which maps to `AUTO_ALLOW`. With no cached baseline, it fails closed. iOS: server flags named `node_hitl_enabled` and `server_hitl_enabled` control the local approval gate itself; what they do when off was not determined.
-- **Consent copy that does not match the code.** Android `data_source.backfill` accepts any start date for SMS, call log, contacts, calendar and health, while the Messages and Call Log copy says *"shared after you connect"*. Mac Calendar, Reminders and Contacts have no in-app auto-sync switch; their sync follows the server flag while the copy promises automatic updates.
-- **Approvals with no end date.** On Mac, "Allow always" never expires (the app says "'Always allow' choices do not expire"). Mac photo-library sync, once approved, has no in-app revocation.
-- **Paths with no Muse approval step.** Android `location.get` and geofence commands are gated only by the Android location permission. Android network state (SSID/BSSID) and battery publish on app open, with no approval, toggle or in-app disclosure; SSID/BSSID needs the fine-location permission.
-- **Sync the agent can start.** iOS `photo.sync` always sets `cameraRollSyncEnabled = true`, which turns on ongoing camera-roll sync. Its tool text does not say so, and it lets the agent start a sync when it "needs up-to-date photo context". The Photos permission and an approval card still apply. iOS message-forwarding shortcuts run while the phone is locked, once the user has built them.
-- **Uploads with no opt-out.** Mac crash reports upload by default with `user_id` and `session_id` annotations. Mac client telemetry is on by default, and its only switch is employee-only ([§4](#crash-reports-telemetry-and-updates-mac-41)).
-- **The browser extension comes back.** It re-pairs when a Muse web page gains focus. Disconnect stores no opt-out, and Pause resets when Chrome restarts ([§6](#6-the-chrome-extension-broad-debugger-access), [release audit](RELEASE-AUDIT-2026-09-27.md)).
-
-### Other people never agreed
-
-Consent comes from one account holder. The data is about many people. Messages, WhatsApp search results, email senders, contacts, call logs, notifications and photos all describe people who are not shown a Muse consent screen and are not asked. The iOS forwarding copy says so: *"Forwards new messages and who sent them, including messages other people send you."*
-
-### Conclusion
-
-**This report's assessment: Muse is spyware by design.** It is built for surveillance-grade collection of a person's messages, contacts, calendar, photos, health, location and notifications into Meta's servers. The apps say that data stays after you disconnect unless you delete it, and that it is used to improve AI at Meta. Meta's servers steer several of the gates, and the other people in the data never agreed. The consent screens are the mechanism of collection, not a limit on it.
-
-**Limits:** static audit only. It found no hidden or covert collection channel and did not observe live traffic; the collection runs through the channels described and is disclosed in consent text, except where the bullets above say otherwise ([open questions](SPYWARE-VERDICT-2026-09-27.md#6-what-static-analysis-cannot-settle)).
+Native findings are static; iOS decrypted code is not authenticated. No native production traffic was captured. Presence of a server-flag name does not establish that it disables consent enforcement. See the [claim corrections and independent checks](TODAYS-CHANGES-AUDIT-2026-09-27.md) and the [finding ledger](SPYWARE-VERDICT-2026-09-27.md).
 
 ## Meta's track record
 

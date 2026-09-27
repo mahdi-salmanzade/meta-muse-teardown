@@ -2,6 +2,8 @@
 
 [Reports](README.md) · [Evidence index](EVIDENCE.md) · [Research plan](RESEARCH-PLAN.md)
 
+**Later the same day:** [independent review of all today's changes](TODAYS-CHANGES-AUDIT-2026-09-27.md). The browser findings below reproduce; newer integrity checks and corrections to the later verdict are recorded separately. The 60-file validation count below describes this original release-audit pass, before the two subsequent evidence files.
+
 **New Mac and Android samples are available. The strongest new findings concern the unchanged browser extension: its Pause control does not stop browsing-metadata events, pause does not survive a browser restart, and unpairing retains the last command's parameters.** These three behaviors were reproduced using the original extension in an isolated Chromium profile with synthetic pages and a loopback gateway. They are not observations of Meta receiving personal data.
 
 This follow-up combines release provenance, version comparison, DEX instruction checks, 14 offline JavaScript tests, and a real-browser integration test. The macOS/iOS/Android native apps were not launched. No Meta account was used. The earlier reports describe the original samples; this supplement records what was checked in the newer ones.

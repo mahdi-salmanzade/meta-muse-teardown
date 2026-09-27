@@ -12,9 +12,9 @@ shasum -a 256 -c evidence.sha256
 
 The app archives, full extracted binaries and full decompiled source are excluded; the repository publishes hashes, metadata, bounded extracts and commentary. See the [reproduction instructions](README.md#11-reproduce-it-yourself) for which extracts can be rebuilt automatically. The banner is editorial artwork, not a captured application screenshot or technical evidence.
 
-**Total: 60 evidence files.**
+**Total: 62 evidence files.**
 
-## Release audit — 27 September 2026 — 7 files
+## Release audit and subsequent verification — 27 September 2026 — 9 files
 
 [Report and reproduction](RELEASE-AUDIT-2026-09-27.md). New Mac 4.1 and Android 9 samples, iOS listing metadata, original-extension tests using only synthetic data, and selected DEX instruction checks.
 
@@ -27,6 +27,10 @@ The app archives, full extracted binaries and full decompiled source are exclude
 | [05-extension-browser-tests.json](evidence-updates/2026-09-27/05-extension-browser-tests.json) | Real Chromium, synthetic pages and loopback gateway observations |
 | [06-extension-excerpts.txt](evidence-updates/2026-09-27/06-extension-excerpts.txt) | Hashed original JavaScript excerpts |
 | [07-android-bytecode-excerpts.txt](evidence-updates/2026-09-27/07-android-bytecode-excerpts.txt) | Hashed source/DEX excerpts with instruction offsets |
+| [08-spyware-audit-findings.json](evidence-updates/2026-09-27/08-spyware-audit-findings.json) | Historical finder/verifier ledger; includes disputed and superseded interpretations |
+| [09-independent-verification.json](evidence-updates/2026-09-27/09-independent-verification.json) | Independent CMS/JWS checks, page/resource hashes, helper comparisons and bounded source/disassembly |
+
+The [audit of today's changes](TODAYS-CHANGES-AUDIT-2026-09-27.md) records corrections to the later prose. The original finder ledger is preserved unchanged; its labels and reviewer votes are not proof of transmission, intent or absence of other controls. Reproduce the new integrity checks with [verify-september27-audit.py](scripts/verify-september27-audit.py).
 
 ## iOS — 19 files
 

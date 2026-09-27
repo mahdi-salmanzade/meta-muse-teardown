@@ -2,6 +2,16 @@
 
 [Reports](README.md) · [Complete evidence index](EVIDENCE.md)
 
+## 27 September 2026 — independent audit of today's changes
+
+Reviewed all three of today's existing commits (`e48d3ac`, `46fd067`, `0b52220`). [Full review and verification](TODAYS-CHANGES-AUDIT-2026-09-27.md).
+
+Corrected claims that permission only affects timing, backfill proves exfiltration, valid iOS metadata signatures authenticate decrypted code, camera-roll periodic background processing works, and the old Sparkle version proves exploitability. Preserved the author's privacy assessment as explicitly editorial. Also corrected Pause persistence wording, Crashpad's UUID changes, transparency-key trust, broad negative-search claims and the missing evidence-index entry.
+
+Independently verified five iOS CMS signatures and their CodeDirectory bindings, page/special-slot/resource hashes, both Android transparency signatures and ordinary file digests, Mac helper byte differences and selected native functions. Negative controls reject modified signed content. All 14 offline extension tests and the real Chromium synthetic integration test pass again; the original seven release-evidence files regenerate identically. Native runtime behavior and production servers remain untested.
+
+The original finder ledger remains unchanged. Added one verification script and one machine-readable evidence file, bringing the evidence manifest to 62 files.
+
 ## 27 September 2026 — release and boundary audit
 
 The [new supplement](RELEASE-AUDIT-2026-09-27.md) adds verified Mac 4.1 and Android 9.0.0.11.178 samples. Mac signing and the production feed's Ed25519 signature pass; a one-byte-modified artifact fails. The Android APK's v3 signature/source stamp pass, its signer matches the baseline and all 65 declared permissions are unchanged. Apple's web listing shows iOS 9.0 while lookup returns 8.1; no 9.0 code was acquired.

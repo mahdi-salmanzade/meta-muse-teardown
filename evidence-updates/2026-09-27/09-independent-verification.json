@@ -1,0 +1,340 @@
+{
+  "audit_date": "2026-09-27",
+  "scope": "Local cryptographic and byte/configuration checks; no native app execution or Meta account.",
+  "openssl": "OpenSSL 3.6.4 25 Aug 2026 (Library: OpenSSL 3.6.4 25 Aug 2026)",
+  "android": {
+    "apk_sha256": "fc4e70f48915a86094329b8b1f5941ea6eccc78d1dfee1d7a73638e7162194e3",
+    "jws": [
+      {
+        "member": "META-INF/code_transparency_signed.jwt",
+        "sha256": "6fd5539861a54e333b6c0e4f33eb43c7733147848b8682f620ba110636c48532",
+        "rs256_valid": true,
+        "altered_message_rejected": true,
+        "certificate_sha256": "004744571490c70869ec18051ae715d0c581b8e162dc1658b489016ca1257976",
+        "ordinary_file_hashes_matched": 41,
+        "all_dex_and_so_covered": true,
+        "special_digests": []
+      },
+      {
+        "member": "assets/fb_code_transparency_signed.jwt",
+        "sha256": "29805083669be085f511b9a358b49258bad8a45930af45d729ac3cefb5418238",
+        "rs256_valid": true,
+        "altered_message_rejected": true,
+        "certificate_sha256": "004744571490c70869ec18051ae715d0c581b8e162dc1658b489016ca1257976",
+        "ordinary_file_hashes_matched": 44,
+        "all_dex_and_so_covered": true,
+        "special_digests": [
+          {
+            "path": "AndroidManifest.xml",
+            "status": "Not checked: custom canonical manifest digest, not a raw file SHA-256."
+          }
+        ]
+      }
+    ],
+    "code_files": 41,
+    "apk_signer_sha256": "a16bbe0247a738bc8f09fef50d890dc177ec875a83a121f877329b1b89667e99",
+    "jws_certificates_match_apk_signer": false,
+    "trust_limit": "Embedded-certificate signature verification is not an independent trust anchor. The enclosing APK signature authenticates the packaged JWS; no separate official-store transparency-key comparison was performed."
+  },
+  "mac_helpers": [
+    {
+      "path": "Frameworks/Sparkle.framework/Versions/B/Sparkle",
+      "baseline_sha256": "bdf46407884e206253b6dcbaa229c92ff489f72d5c4368369e7e2191f104b937",
+      "current_sha256": "133a4711074b6eb5995c651a09893f0fe3d3e71892840f520a5f1d1c076b41cd",
+      "changed_bytes_outside_signature": 0,
+      "changed_bytes_outside_signature_and_uuid": 0
+    },
+    {
+      "path": "Frameworks/Sparkle.framework/Versions/B/Autoupdate",
+      "baseline_sha256": "da6610eb2311889ff84da512a8e27a7e5336ac3451bd5ec2119a7ad27159a606",
+      "current_sha256": "79b1cd198e3cdf4bbe83b2fdf50819ea1d3389738b5b9e7d3313f0ec2012bcea",
+      "changed_bytes_outside_signature": 0,
+      "changed_bytes_outside_signature_and_uuid": 0
+    },
+    {
+      "path": "Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater",
+      "baseline_sha256": "4ff07bf7893bb5249663b855e5fb6a36b713e08b15aa506c0e021a847c0a60d8",
+      "current_sha256": "42a33e7691a58683c03ec7a82696e78aec8f62283dba6d435a28846b182a33e1",
+      "changed_bytes_outside_signature": 0,
+      "changed_bytes_outside_signature_and_uuid": 0
+    },
+    {
+      "path": "MacOS/EndoCrashpadHandler",
+      "baseline_sha256": "f5b9573e83b5806887ab667a48921e1a66d1cabe184eaa3ae1237330c24b2d7c",
+      "current_sha256": "ca2b844029c025f5135099a9404eca2b0a2c698f83ecd5dcbc4e018db48282ca",
+      "changed_bytes_outside_signature": 8,
+      "changed_bytes_outside_signature_and_uuid": 0
+    }
+  ],
+  "sparkle": {
+    "CFBundleShortVersionString": "2.7.0-beta.1",
+    "CFBundleVersion": "2040",
+    "xpc_services": []
+  },
+  "ios": {
+    "ipa_sha256": "70c3cfe5bde49e31eecd087fdbb6749703d2dd74f124c7c464866884d72603b2",
+    "binaries": [
+      {
+        "member": "Payload/HatchApp.app/PlugIns/HatchNotificationServiceExtension.appex/HatchNotificationServiceExtension",
+        "sha256": "c257b0b5bd234e2e5c1f0f1e8f8db5252b3896b083beb50ce43c1e25a8b8b146",
+        "cms_chain_to_apple_root_valid": true,
+        "sha256_codedirectory_bound_by_signed_attribute": true,
+        "altered_primary_codedirectory_rejected": true,
+        "code_pages": 304,
+        "mismatched_pages_after_cryptid_normalization": 224,
+        "mismatches_outside_fairplay_range": 0,
+        "special_slots_verified": {
+          "1": true,
+          "2": true,
+          "3": true,
+          "5": true,
+          "7": true
+        },
+        "resource_files_with_matching_sealed_hashes": 44,
+        "resource_hash_mismatches": [],
+        "bytes_after_signature_region": 0
+      },
+      {
+        "member": "Payload/HatchApp.app/PlugIns/WidgetExtension.appex/WidgetExtension",
+        "sha256": "3b1dc9f5e00c759ce6b1844347e9b2d6a85fa23aa430be975ba671e9188f91cf",
+        "cms_chain_to_apple_root_valid": true,
+        "sha256_codedirectory_bound_by_signed_attribute": true,
+        "altered_primary_codedirectory_rejected": true,
+        "code_pages": 165,
+        "mismatched_pages_after_cryptid_normalization": 108,
+        "mismatches_outside_fairplay_range": 0,
+        "special_slots_verified": {
+          "1": true,
+          "2": true,
+          "3": true,
+          "5": true,
+          "7": true
+        },
+        "resource_files_with_matching_sealed_hashes": 92,
+        "resource_hash_mismatches": [],
+        "bytes_after_signature_region": 0
+      },
+      {
+        "member": "Payload/HatchApp.app/PlugIns/HatchShareExtension.appex/HatchShareExtension",
+        "sha256": "2c577adfa55eb5b008bb9055782d848759ec3df53ed73f9c6424f5f75b90a41f",
+        "cms_chain_to_apple_root_valid": true,
+        "sha256_codedirectory_bound_by_signed_attribute": true,
+        "altered_primary_codedirectory_rejected": true,
+        "code_pages": 64,
+        "mismatched_pages_after_cryptid_normalization": 36,
+        "mismatches_outside_fairplay_range": 0,
+        "special_slots_verified": {
+          "1": true,
+          "2": true,
+          "3": true,
+          "5": true,
+          "7": true
+        },
+        "resource_files_with_matching_sealed_hashes": 87,
+        "resource_hash_mismatches": [],
+        "bytes_after_signature_region": 0
+      },
+      {
+        "member": "Payload/HatchApp.app/HatchApp",
+        "sha256": "0b1f3b3a8d810b9d70b5ed21fffe03a4b619e57cde9b33e465ada75ba8bc7a84",
+        "cms_chain_to_apple_root_valid": true,
+        "sha256_codedirectory_bound_by_signed_attribute": true,
+        "altered_primary_codedirectory_rejected": true,
+        "code_pages": 20117,
+        "mismatched_pages_after_cryptid_normalization": 17600,
+        "mismatches_outside_fairplay_range": 0,
+        "special_slots_verified": {
+          "1": true,
+          "2": true,
+          "3": true,
+          "5": true,
+          "7": true
+        },
+        "resource_files_with_matching_sealed_hashes": 469,
+        "resource_hash_mismatches": [
+          "Frameworks/MobileConfig.framework/MobileConfig",
+          "PlugIns/HatchNotificationServiceExtension.appex/HatchNotificationServiceExtension",
+          "PlugIns/HatchShareExtension.appex/HatchShareExtension",
+          "PlugIns/WidgetExtension.appex/WidgetExtension"
+        ],
+        "bytes_after_signature_region": 0
+      },
+      {
+        "member": "Payload/HatchApp.app/Frameworks/MobileConfig.framework/MobileConfig",
+        "sha256": "af482dd41562b64f435d4e8cec4a2a83fc33736aa16d300d92fde03949ad4330",
+        "cms_chain_to_apple_root_valid": true,
+        "sha256_codedirectory_bound_by_signed_attribute": true,
+        "altered_primary_codedirectory_rejected": true,
+        "code_pages": 953,
+        "mismatched_pages_after_cryptid_normalization": 136,
+        "mismatches_outside_fairplay_range": 0,
+        "special_slots_verified": {
+          "1": true,
+          "2": true,
+          "3": true
+        },
+        "resource_files_with_matching_sealed_hashes": 2,
+        "resource_hash_mismatches": [],
+        "bytes_after_signature_region": 0
+      }
+    ],
+    "background_modes": [
+      "audio",
+      "fetch",
+      "location",
+      "remote-notification"
+    ],
+    "permitted_bg_identifiers": [
+      "com.meta.hatch.cameraroll.sync.processingTask",
+      "com.meta.hatch.nodedata.sync.refreshTask"
+    ],
+    "limit": "Encrypted-range plaintext is unauthenticated. Signature-valid metadata and sealed resource hashes cannot authenticate decrypted instructions or establish retail runtime behavior. Omitted resources and account metadata were not authenticated or published."
+  },
+  "mac_native_input_sha256": "029997a6a3ad7f5336dbf96b2ce566e9d126b1b14c4b86c7e3cd87a90a1b6f36",
+  "mac_native_rechecks": {
+    "auto_sync_resolver": "(lldb) target create \"<repo>/extracted/release-audit-2026-09-27/Muse.app/Contents/MacOS/Muse\"\nCurrent executable set to '<repo>/extracted/release-audit-2026-09-27/Muse.app/Contents/MacOS/Muse' (arm64).\n(lldb) disassemble --start-address 0x1001334bc --count 75\nMuse`___lldb_unnamed_symbol_1001334bc:\nMuse[0x1001334bc] <+0>:   and    w8, w0, #0xff\nMuse[0x1001334c0] <+4>:   sub    sp, sp, #0x80\nMuse[0x1001334c4] <+8>:   stp    x22, x21, [sp, #0x50]\nMuse[0x1001334c8] <+12>:  stp    x20, x19, [sp, #0x60]\nMuse[0x1001334cc] <+16>:  stp    x29, x30, [sp, #0x70]\nMuse[0x1001334d0] <+20>:  add    x29, sp, #0x70\nMuse[0x1001334d4] <+24>:  mov    w20, #0x0                 ; =0 \nMuse[0x1001334d8] <+28>:  bl     0x10060a610               ; ___lldb_unnamed_symbol_10060a610\nMuse[0x1001334dc] <+32>:  mov    w9, #0x7b                 ; =123 \nMuse[0x1001334e0] <+36>:  tst    w8, w9\nMuse[0x1001334e4] <+40>:  b.eq   0x1001335c4               ; <+264>\nMuse[0x1001334e8] <+44>:  mov    x21, x1\nMuse[0x1001334ec] <+48>:  bl     0x1003e2c38               ; ___lldb_unnamed_symbol_1003e2c38\nMuse[0x1001334f0] <+52>:  mov    x19, x1\nMuse[0x1001334f4] <+56>:  bl     0x100614b80               ; ___lldb_unnamed_symbol_100614b80\nMuse[0x1001334f8] <+60>:  bl     0x100626444               ; ___lldb_unnamed_symbol_100626444\nMuse[0x1001334fc] <+64>:  stp    x8, x9, [sp, #0x30]\nMuse[0x100133500] <+68>:  bl     0x1005feaec               ; ___lldb_unnamed_symbol_1005feaec\nMuse[0x100133504] <+72>:  bl     0x1005fb6a8               ; ___lldb_unnamed_symbol_1005fb6a8\nMuse[0x100133508] <+76>:  ldp    x20, x22, [sp, #0x30]\nMuse[0x10013350c] <+80>:  bl     0x1004b6970               ; ___lldb_unnamed_symbol_1004b6970\nMuse[0x100133510] <+84>:  bl     0x1005e0ff8               ; ___lldb_unnamed_symbol_1005e0ff8\nMuse[0x100133514] <+88>:  mov    x3, x0\nMuse[0x100133518] <+92>:  add    x8, sp, #0x10\nMuse[0x10013351c] <+96>:  bl     0x1005e56e4               ; ___lldb_unnamed_symbol_1005e56e4\nMuse[0x100133520] <+100>: mov    x20, x3\nMuse[0x100133524] <+104>: bl     0x1003e3368               ; ___lldb_unnamed_symbol_1003e3368\nMuse[0x100133528] <+108>: bl     0x1005fb778               ; ___lldb_unnamed_symbol_1005fb778\nMuse[0x10013352c] <+112>: ldr    x8, [sp, #0x28]\nMuse[0x100133530] <+116>: cmp    x8, #0x1\nMuse[0x100133534] <+120>: b.ne   0x100133544               ; <+136>\nMuse[0x100133538] <+124>: add    x0, sp, #0x10\nMuse[0x10013353c] <+128>: bl     0x1005172ec               ; ___lldb_unnamed_symbol_1005172ec\nMuse[0x100133540] <+132>: b      0x100133594               ; <+216>\nMuse[0x100133544] <+136>: bl     0x1005e7e90               ; ___lldb_unnamed_symbol_1005e7e90\nMuse[0x100133548] <+140>: bl     0x100604c1c               ; ___lldb_unnamed_symbol_100604c1c\nMuse[0x10013354c] <+144>: cbz    x8, 0x100133568           ; <+172>\nMuse[0x100133550] <+148>: bl     0x1005e4704               ; ___lldb_unnamed_symbol_1005e4704\nMuse[0x100133554] <+152>: ldr    x8, [sp, #0x28]\nMuse[0x100133558] <+156>: cbz    x8, 0x10013358c           ; <+208>\nMuse[0x10013355c] <+160>: bl     0x1005dfd18               ; ___lldb_unnamed_symbol_1005dfd18\nMuse[0x100133560] <+164>: bl     0x1005db3e0               ; ___lldb_unnamed_symbol_1005db3e0\nMuse[0x100133564] <+168>: cbz    w0, 0x100133590           ; <+212>\nMuse[0x100133568] <+172>: bl     0x1005e4704               ; ___lldb_unnamed_symbol_1005e4704\nMuse[0x10013356c] <+176>: ldr    x8, [sp, #0x28]\nMuse[0x100133570] <+180>: cbz    x8, 0x10013359c           ; <+224>\nMuse[0x100133574] <+184>: bl     0x1005dfd18               ; ___lldb_unnamed_symbol_1005dfd18\nMuse[0x100133578] <+188>: bl     0x1005db3e0               ; ___lldb_unnamed_symbol_1005db3e0\nMuse[0x10013357c] <+192>: tbz    w0, #0x0, 0x1001335a0     ; <+228>\nMuse[0x100133580] <+196>: bl     0x1005fb6a8               ; ___lldb_unnamed_symbol_1005fb6a8\nMuse[0x100133584] <+200>: ldrb   w20, [sp, #0xf]\nMuse[0x100133588] <+204>: b      0x1001335c0               ; <+260>\nMuse[0x10013358c] <+208>: bl     0x1005cb1f4               ; ___lldb_unnamed_symbol_1005cb1f4\nMuse[0x100133590] <+212>: bl     0x1005cdd00               ; ___lldb_unnamed_symbol_1005cdd00\nMuse[0x100133594] <+216>: mov    w20, #0x0                 ; =0 \nMuse[0x100133598] <+220>: b      0x1001335c4               ; <+264>\nMuse[0x10013359c] <+224>: bl     0x1005cb1f4               ; ___lldb_unnamed_symbol_1005cb1f4\nMuse[0x1001335a0] <+228>: bl     0x1005db838               ; ___lldb_unnamed_symbol_1005db838\nMuse[0x1001335a4] <+232>: b.ne   0x1001335d0               ; <+276>\nMuse[0x1001335a8] <+236>: bl     0x1006046ec               ; ___lldb_unnamed_symbol_1006046ec\nMuse[0x1001335ac] <+240>: adrp   x8, 2792\nMuse[0x1001335b0] <+244>: add    x8, x8, #0x620            ; \"endo_rollout:featured_app_proactive_sync_enabled\"\nMuse[0x1001335b4] <+248>: bl     0x1005ea7e8               ; ___lldb_unnamed_symbol_1005ea7e8\nMuse[0x1001335b8] <+252>: bl     0x1000f395c               ; ___lldb_unnamed_symbol_1000f395c\nMuse[0x1001335bc] <+256>: bl     0x1005d731c               ; ___lldb_unnamed_symbol_1005d731c\nMuse[0x1001335c0] <+260>: bl     0x1005cdd00               ; ___lldb_unnamed_symbol_1005cdd00\nMuse[0x1001335c4] <+264>: and    w0, w20, #0x1\nMuse[0x1001335c8] <+268>: ldp    x29, x30, [sp, #0x70]\nMuse[0x1001335cc] <+272>: b      0x1005f9450               ; ___lldb_unnamed_symbol_1005f9450\nMuse[0x1001335d0] <+276>: bl     0x1005c4e10               ; ___lldb_unnamed_symbol_1005c4e10\nMuse[0x1001335d4] <+280>: b      0x1001335a8               ; <+236>\n\nMuse`___lldb_unnamed_symbol_1001335d8:\nMuse[0x1001335d8] <+0>:   mov    x2, x30\nMuse[0x1001335dc] <+4>:   bl     0x1005fd32c               ; ___lldb_unnamed_symbol_1005fd32c\nMuse[0x1001335e0] <+8>:   mov    x30, x2\nMuse[0x1001335e4] <+12>:  stp    x29, x30, [sp, #0x60]\n",
+    "crash_provider_enabled": "(lldb) target create \"<repo>/extracted/release-audit-2026-09-27/Muse.app/Contents/MacOS/Muse\"\nCurrent executable set to '<repo>/extracted/release-audit-2026-09-27/Muse.app/Contents/MacOS/Muse' (arm64).\n(lldb) disassemble --start-address 0x10064d288 --count 4\nMuse`___lldb_unnamed_symbol_10064d288:\nMuse[0x10064d288] <+0>: mov    w0, #0x1                  ; =1 \nMuse[0x10064d28c] <+4>: ret    \n\nMuse`___lldb_unnamed_symbol_10064d290:\nMuse[0x10064d290] <+0>: add    x1, x0, #0x50\nMuse[0x10064d294] <+4>: mov    x0, x8\n"
+  },
+  "bounded_source_rechecks": [
+    {
+      "file": "Muse.app/Contents/Resources/chrome/background.js",
+      "sha256": "a7d45793c120c10e29e5e382cee17157b4e1e87c65239fe39dd95a328274d6a3",
+      "lines": [
+        "649:   const s = connection.status();",
+        "650:   if (",
+        "651:     s.connected ||",
+        "652:     s.registered ||",
+        "653:     isAlreadyConnectingToSameHatchWebGateway(s, message.gatewayUrl)",
+        "654:   ) {",
+        "655:     sendResponse(s);",
+        "656:     return false;",
+        "657:   }",
+        "658:",
+        "659:   pendingHatchWebPairGatewayIdentity = hatchPairingSecurity.gatewayIdentityFromUrl(message.gatewayUrl);",
+        "660:   fetchHatchWebPairing(sender, message.gatewayUrl)",
+        "661:     .then((pairing) =>",
+        "662:       connection.pair(pairing.token, pairing.wsUrl, 'hatch-web', pairing.hatchName, pairing.avatarPath, {",
+        "663:         gatewayIdentity: pairing.gatewayIdentity,",
+        "664:         expiresAt: pairing.expiresAt,",
+        "665:       })",
+        "666:     )",
+        "667:     .then(async () => {",
+        "668:       let pairStatus = connection.status();",
+        "669:       if (!pairStatus.avatarPath) {",
+        "670:         await connection.fetchIdentity().catch(() => {});",
+        "671:         pairStatus = connection.status();",
+        "672:       }",
+        "673:       sendResponse(pairStatus);",
+        "674:       await setAvatarIcon(pairStatus);",
+        "675:       await showPairedBadge();",
+        "676:       try { await chrome.action.openPopup(); } catch {}",
+        "677:     })",
+        "678:     .catch((e) => sendResponse({ error: e.message }))",
+        "679:     .finally(() => {",
+        "680:       pendingHatchWebPairGatewayIdentity = null;"
+      ],
+      "limit": "JADX reconstructions are supporting static evidence, not execution. The extension JavaScript is original source."
+    },
+    {
+      "file": "android-jadx/sources/com/facebook/aura/commands/health/HealthDataSource.java",
+      "sha256": "b501fb571f38666b2dc07b03919b6cda7c7a1c9a5bd74b6eb0278068b5b8eb84",
+      "lines": [
+        "335:     @Override // com.facebook.aura.nodes.datasource.DataSource",
+        "336:     public Object backfill(String str, String str2, DataSourceContext dataSourceContext, InterfaceC03890Lb<? super DataSourceResult> interfaceC03890Lb) {",
+        "337:         String str3;",
+        "338:         String str4;",
+        "339:         Instant instantNow;",
+        "340:         String strIso8601Utc = str2;",
+        "341:         if (!isEnabled()) {",
+        "342:             str3 = \"health_disabled\";",
+        "343:             str4 = \"Health Connect is not enabled\";",
+        "344:         } else if (str == null || str.length() == 0) {",
+        "345:             str3 = \"missing_start_date\";",
+        "346:             str4 = \"start_date is required for health backfill\";",
+        "347:         } else {",
+        "348:             C6Aq c6Aq = C6Aq.A02;",
+        "349:             Instant instantA00 = c6Aq.A00(str);",
+        "350:             if (instantA00 == null) {",
+        "351:                 str3 = \"invalid_start_date\";",
+        "352:                 str4 = \"Could not parse start_date\";",
+        "353:             } else {",
+        "354:                 if (str2 != null) {",
+        "355:                     instantNow = c6Aq.A00(str2);",
+        "356:                     if (instantNow == null) {",
+        "357:                         str3 = \"invalid_end_date\";",
+        "358:                         str4 = \"Could not parse end_date\";",
+        "359:                     }",
+        "360:                 } else {",
+        "361:                     instantNow = null;",
+        "362:                 }",
+        "363:                 ZoneId zoneIdA0p = C5wZ.A0p();",
+        "364:                 if (C8630C4k.areEqual(instantNow, instantA00)) {",
+        "365:                     instantA00 = instantA00.atZone(ZoneOffset.UTC).toLocalDate().atStartOfDay(zoneIdA0p).toInstant();",
+        "366:                     instantNow = instantA00.plusSeconds(86400L);",
+        "367:                 }",
+        "368:                 if (instantNow == null) {",
+        "369:                     instantNow = Instant.now();",
+        "370:                 }",
+        "371:                 if (instantNow.isAfter(instantA00)) {",
+        "372:                     if (str2 == null) {",
+        "373:                         strIso8601Utc = NodeSyncTimestamps.INSTANCE.iso8601Utc(instantNow.toEpochMilli());",
+        "374:                     }",
+        "375:                     return C3Hj.A00(new AnonymousClass2(instantA00, instantNow, str, strIso8601Utc, dataSourceContext, null), interfaceC03890Lb);",
+        "376:                 }",
+        "377:                 str3 = \"invalid_range\";",
+        "378:                 str4 = \"start_date must be before end_date\";",
+        "379:             }",
+        "380:         }",
+        "381:         return C5wZ.A0P(str3, str4);",
+        "382:     }",
+        "383:"
+      ],
+      "limit": "JADX reconstructions are supporting static evidence, not execution. The extension JavaScript is original source."
+    },
+    {
+      "file": "android-jadx/sources/com/facebook/aura/commands/sms/SmsDataSource.java",
+      "sha256": "fea686d3e853d82183bfa462fddee98088d5103f1aa8f319c900821c2edefa8f",
+      "lines": [
+        "208:             C91m.A02(obj);",
+        "209:             String str2 = this.$startDate;",
+        "210:             if (str2 == null || str2.length() == 0) {",
+        "211:                 return C5wZ.A0P(\"missing_start_date\", \"start_date is required for sms backfill\");",
+        "212:             }",
+        "213:             try {",
+        "214:                 long jA092 = C5wZ.A09(str2);",
+        "215:                 long jCurrentTimeMillis = System.currentTimeMillis();",
+        "216:                 String str3 = this.$endDate;",
+        "217:                 if (str3 != null) {",
+        "218:                     try {",
+        "219:                         jA09 = C5wZ.A09(str3);",
+        "220:                     } catch (DateTimeParseException e) {",
+        "221:                         strA0X = CAB.A0X(\"end_date must be ISO-8601: \", e.getMessage());",
+        "222:                         str = \"invalid_end_date\";",
+        "223:                         return C5wZ.A0P(str, strA0X);",
+        "224:                     }",
+        "225:                 } else {",
+        "226:                     jA09 = jCurrentTimeMillis;",
+        "227:                 }",
+        "228:                 String strIso8601Utc = this.$endDate;",
+        "229:                 if (strIso8601Utc == null) {",
+        "230:                     strIso8601Utc = NodeSyncTimestamps.INSTANCE.iso8601Utc(jA09);",
+        "231:                 }",
+        "232:                 DataSourcePublishPipeline dataSourcePublishPipeline = DataSourcePublishPipeline.INSTANCE;",
+        "233:                 DataSourceContext dataSourceContext = this.$ctx;",
+        "234:                 String sourceId = SmsDataSource.INSTANCE.getSourceId();",
+        "235:                 String str4 = this.$startDate;",
+        "236:                 SmsBackfillStrategy smsBackfillStrategy = new SmsBackfillStrategy(dataSourceContext.userSession);",
+        "237:                 this.L$0 = null;",
+        "238:                 this.J$0 = jA092;",
+        "239:                 this.J$1 = jCurrentTimeMillis;",
+        "240:                 this.J$2 = jA09;",
+        "241:                 this.label = 1;",
+        "242:                 Object objDeliver = dataSourcePublishPipeline.deliver(dataSourceContext, sourceId, jA092, jA09, str4, strIso8601Utc, smsBackfillStrategy, this);",
+        "243:                 return objDeliver == enumC04030Pk ? enumC04030Pk : objDeliver;",
+        "244:             } catch (DateTimeParseException e2) {",
+        "245:                 strA0X = CAB.A0X(\"start_date must be ISO-8601 (e.g. '2025-01-15T00:00:00Z'): \", e2.getMessage());"
+      ],
+      "limit": "JADX reconstructions are supporting static evidence, not execution. The extension JavaScript is original source."
+    }
+  ]
+}

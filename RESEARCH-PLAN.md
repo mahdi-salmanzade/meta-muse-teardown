@@ -4,6 +4,8 @@
 
 **Goal:** a complete, reproducible account of what Muse can access on each platform, what it sends to Meta, when, with what consent, and what can be deleted, separating **what the code shows** from **what the app actually does**.
 
+**Latest claim review:** [27 September independent audit](TODAYS-CHANGES-AUDIT-2026-09-27.md) reproduces the browser findings and selected integrity checks, and corrects overstatements in the later verdict. Signed iOS metadata does not authenticate decrypted instructions. Add the missing iOS `processing` mode and deployment-specific Sparkle update conditions to future runtime checks; neither has been tested live.
+
 **Samples:** macOS 3.0 and 4.1 (`com.meta.endo`), Android 8.0.0.21.168 and 9.0.0.11.178 (`com.facebook.aura`), unverified iOS 8.1.0 (`com.facebook.hatch`). iOS 9.0 is listed but not acquired. Hashes in [EVIDENCE.md](EVIDENCE.md).
 
 **Completed 27 September:** [Release and boundary audit](RELEASE-AUDIT-2026-09-27.md): verified newer Mac/Android packages, compared bundle and permission changes, checked selected Android branches in DEX disassembly, and exercised the original extension with 14 offline tests plus real isolated Chromium. Pause, restart and unpair persistence findings are reproduced with synthetic data and a loopback gateway. These do not complete logged-in native tests D1–D8.
