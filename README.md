@@ -4,6 +4,8 @@
 
 [**iOS**](IOS.md) · [**macOS**](#1-is-this-really-metas-app) · [**Android**](ANDROID.md) · [**All evidence**](EVIDENCE.md) · [**Review updates**](REVIEW.md)
 
+**Spyware verdict — [27 September 2026](SPYWARE-VERDICT-2026-09-27.md):** a byte-level integrity check of all three samples plus a rubric audit with adversarial verification. The bytes do not show covert spyware. They show consent-gated, surveillance-grade collection with specific weaknesses: server-steerable defaults and gates, consent text that does not match the code (Android history backfill has no date limit; Mac Calendar, Reminders and Contacts have no in-app auto-sync switch), and default-on crash and telemetry uploads with no opt-out.
+
 **Latest audit — [27 September 2026](RELEASE-AUDIT-2026-09-27.md):** verified macOS **4.1** and Android **9.0.0.11.178** samples. The unchanged bundled browser extension sends page metadata while paused, resets pause after browser restart, and retains the last command's parameters after unpairing. These behaviors were reproduced in isolated Chromium with synthetic data and a local gateway. iOS **9.0** is listed by Apple but its code has not been audited. See the supplement for version differences, evidence and limits.
 
 > The internet is the 'greatest spying machine the world has ever seen' and is not a technology that necessarily favours the freedom of speech.
