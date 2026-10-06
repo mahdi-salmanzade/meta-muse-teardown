@@ -12,7 +12,18 @@ shasum -a 256 -c evidence.sha256
 
 The app archives, full extracted binaries and full decompiled source are excluded; the repository publishes hashes, metadata, bounded extracts and commentary. See the [reproduction instructions](README.md#11-reproduce-it-yourself) for which extracts can be rebuilt automatically. The banner is editorial artwork, not a captured application screenshot or technical evidence.
 
-**Total: 62 evidence files.**
+**Total: 64 evidence files.**
+
+## v9 audit and independent verification — 6 October 2026 — 2 files
+
+[Corrected report](V9-AUDIT-2026-10-06.md) · [Review and corrections](TODAYS-CHANGES-AUDIT-2026-10-06.md).
+
+| Evidence file | Contents |
+|---|---|
+| [10-v9-audit-findings.json](evidence-updates/2026-10-06/10-v9-audit-findings.json) | Original finder/verifier ledger, preserved unchanged; includes interpretations superseded by the independent review |
+| [11-independent-verification.json](evidence-updates/2026-10-06/11-independent-verification.json) | Archive/signature checks, iOS page/resource and framework comparisons, Mac helpers/updater/default UI, Android permissions/libraries and permission-gated Wi-Fi evidence |
+
+Reproduce with [verify-october6-audit.py](scripts/verify-october6-audit.py). These are static checks, not proof of native transmissions, production defaults or authenticity of decrypted iOS instructions.
 
 ## Release audit and subsequent verification — 27 September 2026 — 9 files
 

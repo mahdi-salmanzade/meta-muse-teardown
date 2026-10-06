@@ -2,6 +2,12 @@
 
 [Reports](README.md) · [Complete evidence index](EVIDENCE.md)
 
+## 6 October 2026 — independent review of the v9 findings
+
+Reviewed commit `3058622` and corrected the [v9 report](V9-AUDIT-2026-10-06.md), README and platform crosslinks. [Full corrections and verification](TODAYS-CHANGES-AUDIT-2026-10-06.md).
+
+Verified Mac signatures/feed/helper differences and automatic-update startup calls, Android signatures/permissions/libraries and Wi-Fi permission checks, and five iOS CMS/page/resource checks plus direct framework/token comparisons. Corrected repeated consent/authenticity/default overclaims, false framework additions, unsupported hostname attribution and the claim that unchanged command names prove identical implementation. Preserved the original ledger, fixed inventory-parser defects and indexed all 64 evidence files. Native runtime behavior remains untested.
+
 ## 27 September 2026 — independent audit of today's changes
 
 Reviewed all three of today's existing commits (`e48d3ac`, `46fd067`, `0b52220`). [Full review and verification](TODAYS-CHANGES-AUDIT-2026-09-27.md).

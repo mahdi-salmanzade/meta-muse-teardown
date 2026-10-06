@@ -4,7 +4,7 @@
 
 [**v9 audit**](V9-AUDIT-2026-10-06.md) · [**Spyware verdict**](SPYWARE-VERDICT-2026-09-27.md) · [**iOS**](IOS.md) · [**macOS**](#1-is-this-really-metas-app) · [**Android**](ANDROID.md) · [**All evidence**](EVIDENCE.md) · [**Review updates**](REVIEW.md)
 
-**v9 wave — [6 October 2026](V9-AUDIT-2026-10-06.md):** macOS **6.0**, Android **9.0.0.23.178**, iOS **9.1.0**, each analysed independently. All three authentic. macOS drops the bundled Chrome extension and its `stealth.min.js` anti-detection kit; Android removes the entire agent photo subsystem and four media permissions; iOS adds new off-device audio channels to Meta (an "Alo" live-voice WebSocket and a Bluetooth audio wearable). No covert channel on any platform.
+**v9 wave — [6 October 2026](V9-AUDIT-2026-10-06.md):** macOS **6.0**, Android **9.0.0.23.178**, and a third-party decrypted iOS **9.1.0** sample. Mac removes the bundled Chrome extension and `stealth.min.js`; Android removes four media permissions and the identified agent photo handlers; the iOS sample adds Alo voice and wearable-recording code. **[Independent review](TODAYS-CHANGES-AUDIT-2026-10-06.md):** corrected authenticity, defaults, framework and permission claims. Native traffic remains unobserved, and decrypted iOS instructions remain unauthenticated.
 
 **Muse's reviewed client paths can send sensitive data to a Meta-hosted agent. Permission gates matter: denying access can prevent a read or sync; granting access can permit cloud processing and ongoing updates.** The records actually sent depend on the command, connector, OS grants, approval settings and server configuration.
 
@@ -26,7 +26,7 @@ A static teardown of **Muse 3.0 for macOS** (`com.meta.endo`), plus Android and 
 
 **Scope:** the sections below record what the shipped code does and is wired to do, not what a particular account uploaded. OS permissions, connector settings, approval rules, server flags and platform restrictions decide what runs for a given user.
 
-### Platforms covered
+### Earlier platform reports — through 27 September 2026
 
 | Platform | Inspected build | Report / evidence strength |
 |---|---|---|
