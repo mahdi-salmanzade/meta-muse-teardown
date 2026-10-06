@@ -8,6 +8,8 @@ Key concerns include the reported persistent camera-roll setting change in `phot
 
 The author's “spyware by design” wording is an editorial privacy assessment. Neither covert collection nor inevitable upload is established. [Today's verification](TODAYS-CHANGES-AUDIT-2026-09-27.md) also identifies a missing `processing` background mode and preserves the distinction between signed metadata and unauthenticated decrypted instructions.
 
+> **v9 update (9.1.0, [6 Oct 2026](V9-AUDIT-2026-10-06.md)):** this page covers 8.1. In 9.1 the node data-collection command table is byte-identical, but new off-device audio channels to Meta were added — an "Alo" live-voice WebSocket (`wss://shortwave.facebook.com/vllm_proxy`) and a Bluetooth audio wearable ("Muse Gadget") that uploads recordings to the VM — and Apple Notes export was removed. See the v9 audit for the full delta.
+
 **Sample:** a third-party decrypted 8.1 IPA; Apple's signatures authenticate code directories and checked metadata/resource hashes, but decrypted instructions and the whole app do not pass integrity verification ([§1](#1-provenance-apple-signed-original-decrypted-by-a-third-party)). Apple now lists 9.0, which was not obtained or audited ([release check](RELEASE-AUDIT-2026-09-27.md#1-releases-and-provenance)).
 
 Reviewed **2026-09-24**, corrected with the [27 September audit](SPYWARE-VERDICT-2026-09-27.md). Nothing was installed or launched.

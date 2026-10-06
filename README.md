@@ -2,7 +2,9 @@
 
 # Muse by Meta: iOS, macOS and Android privacy teardown
 
-[**Spyware verdict**](SPYWARE-VERDICT-2026-09-27.md) · [**iOS**](IOS.md) · [**macOS**](#1-is-this-really-metas-app) · [**Android**](ANDROID.md) · [**All evidence**](EVIDENCE.md) · [**Review updates**](REVIEW.md)
+[**v9 audit**](V9-AUDIT-2026-10-06.md) · [**Spyware verdict**](SPYWARE-VERDICT-2026-09-27.md) · [**iOS**](IOS.md) · [**macOS**](#1-is-this-really-metas-app) · [**Android**](ANDROID.md) · [**All evidence**](EVIDENCE.md) · [**Review updates**](REVIEW.md)
+
+**v9 wave — [6 October 2026](V9-AUDIT-2026-10-06.md):** macOS **6.0**, Android **9.0.0.23.178**, iOS **9.1.0**, each analysed independently. All three authentic. macOS drops the bundled Chrome extension and its `stealth.min.js` anti-detection kit; Android removes the entire agent photo subsystem and four media permissions; iOS adds new off-device audio channels to Meta (an "Alo" live-voice WebSocket and a Bluetooth audio wearable). No covert channel on any platform.
 
 **Muse's reviewed client paths can send sensitive data to a Meta-hosted agent. Permission gates matter: denying access can prevent a read or sync; granting access can permit cloud processing and ongoing updates.** The records actually sent depend on the command, connector, OS grants, approval settings and server configuration.
 

@@ -174,6 +174,8 @@ android.messagingStyleUser     android.selfDisplayName   android.picture
 MessagingStyle  InboxStyle  BigPictureStyle  CallStyle   app_package   category
 ```
 
+> **v9 update (9.0.0.23.178, [6 Oct 2026](V9-AUDIT-2026-10-06.md)):** the entire agent photo subsystem was **removed** — `com/facebook/aura/commands/photos/` went from 52 files to 0, the `photos.*` commands are unregistered, on-device ML Kit image labelling is gone, and four media permissions were dropped (`ACCESS_MEDIA_LOCATION`, `READ_EXTERNAL_STORAGE`, `READ_MEDIA_IMAGES`, `READ_MEDIA_VISUAL_USER_SELECTED`). This section describes the 8.0 build; agent photo read/upload is no longer a present capability on 9.0.0.23.
+
 Notification payloads can contain sender names, message bodies and multi-message summaries. This is not evidence that the full chat history, every image or every message from the originating app is available. **9.0 audit:** `android.picture` is only a presence check. The serialized keys are `key`, `app_package`, `title`, `category`, `body`, `sender`, `dedup_key` and `timestamp`. No image bytes are compressed, encoded or sent.
 
 **Default: all apps.** From `gateway/store/HatchGatewayPrefsStore.java`:
