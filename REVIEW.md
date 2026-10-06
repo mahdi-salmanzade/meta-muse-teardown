@@ -2,6 +2,10 @@
 
 [Reports](README.md) · [Complete evidence index](EVIDENCE.md)
 
+## 6 October 2026 — report consistency follow-up
+
+Applied the remaining presentation fixes after the independent review: updated the README's inspected-version table and latest-review links, marked older cross-platform tables and release listings as historical, moved Android's photo-removal notice into the Photos section, corrected the claim that no helpers are bundled, and narrowed unverified upload/opt-out and setter-absence statements. No new runtime or release claim was added. Evidence files are unchanged.
+
 ## 6 October 2026 — independent review of the v9 findings
 
 Reviewed commit `3058622` and corrected the [v9 report](V9-AUDIT-2026-10-06.md), README and platform crosslinks. [Full corrections and verification](TODAYS-CHANGES-AUDIT-2026-10-06.md).

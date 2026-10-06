@@ -12,7 +12,7 @@ The privacy concerns are substantial: broad message, contact, photo, location an
 
 **Editorial assessment:** the author describes this design as “spyware by design.” That is a privacy judgment about the breadth and control of collection, **not a demonstrated finding of covert collection, malicious intent, inevitable upload or an OS-permission bypass**. The technical findings and their limits stand independently of that label.
 
-**Verification update:** [today's changes audited](TODAYS-CHANGES-AUDIT-2026-09-27.md). Native app findings are static. The browser findings were reproduced with synthetic data and a local gateway; no native Muse app or Meta account was used. The decrypted iOS instruction bytes remain unauthenticated despite valid signatures over metadata.
+**Verification update:** [6 October review](TODAYS-CHANGES-AUDIT-2026-10-06.md) · [27 September review](TODAYS-CHANGES-AUDIT-2026-09-27.md). Native app findings are static. The browser findings were reproduced with synthetic data and a local gateway; no native Muse app or Meta account was used. The decrypted iOS instruction bytes remain unauthenticated despite valid signatures over metadata.
 
 **Latest audit — [27 September 2026](RELEASE-AUDIT-2026-09-27.md):** verified macOS **4.1** and Android **9.0.0.11.178** samples. The unchanged bundled browser extension sends page metadata while paused, resets pause after browser restart, and retains the last command's parameters after unpairing. These behaviors were reproduced in isolated Chromium with synthetic data and a local gateway. iOS **9.0** is listed by Apple but its code has not been audited. See the supplement for version differences, evidence and limits.
 
@@ -26,13 +26,15 @@ A static teardown of **Muse 3.0 for macOS** (`com.meta.endo`), plus Android and 
 
 **Scope:** the sections below record what the shipped code does and is wired to do, not what a particular account uploaded. OS permissions, connector settings, approval rules, server flags and platform restrictions decide what runs for a given user.
 
-### Earlier platform reports — through 27 September 2026
+### Platforms covered
 
-| Platform | Inspected build | Report / evidence strength |
+Latest inspected samples are from the [6 October audit](V9-AUDIT-2026-10-06.md); this is not a claim about every store rollout. The detailed sections below preserve the older, dated analyses.
+
+| Platform | Latest inspected sample | Earlier reports / evidence strength |
 |---|---|---|
-| macOS | 3.0 / `1075746581`; follow-up 4.1 / `1077426479` | This page covers 3.0. [4.1 supplement](RELEASE-AUDIT-2026-09-27.md): verified Developer ID and update signature; bundle comparison and browser tests. |
-| Android | 8.0.0.21.168; follow-up 9.0.0.11.178 (`com.facebook.aura`) | [ANDROID.md](ANDROID.md) covers 8.0. [9.0 supplement](RELEASE-AUDIT-2026-09-27.md): matching signer, unchanged 65 permission entries, selected DEX control-flow checks. |
-| iOS | 8.1.0 / `1074192126` (`com.facebook.hatch`); 9.0 listing only | [IOS.md](IOS.md): **third-party decrypted 8.1 IPA**. Apple's CMS signature verifies for all five binaries; decrypted instructions remain unauthenticated, and the whole-app signature still fails ([verdict §1](SPYWARE-VERDICT-2026-09-27.md#1-integrity-every-byte-accounted-for)). No 9.0 code audit. |
+| macOS | **6.0 / `1082791187`** | This page covers 3.0; the [September supplement](RELEASE-AUDIT-2026-09-27.md) covers 4.1. In 6.0, signature/feed checks pass and the bundled extension is removed. |
+| Android | **9.0.0.23.178** (`com.facebook.aura`) | [ANDROID.md](ANDROID.md) covers 8.0 with a 9.0.0.11 follow-up. The latest inspected sample has **61 permissions**, down from 65, and a matching signer. |
+| iOS | **9.1.0 / `1080826056`** (`com.facebook.hatch`), third-party decrypted | [IOS.md](IOS.md) covers 8.1. For 9.1, CMS and checked metadata verify; **decrypted instructions remain unauthenticated**. No native uploads were observed. |
 
 ### What changed in this review — 2026-09-27
 
@@ -232,8 +234,8 @@ These strings establish background media-upload and deduplication machinery. The
 
 ### Crash reports, telemetry and updates (Mac 4.1)
 
-- **Crash upload code is enabled by default** to `https://www.facebook.com/mobile/ios_breakpad_crash_logs/`, with `user_id` and `session_id` annotations. The enable check is hard-coded true, and there is no in-app opt-out. Minidumps carry thread stacks, registers and module lists, which can include fragments of in-memory content. Which account identifier fills `user_id` was not resolved.
-- **Client telemetry is on by default.** Its only switch sits in internal settings that only Meta employees see (`hatch_web:ecto1_is_employee`).
+- **Crash upload code is enabled by default** to `https://www.facebook.com/mobile/ios_breakpad_crash_logs/`, with `user_id` and `session_id` annotations. The reviewed enable check returns true; no ordinary-user in-app opt-out was identified in those paths. Minidumps carry thread stacks, registers and module lists, which can include fragments of in-memory content. Which account identifier fills `user_id` was not resolved.
+- **Client telemetry is on by default.** The identified switch is in settings gated by `hatch_web:ecto1_is_employee`; the searched code did not establish an ordinary-user control.
 - **Auto-update is switched on in code each time the updater starts, which is logged at launch** (12-hour checks, automatic download; a pending update shows in Settings as "Install update"). Updates are Ed25519-signed. The bundled Sparkle reports `2.7.0-beta.1` / build `2040`, predating upstream 2.7.2 installer hardening. Applicability and exploitability require checking the shipped custom build and privileged update path; no exploit was reproduced. See [verification](TODAYS-CHANGES-AUDIT-2026-09-27.md#sparkle-and-helper-differences). Sparkle, Autoupdate and Updater changed only inside their signature blobs between 3.0 and 4.1.
 
 Details and quotes: [CROSS-PLATFORM.md](CROSS-PLATFORM.md#consent-defaults-and-retention-what-the-apps-say) · [`15-consent-retention-macos.txt`](evidence/15-consent-retention-macos.txt) · [verdict §3 and §5](SPYWARE-VERDICT-2026-09-27.md#3-findings-that-survived-verification) · [`08-spyware-audit-findings.json`](evidence-updates/2026-09-27/08-spyware-audit-findings.json).
@@ -374,11 +376,11 @@ The first three commands are local static inspection; `release` alone fetches th
 
 ## 12. Current public disclosures and release status
 
-For the **27 September** release check and new samples, see the [latest audit](RELEASE-AUDIT-2026-09-27.md#1-releases-and-provenance). The following is the historical 24 September snapshot.
+For the latest inspected samples, see the [6 October audit](V9-AUDIT-2026-10-06.md). The [27 September release check](RELEASE-AUDIT-2026-09-27.md#1-releases-and-provenance) and the following **24 September snapshot** are historical.
 
 Checked **2026-09-24**. Statements below are attributed to their publishers; the server protections were not independently tested.
 
-**Release status.** Meta announced Muse on **8 September 2026**, initially rolling out in the US on iOS, Android and the web. [Meta launch announcement](https://about.fb.com/news/2026/09/introducing-muse-personal-ai-agent/). The live Mac production feed lists **3.0 / 1075746581**, matching the inspected bundle and DMG size ([captured metadata](evidence/13-release-feed.json)). The US App Store lists **8.1**, matching the iOS sample’s marketing version; this does not authenticate the sample. [App Store](https://apps.apple.com/us/app/muse-from-meta/id6760173601). Android’s newest distributed version was not established in this review.
+**Release status.** Meta announced Muse on **8 September 2026**, initially rolling out in the US on iOS, Android and the web. [Meta launch announcement](https://about.fb.com/news/2026/09/introducing-muse-personal-ai-agent/). The Mac production feed captured on that date listed **3.0 / 1075746581**, matching the inspected bundle and DMG size ([captured metadata](evidence/13-release-feed.json)). The US App Store listing checked on that date showed **8.1**, matching the iOS sample’s marketing version; this does not authenticate the sample. [App Store](https://apps.apple.com/us/app/muse-from-meta/id6760173601). Android’s newest distributed version was not established in this review.
 
 **What Meta says about privacy and security.** Its 8 September technical post describes:
 

@@ -174,8 +174,6 @@ android.messagingStyleUser     android.selfDisplayName   android.picture
 MessagingStyle  InboxStyle  BigPictureStyle  CallStyle   app_package   category
 ```
 
-> **v9 update (9.0.0.23.178, [6 Oct 2026](V9-AUDIT-2026-10-06.md)):** the entire agent photo subsystem was **removed** — `com/facebook/aura/commands/photos/` went from 52 files to 0, the `photos.*` commands are unregistered, on-device ML Kit image labelling is gone, and four media permissions were dropped (`ACCESS_MEDIA_LOCATION`, `READ_EXTERNAL_STORAGE`, `READ_MEDIA_IMAGES`, `READ_MEDIA_VISUAL_USER_SELECTED`). This section describes the 8.0 build. The identified agent handlers are absent in 9.0.0.23; this is not a claim that all camera, attachment or alternative media paths were removed. See the [independent review](TODAYS-CHANGES-AUDIT-2026-10-06.md).
-
 Notification payloads can contain sender names, message bodies and multi-message summaries. This is not evidence that the full chat history, every image or every message from the originating app is available. **9.0 audit:** `android.picture` is only a presence check. The serialized keys are `key`, `app_package`, `title`, `category`, `body`, `sender`, `dedup_key` and `timestamp`. No image bytes are compressed, encoded or sent.
 
 **Default: all apps.** From `gateway/store/HatchGatewayPrefsStore.java`:
@@ -207,6 +205,8 @@ What the app says happens to the data once it is on Meta's side:
 Details: [CROSS-PLATFORM.md](CROSS-PLATFORM.md#consent-defaults-and-retention-what-the-apps-say) · [`15-consent-retention-android.txt`](evidence-android/15-consent-retention-android.txt).
 
 ## 6. Photos
+
+> **v9 update (9.0.0.23.178, [6 Oct 2026](V9-AUDIT-2026-10-06.md)):** the identified agent photo subsystem was **removed** — `com/facebook/aura/commands/photos/` went from 52 files to 0, the `photos.*` commands are unregistered, on-device ML Kit image labelling is gone, and four media permissions were dropped (`ACCESS_MEDIA_LOCATION`, `READ_EXTERNAL_STORAGE`, `READ_MEDIA_IMAGES`, `READ_MEDIA_VISUAL_USER_SELECTED`). This section describes the 8.0 build. The identified agent handlers are absent in 9.0.0.23; this is not a claim that all camera, attachment or alternative media paths were removed. See the [independent review](TODAYS-CHANGES-AUDIT-2026-10-06.md).
 
 `commands/photos` ([`08-photos.txt`](evidence-android/08-photos.txt)) contains:
 
@@ -253,7 +253,7 @@ Every data path below is built to end at the Meta-hosted VM, through one gateway
 | Remote `location.get` and geofence commands with **no Muse approval step**; Android location permission only (9.0 audit) | `NodeHitlCatalog.forCommand` returns null |
 | Wi-Fi SSID/BSSID (only with the fine-location grant) + carrier published with **no local category-gate check**: in the background (8.0); on every app open with the gateway connected (9.0 audit) | `commands/network/NetworkStateHandlerKt.java`, `AuraProactiveSyncWorker`; 9.0 `NetworkStateDataSource` (`AppOpen`/`TRANSIENT`) |
 | Server-returned baseline for unset categories: omitted/unrecognized field → `AUTO_ALLOW`; no cache → proactive deny. Unset reads allow; unset writes ask | `PermissionDefaultMode.fromWire`, `NodeHitlMode.defaultFor` |
-| Per-source sync switch defaults on and nothing in the app turns it off; only per-category approval modes remain (9.0 audit) | `slv_data_source_<id>` read with default `true`; `HatchDataSourceRegistry.setUserEnabled` has no caller |
+| Per-source storage defaults on; no caller of its setter was resolved in the reviewed code. Per-category policy and OS grants still apply (9.0.0.11 audit) | `slv_data_source_<id>` read with default `true`; `HatchDataSourceRegistry.setUserEnabled`: no caller identified by the static search |
 | 19 health-data category permissions, extended history/background access requested, proactive publishing code | Health Connect perms, `HealthSyncManager` → `client.data_source.publish` |
 | Deleted messages "may stay in the agent's memory"; support access ends confidentiality; training fallback on | app strings; `HatchAiTrainingApi.DEFAULT_ENABLED = true` |
 | Server-initiated commands | manifest: *"Execute server-initiated device commands…"* |
