@@ -2,6 +2,18 @@
 
 [Reports](README.md) · [Complete evidence index](EVIDENCE.md)
 
+## 8 October 2026 — documentation restructure
+
+Replaced the crowded README with a short overview and created consistent platform guides, a version history, research timeline and methods page. Preserved the previous README, Android, iOS and cross-platform detail as [historical snapshots](reports/README.md), with deep links redirected to their original sections. All 76 evidence files and their checksum manifest remain unchanged; the index now includes the 12 October 8 files.
+
+Current summaries distinguish removed components from continuing concerns, static findings from browser observations, listing-only iOS 9.0 from inspected code, and domain/project attribution from legal ownership. The October 8 work analyzes existing builds; it is not a new-release or native-runtime audit. The next-test plan now includes payment-key, voice/wearable and VM-proof questions. Narrowed the October 8 prose to match its own evidence limits: project links do not establish legal domain ownership, wearable code does not establish bystander recording, the payment trace is strongest on Mac, and removed Rekor support does not prove a production security regression. No new external verification is claimed.
+
+**Documentation validation:** all published evidence hashes match the unchanged manifest; every evidence file is indexed; all four snapshots retain their original bodies apart from adjusted links. Local file/section links and whitespace checks pass. No native tests were run for this documentation change.
+
+## 8 October 2026 — follow-up investigations
+
+Published [Alo/Mango/wearable findings](ALO-AND-MULTIMANGO-2026-10-08.md) and [payment-key/VM-transparency findings](PAYMENT-AND-TRANSPARENCY-2026-10-08.md). Rechecked binary offsets, captured public site/API material, inventoried per-client APIs and verified a public Plexi auditor signature. Payment-key validation is distinct from TLS. The claim that Plexi replaced public transparency with a private system was rejected; Plexi was already present and is public. Native traffic and production activation remain unobserved.
+
 ## 6 October 2026 — report consistency follow-up
 
 Applied the remaining presentation fixes after the independent review: updated the README's inspected-version table and latest-review links, marked older cross-platform tables and release listings as historical, moved Android's photo-removal notice into the Photos section, corrected the claim that no helpers are bundled, and narrowed unverified upload/opt-out and setter-absence statements. No new runtime or release claim was added. Evidence files are unchanged.
@@ -61,7 +73,7 @@ This review checked the three available samples, every tracked evidence file, th
 
 ## Public sources checked
 
-The main report’s [public-disclosures section](README.md#12-current-public-disclosures-and-release-status) distinguishes publisher statements from independently inspected local evidence. Sources accessed on 2026-09-24 include:
+The main report’s [public-disclosures section](reports/README-BEFORE-RESTRUCTURE.md#12-current-public-disclosures-and-release-status) distinguishes publisher statements from independently inspected local evidence. Sources accessed on 2026-09-24 include:
 
 - [Meta launch announcement — 8 September 2026](https://about.fb.com/news/2026/09/introducing-muse-personal-ai-agent/)
 - [Meta security/data-policy technical post — 8 September 2026](https://research.meta.ai/blog/security-and-safety-for-ai-agents-our-approach-with-muse)

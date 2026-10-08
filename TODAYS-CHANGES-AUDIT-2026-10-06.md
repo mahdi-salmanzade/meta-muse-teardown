@@ -1,5 +1,7 @@
 # Audit of today's findings — 6 October 2026
 
+> **Dated research.** Findings below apply to the named samples and checks. For later changes and the current interpretation, see [version history](VERSIONS.md) and [research history](RESEARCH-HISTORY.md).
+
 [Corrected report](V9-AUDIT-2026-10-06.md) · [Evidence index](EVIDENCE.md) · [Independent results](evidence-updates/2026-10-06/11-independent-verification.json)
 
 Reviewed commit **`3058622f65ce01b321a9159904f05dfee8e2e882`**, its eight changed files, the underlying finder/verifier ledger, the saved packages and targeted source/disassembly. The working tree was clean at the start. This is a review of today's report and its material claims, not a new exhaustive reconstruction of every native path.

@@ -1,5 +1,7 @@
 # Audit of today's changes — 27 September 2026
 
+> **Dated research.** Findings below apply to the named samples and checks. For later changes and the current interpretation, see [version history](VERSIONS.md) and [research history](RESEARCH-HISTORY.md).
+
 [Reports](README.md) · [Evidence](EVIDENCE.md) · [Independent results](evidence-updates/2026-09-27/09-independent-verification.json)
 
 Reviewed commits `e48d3ac`, `46fd067` and `0b52220`, from the 24 September baseline `fbb05d8`. The working tree was clean at the start. The image-caption edit in the conversation is not a repository change.

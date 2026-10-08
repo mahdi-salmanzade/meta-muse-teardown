@@ -1,5 +1,7 @@
 # Audit of the three static-research commits
 
+> **Dated research.** Findings below apply to the named samples and checks. For later changes and the current interpretation, see [version history](VERSIONS.md) and [research history](RESEARCH-HISTORY.md).
+
 Reviewed on 2026-09-24: `ab6f6c9`, `36f0c2b`, `9b0d5a3`, against base `df2de85`.
 
 **The central static findings have supporting evidence, but the summaries contained material overstatements.** This revision corrects them in the reports and evidence notes. It is a bounded source/claim review, not a completed security assessment or an observation of uploads.

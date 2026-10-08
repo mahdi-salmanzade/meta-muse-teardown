@@ -1,5 +1,7 @@
 # Muse release audit — 27 September 2026
 
+> **Dated research.** Findings below apply to the named samples and checks. For later changes and the current interpretation, see [version history](VERSIONS.md) and [research history](RESEARCH-HISTORY.md).
+
 [Reports](README.md) · [Evidence index](EVIDENCE.md) · [Research plan](RESEARCH-PLAN.md)
 
 **Later the same day:** [independent review of all today's changes](TODAYS-CHANGES-AUDIT-2026-09-27.md). The browser findings below reproduce; newer integrity checks and corrections to the later verdict are recorded separately. The 60-file validation count below describes this original release-audit pass, before the two subsequent evidence files.

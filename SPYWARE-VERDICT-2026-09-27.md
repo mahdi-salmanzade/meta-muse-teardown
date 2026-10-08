@@ -1,5 +1,7 @@
 # Is Muse spyware? Byte-level audit — 27 September 2026
 
+> **Dated research.** Findings below apply to the named samples and checks. For later changes and the current interpretation, see [version history](VERSIONS.md) and [research history](RESEARCH-HISTORY.md).
+
 [Reports](README.md) · [Spyware verdict](SPYWARE-VERDICT-2026-09-27.md) · [Cross-platform](CROSS-PLATFORM.md) · [Release audit](RELEASE-AUDIT-2026-09-27.md) · [Evidence index](EVIDENCE.md) · [Findings data](evidence-updates/2026-09-27/08-spyware-audit-findings.json)
 
 **Editorial assessment:** the author calls Muse “spyware by design” because of the breadth of cloud-agent access, retention disclosures and control weaknesses. This is a privacy judgment, not a verified malware classification. Permission denial can prevent collection. Static client paths do not prove that a particular record was uploaded, retained or used in training.

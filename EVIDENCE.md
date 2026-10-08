@@ -1,8 +1,8 @@
 # Complete evidence index
 
-[**iOS report**](IOS.md) · [**macOS report**](README.md) · [**Android report**](ANDROID.md) · [**Review log**](REVIEW.md) · [**Commit audit**](COMMIT-AUDIT.md)
+[**iOS report**](IOS.md) · [**macOS report**](MACOS.md) · [**Android report**](ANDROID.md) · [**Review log**](REVIEW.md) · [**Commit audit**](COMMIT-AUDIT.md)
 
-Every evidence file in the three original platform folders and dated update folder is linked below. Original extraction notes are retained; new machine-readable files supplement them. Interpretive prose in older notes is not itself proof of runtime behavior. The platform reports explain corrections and the iOS sample’s failed integrity verification.
+Every evidence file in the three original platform folders and dated update folders is linked below. Original extraction notes are retained; new machine-readable files supplement them. Interpretive prose in older notes is not itself proof of runtime behavior. The platform guides explain corrections and the limits of authenticating third-party decrypted iOS instructions.
 
 The checksums establish the identity of the repository’s evidence files, not the authenticity of claims or of the original apps. Verify them from the repository root:
 
@@ -10,9 +10,30 @@ The checksums establish the identity of the repository’s evidence files, not t
 shasum -a 256 -c evidence.sha256
 ```
 
-The app archives, full extracted binaries and full decompiled source are excluded; the repository publishes hashes, metadata, bounded extracts and commentary. See the [reproduction instructions](README.md#11-reproduce-it-yourself) for which extracts can be rebuilt automatically. The banner is editorial artwork, not a captured application screenshot or technical evidence.
+The app archives, full extracted binaries and full decompiled source are excluded; the repository publishes hashes, metadata, bounded extracts and commentary. See the [reproduction instructions](METHODS.md#reproduce-the-work) for which extracts can be rebuilt automatically. The banner is editorial artwork, not a captured application screenshot or technical evidence.
 
-**Total: 64 evidence files.**
+**Total: 76 evidence files.**
+
+## Follow-up investigations — 8 October 2026 — 12 files
+
+[Alo / Mango / wearable report](ALO-AND-MULTIMANGO-2026-10-08.md) · [Payment / VM transparency report](PAYMENT-AND-TRANSPARENCY-2026-10-08.md). These extend analysis of the existing samples; they do not record native app execution or a newer release.
+
+| Evidence file | Contents |
+|---|---|
+| [01-multimango-recon.txt](evidence-updates/2026-10-08/01-multimango-recon.txt) | Public-site reconnaissance and captured infrastructure/registration metadata; legal ownership is not established |
+| [02-multimango-api-probes.txt](evidence-updates/2026-10-08/02-multimango-api-probes.txt) | Recorded public endpoint responses; not observed app-user traffic |
+| [03-multimango-site-strings.txt](evidence-updates/2026-10-08/03-multimango-site-strings.txt) | Captured site code/copy linking Mango to Muse and describing research features |
+| [04-binary-verification-alo-wearable.txt](evidence-updates/2026-10-08/04-binary-verification-alo-wearable.txt) | iOS 9.1 offsets and 8.1 negative controls; decrypted-code authenticity limitation applies |
+| [05-api-inventory-macos.txt](evidence-updates/2026-10-08/05-api-inventory-macos.txt) | Mac endpoint/method inventory and bounded call-path notes |
+| [05-api-inventory-android.txt](evidence-updates/2026-10-08/05-api-inventory-android.txt) | Android endpoint/method inventory and decompilation limits |
+| [05-api-inventory-ios.txt](evidence-updates/2026-10-08/05-api-inventory-ios.txt) | iOS endpoint/method inventory from the decrypted sample |
+| [06-attestation-transparency-verification.txt](evidence-updates/2026-10-08/06-attestation-transparency-verification.txt) | Rekor/Plexi comparison, public-key checks and auditor-signature verification; rejects the private-system framing |
+| [07-cert-skip-flag-verification.txt](evidence-updates/2026-10-08/07-cert-skip-flag-verification.txt) | Payment encryption-key validation flag and devExternal branch; not TLS verification |
+| [plexi-info.json](evidence-updates/2026-10-08/plexi-info.json) | Captured public Plexi service metadata and keys |
+| [plexi-namespaces.json](evidence-updates/2026-10-08/plexi-namespaces.json) | Captured public Plexi namespace listing |
+| [plexi-audit1.json](evidence-updates/2026-10-08/plexi-audit1.json) | Captured epoch-1 revocation-list audit response used for signature verification |
+
+Raw notes are preserved, including hypotheses narrowed by the reports. Recorded public responses describe their capture time, not guaranteed current service behavior.
 
 ## v9 audit and independent verification — 6 October 2026 — 2 files
 
