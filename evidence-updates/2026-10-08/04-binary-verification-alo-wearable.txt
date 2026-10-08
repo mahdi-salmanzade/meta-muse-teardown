@@ -1,0 +1,107 @@
+=== Independent binary verification: iOS 9.1 Alo voice + BLE wearable findings ===
+Date: 2026-10-08
+Method: grep -a -b -o / strings on both Mach-O binaries; plutil on Info.plists.
+No app code executed. Offsets are file offsets.
+Binaries:
+  9.1 (third-party decrypted): extracted/v9/ipa/Payload/HatchApp.app/HatchApp   (86,146,016 bytes)
+  8.1 (baseline):              extracted/v9/ipa81/Payload/HatchApp.app/HatchApp (84,508,736 bytes)
+LIMIT: the 9.1 sample is a third-party decrypted build; decrypted instruction
+bytes remain unauthenticated (see V9-AUDIT-2026-10-06.md).
+
+## CLAIM A — Alo realtime voice agent (IOS91-D2): CONFIRMED
+
+| String | 9.1 offset | 9.1 count | 8.1 count |
+|---|---|---|---|
+| You are Alo, a personalized AI assistant that is always on built by Meta AI. | 0x3cb78b0 (exact match to ledger) | 1 | 0 |
+| {"type":"input_audio_buffer.append","audio":" | 0x3cb67c0 | 1 | 0 |
+| wss://shortwave.facebook.com/vllm_proxy | 0x3cb7030 | 1 | 0 |
+| https://www.multimango.com/api/alo/default-models | 0x3cb6650 | 1 | 0 |
+| {"type":"session.update","session":{"type":"realtime","template":"s2s"}} | 0x3cb6bc0 | 1 | 0 |
+
+Corrections to the original ledger:
+- 0x3cb6820 is the dispatch-queue label com.meta.hatch.alo.ws, not part of the
+  append/URL strings (labeling only).
+- 8.1 DOES contain shortwave.facebook.com (1x) for dictation endpoints
+  /voyager/v1/asr/duplex and /v2/transcription. The /vllm_proxy path and all
+  Alo machinery are 9.1-only.
+- "base64 PCM" is protocol inference: no local pcm16 format string exists for
+  Alo; input_audio_format/output_audio_format keys sit next to the session
+  template and base64Encoded call sites exist. Alo output path is Opus
+  ("Failed to create Opus encoder for Alo output").
+
+OpenAI-Realtime-style event vocabulary present in the same region:
+  input_audio_buffer.speech_started / speech_stopped, response.created,
+  response.output_audio.delta, response.output_audio_transcript.delta/done,
+  conversation.item.input_audio_transcription.delta/completed,
+  response.function_call_arguments.delta/done, interrupt_response,
+  semantic_vad_avocado, plus an embedded audio-tokenizer vocab (<|audio_vq_*|>).
+
+Additional material in 0x3cb6000-0x3cb8000 not used by the ledger:
+- orchestrator.dispatch tool: "Always-on, server-side text-only orchestrator...
+  access to subagents, sandboxed code execution... Dispatch is async /
+  fire-and-forget — the orchestrator follows up via a notification."
+- Wearable-specific prompt: "You are answering a voice query from a small
+  audio-only wearable. Reply with a single short spoken sentence — no visual
+  card, no markdown, no lists." plus a "## Wearable context" section.
+- "[AloPrompt] no persona files readable; using fallback" — persona is loaded
+  from on-disk files. "## About the person you're talking to" memory injection.
+- Model-tier logic: "[AloModels] no token/url — using MobileConfig tier",
+  "[AloModels] fetched defaults: s2s=", "Using dynamic model tier:" — the
+  multimango fetch is a default-models fetch with MobileConfig fallback.
+
+## CLAIM B — BLE wearable recording upload (IOS91-D3): CONFIRMED
+
+| String | 9.1 offset | 9.1 count | 8.1 count |
+|---|---|---|---|
+| Uploading recording %s over the Noise gateway transport | 0x3cb8c00 | 1 | 0 |
+| Refusing to upload recording %s: owner does not match session user — fail-closed, leaving pending | 0x3cb8b40 | 1 | 0 |
+| HCHMicroRecordingUploader | 0x357ecc0 | 2 | 0 |
+| HCHTigonRoutedNoiseGatewayTransport | 0x34c3bb0 | 2 | 2 (pre-existing transport) |
+| HCHDevicesSetup/HCHDeviceBLEManager.swift | 0x3cb60a0 | 3 | 0 |
+| Muse Gadget | 0x3cb630e | 1 | 0 |
+
+Also 9.1-only (0x in 8.1): CBCentralManagerOptionRestoreIdentifierKey,
+HCHDevicesSetup, wifi_scan, MCUboot, HCHAloRealtimeTransport,
+"Got file list but sync is not allowed", com.taskInfo.hatch.micro.recording.upload,
+lobster-community-device-warning, "Verified Meta device",
+"Confirm by pressing the button on your device".
+DGWClient/distribgw present in both versions (pre-existing transport).
+
+Correction re-verified: the Noise/DGW gateway transport pre-exists in 8.1
+(dictation/Voyager). New in 9.1 is the wearable recording-upload consumer.
+
+Extra detail: BLE GATT UUID family a1b10xxx-6fd7-497f-a4f0-151a940cee2a
+(recordings, logs); SMP OTA UUID DA2E7828-FBCE-4E01-AE9E-261174997C48; OTA via
+MCUboot SMP with ZIP-manifest validation; firmware from
+https://scontent.xx.fbcdn.net/mci_ab/uap/?ab_page=HatchFirmware...
+Device-log pull path: hch_micro_device_logs, "Log read completed (end marker
+received)". Stella lineage: com.meta.stella.HCHMicroBLEManager,
+com.stellaapp.microStore. Second product name: "Muse Home Link" (name
+pre-existed in 8.1 settings; BLE setup UI is new).
+
+## CLAIM C — gates: CONFIRMED with refinements
+
+1. NSMicrophoneUsageDescription "This allows you to talk to Muse and ask
+   questions with your voice." — byte-identical in 8.1 and 9.1. It does not
+   disclose wearable recording upload or an "always on" assistant.
+   NSBluetoothAlwaysUsageDescription also identical.
+2. aloVoiceEnabled: 2x in 9.1, 0x in 8.1 (local settings key).
+   voice_entrypoint_enabled: 1x in 9.1, 0x in 8.1, inside a server-pushed
+   capability/config schema — the entry point is server-gated.
+3. Wearable consent UI exists: "Connect to {device}?", "Confirm by pressing
+   the button on your device", plus community-device warning:
+   "You are pairing a community device not verified by Meta. It will be able
+   to read and send messages, change your files, approve actions, and use
+   your browser. This is dangerous." with warning-continue / warning-cancel /
+   "Exit to safety" / "Verified Meta device" badge.
+   Sync refusal: "Got file list but sync is not allowed" (0x3cb82c0),
+   "Sync not allowed: peripheral=". No local token naming what decides
+   "sync allowed"; appears driven by session/owner state.
+4. "Always on" is persona copy. UIBackgroundModes identical in both versions
+   (audio, fetch, location, remote-notification); bluetooth-central ABSENT in
+   both, so CBCentralManager state restoration cannot relaunch the app in the
+   background. BGTaskSchedulerPermittedIdentifiers unchanged
+   (cameraroll.sync, nodedata.sync); com.taskInfo.hatch.micro.recording.upload
+   is an internal queue label, not a registered BGTask. No evidence of covert
+   continuous capture; the audio background mode + "Keep-alive expired
+   (%s idle); ending session" show user-initiated session persistence only.

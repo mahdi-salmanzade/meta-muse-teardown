@@ -1,0 +1,34 @@
+=== multimango.com recon — collected 2026-10-08 ===
+
+## dig A / NS (apex and www)
+216.198.79.1
+ns64.domaincontrol.com.
+ns63.domaincontrol.com.
+0c22cac1cfa05d34.vercel-dns-017.com.
+64.239.123.65
+64.239.109.65
+0c22cac1cfa05d34.vercel-dns-017.com.
+
+## whois (registry fields)
+   Creation Date: 2025-07-24T06:27:48Z
+   Name Server: NS63.DOMAINCONTROL.COM
+   Name Server: NS64.DOMAINCONTROL.COM
+   Registrar URL: http://www.godaddy.com
+   Registrar WHOIS Server: whois.godaddy.com
+   Registrar: GoDaddy.com, LLC
+   Registry Expiry Date: 2027-07-24T06:27:48Z
+   Updated Date: 2026-07-25T12:04:23Z
+Creation Date: 2025-07-24T01:27:48Z
+Name Server: NS63.DOMAINCONTROL.COM
+Name Server: NS64.DOMAINCONTROL.COM
+Registrar Registration Expiration Date: 2027-07-24T01:27:48Z
+Registrar URL: https://www.godaddy.com
+Registrar WHOIS Server: whois.godaddy.com
+Registrar: GoDaddy.com, LLC
+Updated Date: 2026-07-25T07:04:21Z
+
+## TLS certificate (www.multimango.com:443)
+subject=CN=www.multimango.com
+issuer=C=US, O=Let's Encrypt, CN=YR1
+notBefore=Sep 28 03:25:02 2026 GMT
+notAfter=Dec 27 03:25:01 2026 GMT

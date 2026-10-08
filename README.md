@@ -2,7 +2,9 @@
 
 # Muse by Meta: iOS, macOS and Android privacy teardown
 
-[**v9 audit**](V9-AUDIT-2026-10-06.md) · [**Spyware verdict**](SPYWARE-VERDICT-2026-09-27.md) · [**iOS**](IOS.md) · [**macOS**](#1-is-this-really-metas-app) · [**Android**](ANDROID.md) · [**All evidence**](EVIDENCE.md) · [**Review updates**](REVIEW.md)
+[**Alo & multimango**](ALO-AND-MULTIMANGO-2026-10-08.md) · [**v9 audit**](V9-AUDIT-2026-10-06.md) · [**Spyware verdict**](SPYWARE-VERDICT-2026-09-27.md) · [**iOS**](IOS.md) · [**macOS**](#1-is-this-really-metas-app) · [**Android**](ANDROID.md) · [**All evidence**](EVIDENCE.md) · [**Review updates**](REVIEW.md)
+
+**New — [8 October 2026](ALO-AND-MULTIMANGO-2026-10-08.md):** independent re-verification of the iOS 9.1 "Alo" voice and "Muse Gadget" wearable findings (every offset byte-exact, 8.1 control negative), plus live recon identifying **`multimango.com`** — the anonymous, Vercel-hosted domain the app fetches Alo model defaults from — as Meta's own unbranded Project Mango research surface, per the site's own shipped code: *"Thank you for all your help turning Mango into Muse!"*
 
 **v9 wave — [6 October 2026](V9-AUDIT-2026-10-06.md):** macOS **6.0**, Android **9.0.0.23.178**, and a third-party decrypted iOS **9.1.0** sample. Mac removes the bundled Chrome extension and `stealth.min.js`; Android removes four media permissions and the identified agent photo handlers; the iOS sample adds Alo voice and wearable-recording code. **[Independent review](TODAYS-CHANGES-AUDIT-2026-10-06.md):** corrected authenticity, defaults, framework and permission claims. Native traffic remains unobserved, and decrypted iOS instructions remain unauthenticated.
 

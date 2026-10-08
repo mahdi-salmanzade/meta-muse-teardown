@@ -62,3 +62,7 @@ d121ec8fcb4a16212dc9dfaeed5c85bdf93f30b9c6832d63d4d84b1714cc459e  evidence-updat
 db4a55de2904a7b425e81c9e07d512e7ee5048b98b62e99a484dcf39a93ac57f  evidence-updates/2026-09-27/09-independent-verification.json
 ff13f18b075f567f1eadfa2de6f12ef6963c0ea1bfb36e69eb3afcc032144ee7  evidence-updates/2026-10-06/10-v9-audit-findings.json
 25d68611b2bad545851eb7bb627e87653b0af3ad7b6148c4b3112860ba4395e8  evidence-updates/2026-10-06/11-independent-verification.json
+00d79dffb326aa5cf45a11dd1652e3f175ea856a8d807c2ef56a4c74abbdfb47  evidence-updates/2026-10-08/01-multimango-recon.txt
+e98e13b89665c53de88757f3fde1529a3554cca8c5ac46498b1a521cf0e2d86d  evidence-updates/2026-10-08/02-multimango-api-probes.txt
+0444c480074c1e44e76613c5af5b697b109a49ae978d15bfe578a1f8a4c5bfe4  evidence-updates/2026-10-08/03-multimango-site-strings.txt
+662a93e24d616e3cd8b7b25497f07ad6d4c473cbaa974a2fa61049b86c802632  evidence-updates/2026-10-08/04-binary-verification-alo-wearable.txt
