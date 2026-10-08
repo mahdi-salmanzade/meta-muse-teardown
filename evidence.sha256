@@ -66,3 +66,11 @@ ff13f18b075f567f1eadfa2de6f12ef6963c0ea1bfb36e69eb3afcc032144ee7  evidence-updat
 e98e13b89665c53de88757f3fde1529a3554cca8c5ac46498b1a521cf0e2d86d  evidence-updates/2026-10-08/02-multimango-api-probes.txt
 0444c480074c1e44e76613c5af5b697b109a49ae978d15bfe578a1f8a4c5bfe4  evidence-updates/2026-10-08/03-multimango-site-strings.txt
 662a93e24d616e3cd8b7b25497f07ad6d4c473cbaa974a2fa61049b86c802632  evidence-updates/2026-10-08/04-binary-verification-alo-wearable.txt
+23aff6993bc75d99e0ba49e44bf347f95eaaac9da5063f887a4e1ade6be97d97  evidence-updates/2026-10-08/05-api-inventory-android.txt
+eeda37ab26876f4ce35be2408817e637b88a9b040a7cfb8c3a4b23c34dca8820  evidence-updates/2026-10-08/05-api-inventory-ios.txt
+41afd0da2bda66ee0bcd6c0d9892ebcab0c2a4c3b2626b881613c15fa1db3268  evidence-updates/2026-10-08/05-api-inventory-macos.txt
+fdf40f008d03629a3e27e9cfe24deda71aea3c3f56d05e9b26efa83b29c7aab6  evidence-updates/2026-10-08/06-attestation-transparency-verification.txt
+2bd9021b3356be77c41fd66be43beabd868daca218260c44b331a972ffad7a54  evidence-updates/2026-10-08/07-cert-skip-flag-verification.txt
+9dd665dc78a1fb07962c9cbb8c4fdab949fd8fc82cf078501aea58abf2206c9c  evidence-updates/2026-10-08/plexi-audit1.json
+0f2107e2e03f7b8d5afc18a151b805df3f9e90a68eb153fbd9e72737f31f6523  evidence-updates/2026-10-08/plexi-info.json
+3bb3ce379b4fcc4f18d3d797dcf7c337e24d227024aaae72d21b2a752bc95e7c  evidence-updates/2026-10-08/plexi-namespaces.json

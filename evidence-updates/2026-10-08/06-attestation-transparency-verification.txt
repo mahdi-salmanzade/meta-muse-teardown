@@ -1,0 +1,422 @@
+================================================================================
+ADVERSARIAL VERIFICATION: "v9 removed the Sigstore/Rekor public transparency-log
+verifier for Confidential VM attestation and replaced it with a private
+Cloudflare 'Plexi' proof system, making the CVM supply chain no longer publicly
+auditable."
+================================================================================
+Date:    2026-10-08
+Method:  Independent static re-derivation. macOS `strings -a` / `grep -c` /
+         `strings -a -t x` / `dd|od` on the binaries below; jadx source grep;
+         live read-only queries to Cloudflare's PUBLIC Plexi auditor API
+         (no app code executed; no Meta infrastructure contacted); local
+         Ed25519 verification of a live auditor signature; web research for
+         public claims (Cloudflare Plexi repo/docs, Meta engineering posts).
+Samples: Android 8.0.0.21.168  extracted-apk/raw/lib/arm64-v8a/libstartup.so
+         Android 9.0.0.23.178  extracted/v9/android-jadx/resources/lib/arm64-v8a/libstartup.so
+         iOS 8.1               extracted/v9/ipa81/Payload/HatchApp.app/HatchApp
+         iOS 9.1               extracted/v9/ipa/Payload/HatchApp.app/HatchApp
+         macOS 4.1             extracted/release-audit-2026-09-27/Muse.app
+         macOS 6.0             extracted/v9/Muse.app
+CAVEAT:  Static strings != runtime behavior. String presence proves code was
+         compiled in; it does not prove which proof type production servers
+         actually delivered or which policy branch executed. Live-auditor
+         queries prove the auditor's public state on 2026-10-08, not Meta's
+         server behavior.
+================================================================================
+
+--------------------------------------------------------------------------------
+0. VERDICT (summary)
+--------------------------------------------------------------------------------
+PARTIALLY CONFIRMED mechanism swap; REFUTED as to "private" and "no longer
+publicly auditable". Overall: NEEDS-REQUALIFICATION.
+
+* The Sigstore/Rekor verifier really was deleted from Android/iOS in the v9
+  wave, with an explicit replacement error string: "Sigstore transparency
+  proofs are no longer supported". Cloudflare Plexi-signed proofs are the sole
+  supported transparency mechanism in v9.
+* BUT Plexi was NOT added in v9: the complete Plexi verifier and Cloudflare's
+  pinned auditor keys already exist in Android 8.0, iOS 8.1, and macOS 4.1.
+  v8 supported BOTH proof types, policy-selectable. v9 removed one of two.
+* "Private" is wrong: Plexi is Cloudflare's OPEN-SOURCE auditor
+  (github.com/cloudflare/plexi). The app pins Cloudflare's PUBLICLY ADVERTISED
+  auditor keys, and the exact transparency namespaces the app consumes
+  (prod.hatch_image, prod.pc.revocation_list) are listed and queryable on
+  Cloudflare's public auditor endpoint. A live audit signature for
+  prod.pc.revocation_list epoch 1 was fetched and cryptographically verified
+  against the public key that is byte-identical to the app's pinned key.
+* The old Rekor path was itself not clearly "public": the only pinned Rekor
+  endpoints in v8 are rekor.sigstage.dev (Sigstore STAGING, explicitly
+  non-production). rekor.sigstore.dev (the public instance) appears nowhere.
+* Real residual concerns (the defensible core of the claim): the v9 client
+  verifies ONLY the auditor's Ed25519 signature over (namespace, epoch,
+  digest) -- it no longer verifies a Merkle inclusion proof itself -- and the
+  hatch CVM namespaces expose no public log_directory, so third parties can
+  verify auditor signatures but cannot enumerate what was logged. Meta itself
+  admitted (engineering.fb.com, 2026-03-09) that artifacts for external
+  researcher validation are not yet released ("We aim to provide a platform
+  for hosting these artifacts in the near future").
+
+--------------------------------------------------------------------------------
+1. PER-VERSION STRING COUNTS (strings -a | grep -c, case-sensitive as shown)
+--------------------------------------------------------------------------------
+Pattern      AND8.0 AND9.0 iOS8.1 iOS9.1 mac4.1* mac6.0* mac4.1-JS mac6.0-JS
+sigstore       155     0     155     0      0      0        1         1
+rekor           68     0      68     0      0      0        2**       0
+sigstage         5     0       5     0      0      0        0         0
+fulcio/Fulcio  1/7   0/0     1/7   0/0    0/0    0/0      0/0       0/0
+sigsum           0     0       0     0      0      0        0         0
+Plexi            1     1       1     1      0      0        1         1
+plexi(1)         1     1      37     37     0      0        8         8
+Cloudflare      11    10      11    10      0      0       86        88
+checkpoint      --    --      --    --     --     --       59***    59***
+
+* macOS columns are the main binary Contents/MacOS/Muse. The macOS attestation
+  verifier lives in the JS bundle Contents/Resources/hatch/index.html
+  (mac*-JS columns, counts via grep -o | wc -l).
+(1) The 37 "plexi" hits in BOTH iOS binaries are substring false positives
+    ("comPLEXItiy", "LegacyAudioDecoderComplexityConfig", WebRTC Opus), NOT
+    Plexi-project references. Same for the 8 in each macOS JS bundle. Only the
+    single capitalized "Plexi" per binary is real (inside the error string
+    "Cloudflare Plexi signature does not verify with any pinned key").
+** macOS 4.1 JS "rekor" x2 are locale false positives (Hungarian "rekordjainak",
+   Polish "rekordy" in translated UI strings). Not Rekor.
+*** macOS JS "checkpoint" hits are SQL-grammar keywords and auth-checkpoint
+    session code, unrelated to transparency.
+
+Policy/role strings (grep -oE, counts of 1 each where present):
+String                                           AND8 AND9 iOS81 iOS91 macJS41 macJS60
+"policy requires a transparency proof"             x    .    x     .     x      x
+"policy does not accept Sigstore ... proofs"       x    .    x     .     x      x
+"policy does not accept Cloudflare ... proofs"     x    .    x     .     .      .
+"policy requires a Cloudflare transparency proof"  .    x    .     x     .      .
+"Sigstore transparency proofs are no longer
+ supported"                                        .    x    .     x     .      .
+"Cloudflare Plexi signature does not verify
+ with any pinned key"                              x    x    x     x     x      x
+"no pinned Cloudflare keys"                        x    x    x     x     x      x
+"no pinned Rekor key for logId "                   x    .    x     .     .      .
+"prod.hatch_image"                                 x    x    x     x     .(1)   .(1)
+"staging.hatch_image"                              x    x    x     x     .      .
+"prod.pc.revocation_list"                          .    x    .     x     .      .
+(1) macOS JS stores namespaces differently (not verified exhaustively); the
+    Plexi signature-verification code and pinned keys are present.
+
+Cloudflare Plexi auditor key 2bbfbb39997fdb95feee40ef9f8827de0256732be06f64ed6408cc7e97c7f4d4:
+  present (count 1) in ALL SIX samples: android 8.0, android 9.0, iOS 8.1,
+  iOS 9.1, macOS 4.1 JS, macOS 6.0 JS.
+
+--------------------------------------------------------------------------------
+2. WHAT v8 ACTUALLY CONTAINED (Q1: was Rekor wired into production attestation?)
+--------------------------------------------------------------------------------
+v8 (Android 8.0 libstartup.so; iOS 8.1 HatchApp) contained BOTH verifiers in
+Meta's own attestation verifier (Rust, xplat hatch/noise + TigonNoise):
+
+a) The bulk of the 155 "sigstore" strings are VENDORED library text:
+   sigstore-go / sigstore protobuf-specs ("Copyright 2022/2025/2026 The
+   Sigstore Authors", bundle-spec prose, "application/vnd.dev.sigstore.*"
+   media types, dev.sigstore.proto.* type URLs, github.com/sigstore/*
+   doc URLs, TransparencyLogEntry/TrustedRoot proto descriptors).
+
+b) But the Sigstore path is NOT dead vendor code. It is glued into Meta's
+   attestation pipeline with Meta-specific policy/verification strings:
+   - "policy requires a transparency proof"
+   - "policy does not accept Sigstore transparency proofs"
+   - "policy does not accept Cloudflare transparency proofs"
+   - "no pinned Rekor key for logId "
+   - "manifest signer key is not pinned for this environment"
+   - "rekor entry signature does not match the artifact signature"
+   - "rekor entry digest does not match the signed digest"
+   - "Fulcio leaf key does not match the key logged in Rekor"
+   - "no Fulcio CA anchors pinned"
+   - Rekor inclusion-proof verification structs (single string table):
+     "...TransparencyProof proof InclusionProof tree_size hashes checkpoint
+      root_hash LogId ... checkpoint missing tree size / root hash / origin /
+      missing blank-line separator before signatures ... tlog entry missing
+      inclusionProof / logId ... rekor body missing data/signature/verifier..."
+   - The attestation envelope: "AttestationBundle image_manifest
+     transparency_proof report_data_input" with the SAME
+     "ImageManifest{vm_sha256, launch_digest, schema_version, commit_sha,
+     image_version}" the v9 Cloudflare path uses, and namespaces
+     "prod.hatch_image" / "staging.hatch_image".
+   => The Rekor verifier checked inclusion of the hatch image manifest in a
+      Rekor log, verified checkpoints (note-format), and matched the Rekor
+      entry against the artifact digest/signature. That is production-shaped
+      wiring, gated by policy ("policy does not accept ..." implies a policy
+      chooses accepted proof types).
+
+c) CRITICAL QUALIFICATION: the only Rekor endpoints embedded are Sigstore
+   STAGING:
+     https://rekor.sigstage.dev
+     https://log2025-alpha1.rekor.sigstage.dev
+     https://log2025-alpha2.rekor.sigstage.dev
+     https://log2025-alpha3.rekor.sigstage.dev
+     https://log2026-1.us-east4.rekor.sigstage.dev
+   "rekor.sigstore.dev" (the public-good instance): 0 occurrences in both v8
+   binaries. So even in v8, "public transparency log" meant Sigstore's
+   explicitly non-production staging infrastructure (or a server-delivered
+   TrustedRoot config; static analysis cannot resolve which).
+   (CROSS-PLATFORM.md:126 had already flagged the sigstage pinning.)
+
+d) UNKNOWN (unresolvable statically): whether production v8 servers ever
+   actually served Sigstore-type proofs, or whether the deployed policy was
+   already Cloudflare-only in practice. The presence of "policy does not
+   accept Sigstore transparency proofs" as an error branch is consistent with
+   either.
+
+--------------------------------------------------------------------------------
+3. WHAT v9 CONTAINS (Q2: is Plexi the same-role replacement? Q4: what is verified?)
+--------------------------------------------------------------------------------
+v9 (Android 9.0 libstartup.so; iOS 9.1 HatchApp):
+
+a) Explicit removal marker (NEW in v9, present in both binaries):
+     "Sigstore transparency proofs are no longer supported"
+   plus hard requirement: "policy requires a Cloudflare transparency proof".
+   All sigstore/rekor/sigstage/fulcio strings: 0.
+
+b) Same role, same envelope. The v9 AttestationBundle is:
+     "AttestationBundle image_manifest revocation_evidence report_data_input"
+     "ImageManifest{vm_sha256, launch_digest, schema_version, commit_sha,
+      image_version}"  "snp_measurement"
+   i.e. the transparency proof still vouches for the CVM image manifest that
+   is bound into the SEV-SNP report. Same role as the deleted Rekor path.
+   Plexi is therefore a same-role SOLE survivor, not an addition for a
+   different purpose -- but it is a survivor, not a newcomer: the full Plexi
+   verifier ("Cloudflare Plexi signature does not verify with any pinned
+   key", "no pinned Cloudflare keys", "Cloudflare max_age_ms must be
+   nonzero", TempSignatureResponse/CloudflareSignatureField structs, pinned
+   keys blob) already exists verbatim in v8 Android/iOS and macOS 4.1 JS.
+
+c) NEW in v9: transparency-backed REVOCATION.
+     "RevocationEvidence{serialized_rl, transparency_proof}"
+     "RevocationList revocation_list"  "RevokedArtifact{namespace_name,
+      context, revoked_timestamp}"  "RevokedArtifactList revoked_artifacts"
+     "AmdSevSnpCertChain crl ask_pem"
+     Namespaces: "prod.pc.revocation_list", "pc.revocation_list"
+     Error/policy strings:
+       "revocation evidence is required but missing"
+       "revocation evidence exceeds 32768 bytes"
+       "missing Cloudflare revocation proof"
+       "revocation list transparency proof invalid: "
+       "SNP certificate revocation list invalid: "
+       "CRL signature is not RSA-PSS SHA-384 with a 48-byte salt"
+       "CRL inner and outer signature algorithms differ"
+       "scoped or indirect CRLs are not supported"
+       "delta CRLs are not supported"
+       "CRL is missing its nextUpdate time"
+       "revocation proof timestamp is too far in the future"
+       "invalid revocation list protobuf"
+   => AMD VCEK CRLs (Milan) are themselves distributed with Plexi transparency
+      proofs under the prod.pc.revocation_list namespace. "pc" = Meta Private
+      Processing/Private Compute (same namespace family as WhatsApp Private
+      Processing: prod.pc.cvm, prod.pc.vcek_cert on the public auditor).
+
+d) The full client-side verification policy revealed by v9 error strings:
+   Proof object: "TempSignatureResponse with 9 elements":
+     version, ciphersuite, namespace, timestamp, epoch, digest, signature,
+     key_id, serialized_message (+ "config", "sig" fields).
+   Checks, verbatim:
+     "invalid Cloudflare proof JSON: "
+     "Cloudflare proof timestamp is zero"
+     "Cloudflare proof epoch is zero"
+     "Cloudflare proof namespace is empty"
+     "Cloudflare proof expired at "          (freshness vs max_age_ms)
+     "Cloudflare max_age_ms must be nonzero"
+     "Cloudflare proof expiration overflows u64"
+     "unsupported Cloudflare ciphersuite "
+     "Cloudflare Plexi signature does not verify with any pinned key"
+     "no pinned Cloudflare keys"
+     "Cloudflare namespace %& is not trusted for the image manifest"
+       (iOS 9.1 @ 0x3a7dd36, verified via dd; "%&" is the raw format bytes)
+     "transparency artifact digest mismatch: artifact="
+     "transparency signature invalid: "
+     "transparency bundle malformed: "
+     "transparency trust anchors unavailable: "
+   Binding of proof -> manifest -> SNP report -> handshake:
+     "image_manifest is empty"
+     "no evidence in bundle" / "(no configs)"
+     "expected public key does not match bundle"
+     "binding hash does not match report_data"
+     "report_data trailing 32 bytes are not zero"
+     "bundle carries no challenge nonce but the policy requires one"
+     "challenge nonce does not match the one sent in the handshake"
+   SNP hardware/policy checks (also v8):
+     "TCB floor requires fmc but report carries no fmc value"
+     "debug flag is set in guest policy but allow_debug=false"
+     "guest policy has migrate_ma_allowed but policy disallows migration"
+     "guest policy does not disable page swap but policy requires it"
+     "platform info reports alias_check_complete=false but policy requires it"
+     "platform info has smt_enabled but policy denies platform SMT"
+     "guest policy has smt_allowed but policy denies guest SMT"
+     "SnpEvidence.certs is missing" / "cpuid_fam_id/cpuid_step/cpuid_mod_id"
+     AMD Milan root cert embedded ("Milan-----BEGIN CERTIFICATE-----").
+   What the client does NOT verify in v9 (searched, absent in both binaries):
+   any Merkle/inclusion/checkpoint/witness/sigsum verification
+   (patterns merkle|checkpoint|witness|inclusion|tree_head|cosign|sigsum:
+   no relevant hits; in v8 the analogous strings were the Rekor inclusion
+   machinery). The client trusts the auditor's signature over (namespace,
+   epoch, digest); log-consistency checking is delegated to Cloudflare.
+
+e) Offsets (spot-verified):
+   iOS 9.1 HatchApp:
+     0x36ab023 / 0x36ad710  struct-name + error-string tables (strings -t x)
+     0x3a7dd36  "Cloudflare namespace %& is not trusted for the image
+                 manifest" (dd|od verified)
+     0x3d1f744  selector "initWithSevSnpVerifierEnabled:transparencyPolicy:"
+     0x36939dc  mangled block symbol for -[HCHNoiseGatewayCarrierBridge
+                 initWithSevSnpVerifierEnabled:transparencyPolicy:
+                 connectOutcomeHandler:] (dd|od verified)
+     also: class "HCHNoiseSnpTransparencyPolicy", Swift
+     "resolveSnpDebugTransparencyPolicy"/"useSnpDebugTransparencyPolicy",
+     and productionSnpVerifierFactory in namespace facebook::hatch::noise.
+   Android 9.0 libstartup.so:
+     0x14f591 / 0x151a76  equivalent string tables (incl. "Sigstore
+     transparency proofs are no longer supported" @ inside 0x14f591 table).
+
+--------------------------------------------------------------------------------
+4. macOS: NO Rekor->Plexi SWAP EXISTS THERE
+--------------------------------------------------------------------------------
+* Main binary Muse (4.1 AND 6.0): 0 sigstore/rekor/plexi/sigsum strings; the
+  native Rust verifier block (AMD_SEV_SNP, Milan cert, image_manifest) is not
+  linked into either macOS binary. Both versions DO carry the ObjC bridge:
+  "HCHNoiseSnpTransparencyPolicy", "initWithSevSnpVerifierEnabled:
+  transparencyPolicy:" (7 transparencyPolicy hits each). So the prior agent
+  note "SEV-SNP literals gone in 6.0 vs 4.1" is misleading for the binary:
+  4.1 never had them in the main binary either.
+* The macOS attestation verifier is the JS bundle
+  Contents/Resources/hatch/index.html. In BOTH 4.1 and 6.0 it is already
+  Cloudflare/Plexi-only: on a sigstore-type proof it throws
+  "policy does not accept Sigstore transparency proofs" (i.e. Sigstore proofs
+  were never accepted on macOS). 6.0 adds a "debug" attestation tier
+  (TIER_RANK={off:0,debug:1,staging:2,prod:3}, "attestation is verifying
+  transparency against the debug policy"). The public Plexi auditor key is
+  pinned in both. 4.1's two "rekor" hits are Polish/Hungarian "rekord"
+  translations.
+* 4.1's stealth.min.js / extra Resources matched a broad "ARK|ASK" grep;
+  with the precise pattern (AMD_SEV_SNP|Milan|SEV-SNP) only hatch/index.html
+  matches in both versions (attestation-related JS, present in both).
+
+--------------------------------------------------------------------------------
+5. IS PLEXI PRIVATE? (Q3) -- LIVE PUBLIC-AUDITOR CHECKS, 2026-10-08
+--------------------------------------------------------------------------------
+Plexi is Cloudflare's open-source Key Transparency auditor:
+  github.com/cloudflare/plexi -- "Your Key Transparency auditor companion";
+  "Verify authenticity of a signature... Verify the validity of facebook/akd
+  proofs; List Logs an Auditor monitors". Cloudflare docs:
+  developers.cloudflare.com/key-transparency (+ /monitor-the-auditor/):
+  "Cloudflare provides an API for anyone to monitor the verification work we
+  perform." Its public remote: https://plexi.key-transparency.cloudflare.com.
+  (Plexi is a signature/witness-style auditor: it "vouches for Log validity
+  by ensuring epoch uniqueness" and signs (namespace, epoch, digest). It is
+  auditor tech from the Sigsum/key-transparency family; the app binaries
+  contain zero sigsum/witness/checkpoint strings -- the client consumes only
+  the auditor's signature, not a Sigsum cosigned tree head.)
+
+Read-only GETs against the public auditor (no auth), 2026-10-08:
+
+* GET /info ->
+  {"keys":[
+    {"public_key":"2bbfbb39997fdb95feee40ef9f8827de0256732be06f64ed6408cc7e97c7f4d4",...},
+    {"public_key":"0c7c1f082320fb44c7e042b439f3388dbdef34655fea73bab249aca54e8b31bb",...}],
+   "logs":["508607faff7cb16be841e901eca41a6239461f239e7e610c9ea2576f334bc144"]}
+  The app's embedded pinned-key blob (identical in Android 9.0 @0x14f591
+  region and iOS 9.1 @0x36ab023 region) decodes to FIVE 32-byte Ed25519 keys:
+    2bbfbb39...f4d4   == auditor advertised key #1  (MATCH)
+    0c7c1f08...31bb   == auditor advertised key #2  (MATCH)
+    e5e76bcf...24ff   (not currently advertised; likely rotated/reserved)
+    1b08e145...ccb1   (not currently advertised)
+    d2de1763...d1ece  (not currently advertised)
+
+* GET /namespaces -> 115 namespaces, overwhelmingly Meta's, including the
+  EXACT namespaces embedded in the v9 binaries:
+    prod.hatch_image              status=Initialization   <-- v9 image manifest
+    prod.hatch.chip_allowlist     status=Initialization
+    prod.hatch.chip_allowlist.cagi/.magi  Initialization
+    prod.hatch.vcek_cert          status=Initialization
+    prod.hatch_live_update        status=Initialization
+    prod.pc.revocation_list       status=Online           <-- v9 CRL namespace
+    prod.pc.cvm / prod.pc.orchestrator.cvm / prod.pc.vcek_cert  Online
+      (WhatsApp Private Processing family)
+    prod.cagi.tee_gateway / prod.magi.tee_gateway         Online/Initialization
+      (Muse CVM gateway families; "magi"/"cagi")
+    prod.mnemo.*.cvm, prod.fa.*, prod.privacy_infra.mika.*, messenger/
+    whatsapp key-transparency, meta.encrypted_backups.fleet_keys.v1, etc.
+  Full list saved at /tmp/plexi-namespaces.json during analysis.
+
+* GET /namespaces/prod.pc.revocation_list/audits/1 ->
+  {"version":1,"ciphersuite":1,"namespace":"prod.pc.revocation_list",
+   "timestamp":1749311381289,"epoch":1,
+   "digest":"2c9c0633b50cc7d72e0d5ffb28cb89284f3a532ce8750f5753cee302c98fbca7",
+   "signature":"3b4d3d04...c791e04","key_id":212,
+   "serialized_message":"0801121770726f642e70632e7265766f636174696f6e5f6c697374..."}
+  -- field-for-field the format the v9 client parses (TempSignatureResponse).
+  LOCAL CRYPTO VERIFICATION (python cryptography, Ed25519): this signature
+  VERIFIES over serialized_message with advertised key #1
+  2bbfbb39...f4d4 -- the same bytes pinned in all six app samples.
+  => Any third party can fetch and verify these transparency signatures
+     today, with a public key, from a public API, using an open-source CLI
+     (`plexi audit --namespace prod.pc.revocation_list`). That is the
+     opposite of "private".
+
+Residual, real limitations of the new system's public auditability:
+  - The hatch/pc CVM namespaces have log_directory = null/"" (unlike
+    messenger.key-transparency.v1, which publishes a CloudFront log
+    directory). So the public can verify that Cloudflare signed
+    (namespace, epoch, digest) statements, but cannot enumerate the log's
+    entries (which image digests were logged when) or recompute the tree.
+  - prod.hatch_image is still "Initialization" (consistent with Muse CVM
+    being announced but not GA) -- no hatch image epochs to audit yet.
+  - The v9 CLIENT performs no inclusion-proof verification itself; it trusts
+    the auditor. v8's Rekor path let the client verify inclusion directly
+    (albeit against sigstage). This is a genuine trust-model downgrade on
+    the client side even though the auditor side is public.
+
+--------------------------------------------------------------------------------
+6. META'S PUBLIC STATEMENTS (Q5, attributed)
+--------------------------------------------------------------------------------
+* Meta Engineering, "How Advanced Browsing Protection Works in Messenger",
+  2026-03-09 (engineering.fb.com): describes the SAME xplat CVM attestation
+  stack (AMD SEV-SNP, hatch-style attestation report). The attestation report
+  contains: "A container manifest containing hash digests of the CVM's launch
+  configuration and packages... A public key generated on CVM startup...
+  A certificate chain, with its root certificate established by AMD's Key
+  Distribution Service. A signature from the transparency log witness, which
+  provides a uniqueness guarantee that mitigates server-side equivocation".
+  -- i.e. Meta's PUBLIC design doc already describes the witness-signature
+     model (what Plexi is), not client-verified Rekor inclusion proofs.
+  It also concedes: "One aspect missing from this verification procedure is
+  the releasing of these artifacts for external security researchers to be
+  able to validate. We aim to provide a platform for hosting these artifacts
+  in the near future."
+* Meta Engineering, "Building Private Processing for AI tools on WhatsApp",
+  2025-04-29, and the NCC Group audit of WhatsApp Message Summarization
+  (2025-08-27) refer to "inclusion proofs in the context of binary
+  transparency" for the earlier Private Processing deployment.
+* Meta, "How We Built Safety Into Muse", 2026-09-08 (research.meta.ai, as
+  recorded in README section 12): Confidential VM "announced for later in
+  2026, with limited testing"; no public commitment to a specific
+  transparency-log technology was found. No Meta public statement promising
+  Sigstore/Rekor for Muse CVM was located; the Sigstore staging endpoints in
+  v8 were never publicly announced as far as this review could determine.
+* Cloudflare docs (developers.cloudflare.com/key-transparency,
+  /monitor-the-auditor/): "Cloudflare's Key Transparency Auditor validates
+  Log audit proofs and provides a signature for them... Cloudflare provides
+  an API for anyone to monitor the verification work we perform, and verify
+  the state of its associated Logs locally."
+
+--------------------------------------------------------------------------------
+7. REMAINING UNKNOWNS
+--------------------------------------------------------------------------------
+1. Whether v8 production policy ever actually accepted Sigstore proofs (the
+   "policy does not accept Sigstore..." branch existing means config decided;
+   config is server-side). If prod was already Cloudflare-only in v8, the v9
+   change is a code cleanup of a dead path, not a behavioral swap.
+2. Why v8 pinned Sigstore STAGING endpoints, and whether a production
+   TrustedRoot (possibly with rekor.sigstore.dev) was ever server-delivered.
+3. Whether Meta will publish a log_directory for prod.hatch_image /
+   prod.pc.* (entry enumeration) and the promised researcher artifact-hosting
+   platform; both are prerequisites for FULL independent supply-chain audit.
+4. The 3 pinned app keys not currently advertised by the auditor (rotation
+   history/reserve keys; auditor only lists current keys).
+5. Runtime behavior generally: no app code was executed; server responses,
+   gateway-delivered bundles, and mobileconfig flags were not observed.
+================================================================================

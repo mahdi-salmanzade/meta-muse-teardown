@@ -1,0 +1,380 @@
+05 - NETWORK API INVENTORY (Android 9.0.0.23.178, com.facebook.aura)  [static only]
+==========================================================================================
+Date: 2026-10-08
+Sample: muse-from-meta-9-0-0-23-178.apk (Android 9.0.0.23.178), jadx decompilation at
+  extracted/v9/android-jadx/ (sources + resources, incl. resources/lib/arm64-v8a/*.so).
+Method: static only. ripgrep over decompiled Java/Kotlin (aura package, obfuscated X/ package,
+  shared com/facebook libraries) for absolute URL literals, wss:// literals, relative API path
+  literals (StefiHatchPath.java, StefiMusePath.java, JarvisPath.java, HatchUrlSegments.java,
+  NodePaths.java), RpcMethod wire strings, GraphQL operation class names, and `strings -` over all
+  40 native libraries (collected to a 123,780-line corpus, one "<lib>: <string>" per line).
+  Every finding was diffed mechanically against the Android 8.0.0.21.168 decompilation
+  (extracted-apk/jadx) so NEW/REMOVED markers are version diffs, not memory.
+  Nothing was installed, executed or network-contacted.
+
+LIMITATION: static strings != observed traffic. A hostname, URL, method or field name in code
+shows capability, not behaviour; it does not prove a connection is made, when, or what is sent.
+Server-side MobileConfig flags (MC.*) can switch many paths on or off. Secrets/keys are shown
+redacted (first chars + length). Prior-version inventory: evidence-android/16-network-android.txt
+(Android 8.0.0.21.168); this file supersedes its endpoint lists and marks every entry
+NEW (first appears in 9.0), REMOVED (present in 8.0, gone in 9.0), or unchanged.
+
+Markers: [NEW] = first appears in 9.0.0.23.178 (verified 0 hits in the 8.0 decompilation AND
+8.0 native strings). [REMOVED] = in 8.0, absent from 9.0. [undoc-8.0] = already present in 8.0
+but NOT enumerated in the prior inventory doc (so "new to the record", not new to the app).
+No marker = documented in the prior inventory and unchanged.
+
+
+## 1. ABSOLUTE URL INVENTORY (decompiled code, occurrence counts)
+------------------------------------------------------------------
+Extraction: rg 'https?://...' over sources+resources, trailing punctuation stripped; XML/OOXML
+namespace URIs (w3.org, schemas.openxmlformats.org, purl.org, openoffice.org, apache.org,
+microsoft.com, xmlpull.org, ns.adobe.com, oasis-open.org, sil.org, dashif.org, aomedia.org),
+doc/license links (github.com, slf4j.org, jetbrains, reduxkotlin, sheetjs, stuk.github.io,
+publicsuffix.org, mozilla.org, creativecommons.org, wikipedia, opensource.org, oss.oracle.com,
+developer.android.com, developers.google.com, support.google.com, issuetracker.google.com,
+goo.gle, g.co, crbug.com, developer.apple.com) and javax.xml pseudo-URIs are library noise and
+omitted (full raw list reproducible with the same one-liner).
+
+### 1a. Meta agent / Muse API
+  11x https://hatch-api.meta.ai                      Stefi REST base (AuraSandbox.STEFI_BASE_URL)
+   4x https://graph.meta.ai/graphql                  GraphQL (AuraGraphQLService)
+   2x https://api.muse.ai                            MUSE_STEFI_BASE_URL (AuraSandbox);
+        https://api.muse.ai/ssh-access/tokens        (ConfidentialVmRepositoryKt)
+   2x https://meta.graph.meta.com/graphql;  1x /oidc_callback_uri/
+   1x https://api.meta.ai/proton/hatch/voice/tts/stream   voice TTS (VoiceCatalogRepository)
+   2x https://agent.meta.ai ; https://agent.meta.ai/terms
+   3x https://www.meta.ai ; /oidc/callback/ ; /oidc/callback/&app_id=391894423991568&json_blob=
+   1x https://meta.ai/proxygen/health                internal OHAI test page (OhaiInternalSettingsViewModel)
+   2x https://muse.ai/s/ ; https://muse.ai/privacy   share/privacy links (HatchUrl)
+   1x https://rupload.meta.ai/gen_ai_document_gen_ai_tenant/   avatar/asset upload
+   1x https://hatch-access.internalmeta.com/         [undoc-8.0] internal-only host in shared MC
+        string table (X/BCT.java case 131103; in 8.0: X/AbstractC33868nn.java). Employee tool.
+   1x https://www.internalfb.com/intern/mobile_builds/aura_for_android/?popular=0
+   1x https://www.internalfb.com/intern/orchard/install/aura_for_android/latest/?build_variant=DISTRIBUTION_IN_HOUSE
+   1x https://www.internalfb.com/intern/rl/auth_tokens_to_od          [undoc-8.0]
+   1x https://www.internalfb.com/intern/wiki/Mobile-secure-framework/strict-file/   [NEW]
+   4x https://fburl.com/{secure_receiver, decode_mc_ids, wiki/..., workplace/...}   [undoc-8.0]
+
+### 1b. Auth / accounts
+   4x https://auth.meta.com ; /settings ; /settings/delete/ ; /forgot_password
+   5x https://accountscenter.meta.com/ ; /profiles ; /info_and_permissions/dyi ;
+        /connected_experiences/single_sign_on_dialog/
+   2x https://www.meta.com/login/?next= ; +legal/help links (terms, privacy, supplemental-terms,
+        help/artificial-intelligence/{1047255454427887,31983416211257755,2225571704857152,1616492929591393},
+        help/1178386633001549)
+   1x https://help.meta.com/requests/1709596056941733/    [undoc-8.0]
+  17x https://www.facebook.com/ (shared libs) + /privacy/genai (5x), /privacy/policy/,
+        /privacy/policies/health/, /privacy/guide/genai/, /terms.php, /legal/ai-terms,
+        /legal/meta_subs_terms, /help/1156544111079919, /marketplace/item/, /maps/static/,
+        /one_click_agreements/901189269698990/uEAL4SpqF8J0G8tQ/  [undoc-8.0, X/BCT.java case 131099]
+   1x https://accounts.google.com/o/oauth2/revoke?token=  Google sign-in revoke
+   2x https://www.googleapis.com/auth/{games,games_lite}  (shared Google lib scopes)
+   1x https://accounts.spotify.com/api/token              Spotify connector OAuth
+  REMOVED: https://accountscenter.facebook.com/ , https://accountscenter.meta.com/meta_pay_wallet/?tab=manage ,
+        https://www.meta.com/legal/pay/terms/   (Meta Pay wallet teardown, see 6)
+
+### 1c. Telemetry / crash / update
+   1x https://graph.facebook.com (+ path-building: /logging_client_events, /pigeon_nest,
+        /pigeon_health_metrics; host from AuraAnalyticsEndpointSelector "graph"+".facebook.com")
+        b-www.facebook.com  (authority literal, X/BI3.java:102, X/BHA.java:79) =
+        https://b-www.facebook.com/mobile/reliability_event_log_upload (Lacrima crash upload)
+  REMOVED: https://ar.graph.meta.com/bugs , https://ar.graph.meta.com/bug_attachments
+        (Flytrap bug-report upload gone from aura; AuraBugReportSender.java in 9.0 posts ONLY via
+        auraStefiClient.postMultipart -> hatch-api.meta.ai /hatch/bug_report(+_attachment))
+   3x https://www.pariscope.dev/hatchery?hatch=  internal "Hatchery" link in bug reports
+   5x https://play.google.com/store/apps/details?id=com.facebook.aura (+?id=whatsapp, ?id=)
+   1x https://fcm.googleapis.com/fcm/send   (AuraPushTokenSender)
+   1x https://fb-messaging-b8df1.firebaseio.com  (firebase_database_url resource)
+   1x https://pagead2.googlesyndication.com/pagead/gen_204?id=gmob-apps  (copied Google ping code)
+
+### 1d. Graph/payments hosts from shared Meta MC defaults (X/ table)
+   https://graph-www.facebook.com/graphql, https://b-graph.facebook.com/graphql,
+   https://graph.oculus.com/graphql, https://genai-graph.facebook.com/graphql,
+   https://genai-graph.instagram.com/graphql_www,
+   https://payments-graph.{facebook,instagram(graphql_www),oculus,whatsapp,graph.meta}.com/graphql
+
+### 1e. Local virtual hosts (WebView asset loaders - no network)
+   1x https://hatch-chat-widget.local/        [undoc-8.0] chat widget WebView (HatchWidgetWebViewKt)
+   4x https://hatch-docx-viewer.local/{assets/docxviewer/, docx/current.docx, .../index.html}
+   4x https://hatch-pptx-viewer.local/{assets/pptxviewer/, pptx/current.pptx, .../index.html}
+   4x https://hatch-sheet-viewer.local/{assets/sheetviewer/, sheet/current.bin, .../index.html}
+        [undoc-8.0] plus https://<hash>.localhost/ HTML viewer (file/view/HtmlViewerKt.java:561)
+   1x wss://bridge.invalid/   [undoc-8.0] placeholder in assets/vmvnc/vnc.html; real noVNC
+        websocket URL is templated at runtime ('wss://n/' template literal in vnc.html) = the
+        VM console bridge. Same placeholder already in 8.0 assets.
+   1x https://default.url     (X/C7382Bfe.java:190 - Android role-manager default placeholder)
+
+### 1f. Misc third party / channel links (unchanged)
+   8x https://cdn.jsdelivr.net (katex@0.16.11 js+css, mermaid@11 - still no SRI)
+   2x https://wa.me/hatch/link ; https://wa.me/settings/linked_devices   [undoc-8.0]
+   1x each: www.whatsapp.com, www.messenger.com, www.instagram.com, telegram.org, t.me/,
+        t.me/BotFather, stripe.com/legal/consumer, link.com/terms
+   2x https://scontent.xx.fbcdn.net/mci_ab/uap/asset_manager/?ab_b=e&ab_page=ras&ab_entry=  [NEW]
+        (onboarding/remote-asset manager URL template)
+
+### 1g. WebSocket literals (code)
+   wss://shortwave.facebook.com/v2/transcription
+   wss://shortwave.facebook.com/voyager/v1/asr/duplex
+   wss://shortwave.facebook.com/voyager/v1/asr/duplex?sessionId=   (all three unchanged from 8.0)
+   (VM gateway wss URL is server-supplied via vm_ws_url; no hardcoded VM wss literal.)
+
+
+## 2. NATIVE-LIBRARY HOST INVENTORY (strings, resources/lib/arm64-v8a/*.so)
+----------------------------------------------------------------------------
+Format: lib: string. [NEW] verified against 8.0 libstartup.so strings (0 hits there).
+
+### 2a. libstartup.so (Tigon/MNS native stack, Noise, attestation)
+  vm.muse.ai                       [NEW] sits in the Tigon request-sanitizer domain block together
+                                   with "api.muse.ai", "meta.ai", "ohai" (strings adjacent in the
+                                   binary). 8.0: 0 hits (prior inventory listed vm.muse.ai under
+                                   "Not found on Android"). Suggests the VM-gateway domain is being
+                                   migrated/aliased from *.metaaivm.com to vm.muse.ai.
+  .metaaivm.com                    VM gateway suffix (unchanged)
+  api.muse.ai, meta.ai             [undoc-8.0] same sanitizer block
+  giphy.com                        [undoc-8.0] in the Tigon domain table (why a third-party GIF
+                                   host is in the Meta request-sanitizer list is unexplained)
+  doh.facebook-dns.com             [undoc-8.0] DNS-over-HTTPS resolver host
+  od.facebook.com, od.instagram.com, od.whatsapp.com, od.graph.meta.com,
+  od.facebook-hardware.com, od.fbinfra.net, sb.facebook.com, sb.instagram.com
+                                   [undoc-8.0] "od."/"sb." host families (Meta internal tier
+                                   names; not referenced from aura Java)
+  graph.facebook.com, gateway.facebook.com, gateway-fallback.facebook.com,
+  chat-e2ee-mini.facebook.com, gateway-edge.meta.com (via full-URL string), relay.fbpigeon.com,
+  graph.fbpigeon.com               DGW / MQTT / pigeon (unchanged)
+  meta-ohttp-relay-prod.fastly-edge.com, meta-ohttp-relay-dev.fastly-edge.com,
+  meta-ohttp-config-prod.fastly-edge.com, meta.privacy-gateway.cloudflare.com,
+  meta.hpke-keys.privacy-gateway.cloudflare.com     OHAI/OHTTP (unchanged)
+  *.fbcdn.net family: scontent.xx, static.xx, video.xx, external.xx, fna, snr, xy, xz,
+  external-origincache-internal-services-all, wacdn-origincache-internal-services-all,
+  scontent.cdninstagram.com        (unchanged)
+  connect.facebook.net, whatsapp.net, oculuscdn.com, oculus.com, fbsbx.com,
+  facebookvirtualassistant.com, viewpointsfromfacebook.com, workplace.com, internalfb.com
+                                   [undoc-8.0]
+  REMOVED from libstartup.so in 9.0: ALL Sigstore/Rekor material - 67x "rekor", 155x "sigstore",
+  5x "sigstage" strings in 8.0 (incl. trusted-root JSON with rekor.sigstage.dev,
+  log2025-alpha{1,2,3}.rekor.sigstage.dev, log2026-1.us-east4.rekor.sigstage.dev,
+  xplat/hatch/attestation/verifier/src/transparency/bundle.rs) -> 0 hits in 9.0.
+  Replaced by a Cloudflare-operated transparency proof ("Plexi"), see LEAD L1.
+
+### 2b. Other libs
+  libearlystartup.so: api.meta.com/, graph.meta.com/, intern.facebook.com/, onavo.com/,
+     expresswifi.com/, npe.app/, oculus.com/, viewpointsfromfacebook.com/, facebook-hardware.com/
+     [undoc-8.0] MobileConfig download host list (shared Meta MC framework).
+  libsigcoremerged.so: meta-ai-realtime.facebook.com, wearable-ai-realtime.facebook.com
+  libbackgroundinit.so: facebook.com/ajax/payment/token_proxy.php   [undoc-8.0]
+  libffsingletonjnilogger.so: graph.facebook.com
+  librsysmergedthirdparty.so: type.googleapis.com/, type.googleprod.com/ (protobuf Any)
+  librsysmergedlatest.so: www.entrust.net/ (embedded CA cert text)
+  libstartup.so: zbsim.i.org  [undoc-8.0] adjacent to "ia5org" - X.509/ASN.1 table noise, not a fetch.
+  libtrafficnts.so  [NEW library] small (2.5 MB) Tigon observer lib
+     (facebook::tigon::TigonObserver symbols, folly/fizz deps, "facebook.com/thrift/protocol/"
+     string). Name suggests Tigon "NTS" traffic logging; no hostnames inside. New in 9.0.
+  REMOVED libraries: none (all 8.0 libs still present; only libtrafficnts.so added).
+
+### 2c. Java realtime/voice hosts (unchanged)
+  genai-hatch-realtime.facebook.com, genai-kepler-realtime.facebook.com,
+  meta-ai-realtime.facebook.com  (com/facebook/rp/platform/metaai/rsys/MetaAiRsysSdk$startSession$2$6.java)
+  gateway.facebook.com, gateway.workplace.com (DGW, com/facebook/distribgw/client/DGWClientConfig.java)
+
+
+## 3. RELATIVE API PATHS BY SUBSYSTEM
+-------------------------------------
+### 3a. Stefi REST (hatch-api.meta.ai) - StefiHatchPath.java: 84 fixed paths (+Raw). Complete:
+  / /accept /agreements/
+  auth:        /hatch/login /hatch/auth /hatch/auth/start /hatch/auth/login_options
+               /hatch/auth/send_otp /hatch/auth/confirm_otp /hatch/auth/confirm_password
+               /hatch/auth/confirm_passkey /hatch/auth/select_account /hatch/auth/two_factor
+               /hatch/auth/two_factor/send_code /hatch/auth/sso_exchange /hatch/auth/sso_account_info
+               /hatch/auth/zari_exchange /hatch/auth/register_completion
+               /hatch/auth/register_completion_linked
+               /hatch/vesta-auth/user-info?vesta_client_api_version=
+  (inline, not in StefiHatchPath: /hatch/vesta-auth/begin-login - posted from
+   confidentialvm/repository/ConfidentialVmRepository.java:1575)
+  activation:  /hatch/activation_statuses /hatch/tos_status /hatch/accept_tos
+               /hatch/age_confirmation/linking_options
+               /hatch/age_confirmation/linking_web_auth?account_type=
+               /hatch/age_confirmation/linking_web_auth_completion
+               /hatch/checkpoint/status /hatch/invite /hatch/invite_code/generate
+               /hatch/invite_code/redeem /hatch/waitlist/join /hatch/survey/start /hatch/survey/next
+               /hatch/survey/dismiss /hatch/debug/reset_activation
+               /hatch/debug/reset_invite_code_redemption /hatch/onboarding/assets/cdn-urls
+  VM/CVM:      /hatch/lease_vm /hatch/acs/lease_vm /hatch/v1/acs/issue_token /hatch/bind_cvm
+               /hatch/fetch_vms?notary_token=true /hatch/enable_vm /hatch/vm/wake
+               /hatch/destroy_and_release_vm /hatch/mint_vm_recovery_token
+               /hatch/chip-allowlist?namespace=staging.hatch.chip_allowlist
+               /hatch/cvm-chip-selection /hatch/cvm-replace-state?env_id=
+  comms:       /hatch/device_token/mint /hatch/device_token/revoke /hatch/ptt/encryption-key
+               /hatch/wearables/link /hatch/wearables/comms_consent   [NEW - only new REST path in 9.0]
+  commerce:    /hatch/wallet/account-info?include=addresses /hatch/checkout/init
+               /hatch/checkout/finalize /hatch/checkout/credential /hatch/subscription?include=agreement&
+               /hatch/subscription/catalog /hatch/subscription/change? /hatch/subscription/payment-portal
+               /hatch/credit/drain /hatch/device-orders/v1/orders /hatch/device-orders/v1/orders/
+  sharing:     /hatch/sharing/upload /hatch/sharing/send /hatch/sharing/recipients
+               /hatch/share/save/ /hatch/fetch_shared_url/ /hatch/viewer/profile /hatch/viewer/name
+  support:     /hatch/bug_report /hatch/bug_report_attachment /hatch/feedback /hatch/feedback/config
+               /hatch/help_ticket /hatch/help_ticket/topics
+  telemetry:   /hatch/attribution/report_events /hatch/attribution/compliance_action
+               /hatch/latest_app_version/
+  REMOVED in 9.0: /hatch/credit/reset /hatch/credit/topup /hatch/wallet/cards
+               /hatch/wallet/account-info?include=payment_methods /hatch/wallet/meta-pay-wallet/connection
+
+### 3b. Stefi Muse (api.muse.ai) - StefiMusePath.java (unchanged):
+  /muse/prompts/  ; plus (StefiHatchPath) /muse/graduation/{store,start?vm_id=,reset,download?vm_id=}
+  and https://api.muse.ai/ssh-access/tokens
+
+### 3c. Jarvis VM HTTP API (served by the VM gateway over the Noise channel) - JarvisPath.java:
+  141 path literals (8.0: 133). Complete sorted list:
+  ac_oauth/callback activity activity/ api/artifacts api/artifacts/placement [NEW]
+  api/browser-task/ api/browser/lease [NEW] api/chat/ api/chat/delete-turn api/chat/poke
+  api/chat/themes api/chat/themes/set api/chat/unread-count api/computer/context [NEW]
+  api/computer/subscribe [NEW] api/connectors api/connectors/ api/debug/bug-report-logs
+  api/debug/home-link-bug-reports [NEW] api/dyi/export api/feed api/feed/infinite api/feed/prompt
+  api/feed/regenerate api/feed/search api/feed/status api/feed/units/ api/feed/units/seen
+  api/feedback [NEW] api/foa/accounts api/foa_auth/callback api/goals/ api/idea-cards
+  api/idea-cards/ api/idea-cards/media/ api/ideas/ api/invite/badge api/invite/badge/seen
+  api/messenger_companion/pin-status api/messenger_companion/unlock api/navigation/tab-order
+  api/onboarding/complete api/onboarding/identity api/onboarding/pages api/onboarding/reset
+  api/onboarding/tasks api/onboarding/variants api/pin-reminder/confirm api/pin-reminder/update
+  api/podcasts/episodes api/podcasts/feed api/product-improvements api/recovery/storage/delete
+  api/recovery/storage/list api/recovery/storage/status api/session/archive api/session/delete
+  api/session/has-unread-threads api/session/list api/session/list/ api/session/pin
+  api/session/rename api/session/unarchive api/session/unpin api/sharing/attempt [NEW]
+  api/sharing/eligibility api/shopping api/shopping/events api/spaces/rename [NEW]
+  api/subscription/redeem-complimentary [NEW] api/tasks/ api/voice/active-voice
+  api/voice/available-voices api/voice/catalog [NEW] api/voice/catalog/filters [NEW]
+  api/voice/onboarding/reset api_key_auth/callback approvals approvals/batch-decide
+  approvals/history artifacts/fetch_url artifacts/remove artifacts/share bootstrap/reset call
+  channels/link channels/status channels/unlink chat/history connectors/ consent_auth/callback
+  fs/delete fs/library fs/list fs/raw/ fs/read fs/rename fs/search fs/stat fs/thumbnail/ fs/upload
+  fs/write goals goals/ goals_fixed_positions health identity oauth/callback permissions/active
+  permissions/connectors/ permissions/reset permissions/revoke permissions/scopes/schedule/ [NEW]
+  permissions/settings reactions/toggle spaces/ spaces/favorites spaces/share/ spaces/v2 spaces/v2/
+  stripe_link/connect/complete subscription/callback tasks tasks/runs username_password_auth/callback
+  v1/credentials/capture v1/credentials/catalog v1/credentials/catalog/delete
+  v1/credentials/catalog/details v1/credentials/catalog/update v1/custom-connectors/list
+  v1/custom-connectors/register v1/ssh/operator/disable v1/ssh/operator/enable
+  vault/luks/lock vault/luks/status vault/luks/unlock wallet whatsapp_companion/link
+  whatsapp_companion/status widgets/state
+  + /share [NEW, quoted form] ; HatchUrlSegments: fs/raw, /fs/raw/, fs/thumbnail, /fs/thumbnail/,
+    api/idea-cards/media
+  REMOVED in 9.0: /accounts/link api/connectors/meta-pay/connect/result api/wallet/add-card/arm
+    api/wallet/add-card/completed api/wallet/step-up/callback
+  Also present (connector OAuth on hatch-api.meta.ai): /api/hatch/oauth/callback (4x),
+  /api/hatch/ac_oauth (4x), /api/session/start (3x), /v1/cvm/bind (1x) - all unchanged from 8.0.
+
+### 3d. Noise ingress / node paths (unchanged)
+  /v1/noise (NoiseGatewayHatchWebSocket, host hatch.metaaivm.com), /gateway, /ws,
+  api/nodes/disconnect (nodes/core/NodePaths.java)
+
+
+## 4. WEBSOCKET / RPC MAP
+--------------------------
+Frame format unchanged: {"type":"req"|"res"|"event", id, method|event, params|payload, seq}
+over one wss per user inside a Noise channel (see evidence-android/16-network-android.txt section 2).
+
+### 4a. RpcMethod.java: 49 fixed wire strings in 9.0 (8.0: 51) - complete list:
+  client.register_capabilities  client.invoke  client.invoke.result  client.data_source.publish
+  connection.ping  chat.stream  chat.cancel  chat.subscribe  chat.message_get  chat.search
+  activity.subscribe  fs.subscribe  identity.subscribe  spaces.subscribe  theme.subscribe
+  navigation.subscribe  navigation.pinned.set  navigation.recents.touch  model.get  model.set
+  node.list  node.unpair  voice.calls.join  node.disconnect  widgets.state.patch  (Raw escape hatch)
+  M->D events: activity.updated agent.status approvals.snapshot navigation.items.snapshot
+  navigation.items.updated navigation.items.removed navigation.tab_order.updated feed.changed
+  feed.updated feed.status.updated files.updated goal.updated heartbeat.notification
+  identity.updated pin.updated reactions.updated schedule.updated tasks.updated service.notice
+  sessions.updated spaces.updated spaces.data_invalidated ssh.operator.updated theme.updated
+  REMOVED in 9.0: wallet.step_up, wallet.step_up_result   (no new wire methods)
+  Gateway event-name strings in HatchGatewayEventsHandler.java: identical set 8.0 vs 9.0 (diff empty).
+
+### 4b. client.invoke device-command names (aura/nodes): identical to 8.0 EXCEPT
+  REMOVED: subscriptions.upgrade. (alarm.*, battery.get, calendar.*, call_log.search, contacts.*,
+  geofence.*, location.get, message.search/send/draft, MESSAGE_ATTACHMENT_GET, notifications.*,
+  network.state, photos.search/upload/upload_status, phone call, subscriptions.*, invite.upsell,
+  background.session, data_source.backfill all unchanged.)
+
+### 4c. MCP (Model Context Protocol) - [undoc-8.0, not in prior inventory]
+  In-process MCP server/client in native code (namespace wearable::agentic, present since 8.0):
+  libmcp_server_jni.so (fbandroid/java/com/meta/mcp/JMCPServer*.cpp, JMCPTool*.cpp,
+  com/meta/air/NativeMCPToolCallback): JSON-RPC methods "tools/list", "tools/call",
+  registerTool/unregisterTool/listTools/callTool/awaitToolsReady, per-tool schema JSON,
+  execution timeout gate ("Tool '{}' execution timed out after {}ms").
+  libxplat_agentic_{runtime,client,registry}*.so: AgenticRuntime, MobileMCPRegistry
+  ("loadRemoteClients", "No transport available, cannot register app: {}",
+  "No registry loader or transport, skipping remote client loading"),
+  AgenticRemoteClientAndroid ("Method not supported: ").
+  libxplat_mcp-sdk_lib_{session,registry}*__2025-06-18__mobileAndroid.so: MCP SDK pinned to
+  schema date 2025-06-18. Java side: com/facebook/aura/agentic/ (9 files, debug package).
+  No network URL literals in these libs - transport is in-process/pluggable; "remote clients"
+  loading is registry-driven and worth runtime investigation.
+
+
+## 5. HARDCODED TOKENS / KEYS / APP-IDS (unchanged from 8.0 unless noted)
+----------------------------------------------------------------------------
+  Falco/Abra client token  "4331325740476680|<32 hex chars, first 8: 330bd456>" (len 49)
+     FFMetaAnalyticsUploaderKt.java:9, MetaAnalyticsUploaderKt.java:6, MetaAnalyticsBuilder.java:57.
+     App id 4331325740476680 = Abra app (AuraAppId.java).
+  AuraClientToken.java / AuraAppId.java constants:
+     944424684749591 + token "6f0e5d73..." (32 hex)   (legacy "AR" logged-out token, crash upload)
+     4387961628157459 + token "94a31118..." (32 hex)
+     1237225311881278 (app id, no paired secret observed)
+     label "AuraForAndroid"; comment "Legacy - only used by AuthLite/CrudoNet. Use getAbraAppId()"
+  Google/Firebase (res/values/strings.xml): gcm_defaultSenderId=622912139302,
+     project_id=fb-messaging-b8df1, firebase_database_url=https://fb-messaging-b8df1.firebaseio.com,
+     google_api_key="AIzaSyB1..." (39 chars) - same value as 8.0.
+  Google Sign-In OAuth client id: 138594053405-idn5m64stn93ev8t4g8c4k0ljgdte3i0.apps.googleusercontent.com
+     (NativeLoginGoogleSignIn / AuraCredentialManagerConfig) - same as 8.0.
+  OIDC web app_id=391894423991568 (www.meta.ai/oidc/callback) - same as 8.0.
+  OhaiAcsConfigVerifier embedded key: present, [REDACTED] - unchanged.
+
+
+## 6. VERSION DIFF SUMMARY (8.0.0.21.168 -> 9.0.0.23.178)
+----------------------------------------------------------
+  NEW endpoints:   1 REST (/hatch/wearables/comms_consent), 12 Jarvis (3c), 0 RPC methods,
+                   0 GraphQL operations (22 op classes, identical set), 1 absolute URL
+                   (scontent asset_manager), 1 internal wiki link.
+  NEW hosts:       vm.muse.ai (native sanitizer block) - the only genuinely new host in 9.0.
+  NEW packages:    aura/feedback, aura/livesession (Live voice session API interfaces, no URLs),
+                   aura/maps (MapScene models), aura/stagingsample (StagingSampleIntegration intf).
+  NEW native lib:  libtrafficnts.so.
+  REMOVED:         Meta Pay wallet surface end-to-end (5 Stefi paths, 4 Jarvis paths,
+                   wallet.step_up/_result RPCs, accountscenter meta_pay_wallet URL,
+                   meta.com/legal/pay/terms), /hatch/credit/{reset,topup},
+                   ar.graph.meta.com Flytrap bug upload (now Stefi-only),
+                   /accounts/link (Jarvis), subscriptions.upgrade (device command),
+                   all Sigstore/Rekor attestation-transparency code and trust roots (native).
+  UNCHANGED:       GraphQL hosts and all 11 query/mutation ops (ABRARegister/UnregisterPushTokenMutation,
+                   AuraDebugSetHatchWaitlistStatusMutation, AuraGdpConsentPromptValidationMutation,
+                   AuraGdpPostPromptOutcomeMutation, AuraOAuthGetAccessTokenMutation,
+                   AuraOAuthGetLoginURLQueryMutation, FrlBloksAppRootQuery, FrlBloksAsyncActionQuery,
+                   FrlBloksAsyncComponentQuery, GdpConnectorConsentQuery), Noise/attestation handshake
+                   strings, OHAI/OHTTP relay+config URLs, shortwave dictation wss, realtime voice hosts,
+                   Stefi/Muse base URLs, all device-command names but one, gateway event names,
+                   network_security_config not re-audited here (see evidence-android/16 §3a).
+
+
+## 7. LEADS (ranked; details in the return summary)
+-----------------------------------------------------
+  L1  VM-attestation transparency moved OFF public Sigstore/Rekor to a private Cloudflare
+      "Plexi" log (libstartup.so; 8.0 had 155 sigstore/67 rekor strings incl. rekor.sigstage.dev
+      trust roots; 9.0 has 0, plus new "Cloudflare Plexi signature does not verify with any
+      pinned key", "policy requires a Cloudflare transparency proof", RevocationList/CRL
+      transparency proofs, ImageManifest {vm_sha256, launch_digest, commit_sha, image_versions}).
+  L2  vm.muse.ai appears for the first time in the native Tigon sanitizer domain block
+      (alongside api.muse.ai, meta.ai, ohai) - VM gateway domain migration to muse.ai?
+  L3  api/computer/context + api/computer/subscribe + api/browser/lease (Jarvis, NEW) -
+      device subscribes to the agent VM's "computer" stream; pairs with aura/agentcomputer
+      browser-takeover UI. New remote-computer surface.
+  L4  /hatch/wearables/comms_consent (NEW) + WearablesCommsConsent* - comms (calls/messages?)
+      consent flow for linked wearables; MCP/agentic runtime is namespace wearable::agentic.
+  L5  Bug reports no longer go to Facebook Flytrap (ar.graph.meta.com removed) - Stefi-only now.
+  L6  Meta Pay/wallet ripped out everywhere (paths, RPCs, URLs) while /hatch/device-orders,
+      /hatch/credit/drain, api/subscription/redeem-complimentary remain - commerce pivot.
+  L7  giphy.com sits in Tigon's native Meta-domain sanitizer table [undoc-8.0] - unexplained
+      third-party host in a Meta trust list; doh.facebook-dns.com DoH resolver present.
+  L8  hatch-access.internalmeta.com + internalfb.com/intern/rl/auth_tokens_to_od in shipping
+      binary [undoc-8.0] - internal employee tooling references.
+  L9  MCP server inside the phone app (tools/list, tools/call, remote client registry,
+      "MobileMCPRegistry::loadRemoteClients") - who can register/call tools is not determinable
+      statically; runtime lead.
+  L10 libtrafficnts.so [NEW] - new native Tigon traffic observer; purpose unknown from strings.

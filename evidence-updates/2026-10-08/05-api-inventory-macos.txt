@@ -1,0 +1,493 @@
+05 - COMPLETE NETWORK API INVENTORY (macOS 6.0, com.meta.endo)
+=====================================================================================
+Date:    2026-10-08
+Sample:  Muse-6.0.dmg -> extracted/v9/Muse.app, CFBundleShortVersionString 6.0,
+         CFBundleVersion/FBBuildNumber 1082791187, HatchReleaseChannel "production".
+         Files inspected:
+           Contents/MacOS/Muse                       sha256 a13155dc5188ce044137b6fb91309ba332a8b6173b9024bc900a1a26263f1cd6
+           Contents/MacOS/EndoCrashpadHandler        sha256 597a7de7831ff245b384ab912d70f9f14db4b77e89ad0b904998e925bc97c0aa
+           Contents/Resources/hatch/index.html       sha256 12ed9816b5e65cd71233bc1290585d0fd51c3e793baf2b446c49af9d24d7c8f3  (42 MB single-line bundle)
+           Contents/Resources/hatch/metaconfig.json  sha256 5f2c2eee23a5a8e9144e09598369cadb19a74bc90e85999ca10274f73b86dca7
+           Contents/Info.plist                       sha256 d97d01d4df0589288eba4c89d97f1ebaab535097e8d5dc66fb0967b763485e9d
+Method:  `strings -` of both Mach-O binaries (565,659 / 12,636 strings; cited as "str N" = line in the
+         strings dump, "off N" = byte offset in the file); grep -a -o / -b -o for URLs and paths;
+         Python byte-search with context windows for the single-line web bundle (cited "@N" = byte
+         offset in index.html); plutil for Info.plist. Nothing was executed; no host was contacted.
+LIMITATION: static strings show what code *references*, not observed traffic. A hostname/path/method
+         string does not prove a connection is made, when, or what is sent. Server-side MetaConfig /
+         MobileConfig values, runtime routing, and payload contents are not observable statically.
+Prior:   evidence/16-network-macos.txt (macOS 3.0 inventory). Items marked NEW = not in that file;
+         unmarked = previously documented. Notable REMOVALS are listed in section 10.
+
+
+## 1. ABSOLUTE URLS — NATIVE BINARY (Contents/MacOS/Muse)
+54 distinct. Format: count | URL | strings-dump line. Byte offsets for notable items in brackets.
+
+### 1a. Meta product / agent API
+   2 https://api.meta.ai/metaconfig/metaconfig                    str 409251  [off 14316096]
+   1 https://api.meta.ai                                          str 412344
+   1 https://api.meta.ai/hatch/bug_report                         str 415710
+   1 https://api.meta.ai/proton/hatch/voice/tts/stream            str 413287
+   1 https://api.meta.ai/proton/login                             str 410359
+   1 https://hatch-api.meta.ai                                    str 409230
+   1 https://hatch-api.meta.ai/hatch/help_ticket                  str 413353
+   1 https://hatch-api.meta.ai/hatch/login                        str 417731  [off 14798816]  NEW
+   1 https://agent.meta.ai                                        str 417632
+   1 https://agent.meta.ai/?settings_tab=                         str 410816
+   1 https://agent.meta.ai/connectors/connect/                    str 410823
+   1 https://agent.meta.ai/connectors/connect/apple_contacts)     str 414983
+   1 https://www.meta.ai/                                         str 416039
+   1 https://meta.graph.meta.com/webview_tokens_query             str 409332
+   1 https://meta.graph.meta.com/webview_blobs_decrypt            str 413935
+   1 https://meta.graph.meta.com/oidc_callback_uri/               str 409292  NEW
+   1 https://meta.graph.meta.com/mobileconfigsessionless          str 409250  NEW
+
+### 1b. Auth / account (native login stack, heavily expanded vs 3.0)
+   1 https://auth.meta.com/                                       str 409334
+   1 https://auth.meta.com/oidc                                   str 409288  NEW
+   1 https://auth.meta.com/hatch/session/bootstrap/               str 417638  NEW (verbatim host+path;
+                                                                     3.0 only inferred /hatch/session/bootstrap
+                                                                     by adjacency on api.meta.ai)
+   1 https://auth.muse.ai/oidc/muse/                              str 409290  [off 14317952]  NEW HOST+PATH
+   1 https://accountscenter.meta.com                              str 412354
+
+### 1c. muse.ai surface (expanded)
+   5 https://muse.ai                                              str 408711
+   1 https://muse.ai/                                             str 409256
+   1 https://muse.ai/?hatch_aymh_complete=1                        str 408667
+   1 https://muse.ai/access                                       str 409295  NEW
+   1 https://muse.ai/access/verification                          str 417732  NEW
+   1 https://muse.ai/oidc/callback                                str 409299  NEW
+   1 https://muse.ai/privacy                                      str 416621  NEW
+   1 https://muse.ai/terms                                        str 416622  NEW
+
+### 1d. Non-Meta anomaly (carried over from 3.0/4.x — the "multimango" lead)
+   1 https://www.multimango.com/api/alo/default-models            str 413556  [off 14584400]
+     Adjacent strings: "[AloModels] no token/url", "[AloModels] fetch error: ",
+     "[AloModels] fetch failed (HTTP ", "[AloModels] fetched defaults: s2s=",
+     "[AloModels] fetch returned empty models; not caching" (str 413557-413562).
+     Domain ownership still not established statically. See ALO-AND-MULTIMANGO-2026-10-08.md.
+
+### 1e. Voice / speech (WSS)
+   1 wss://shortwave.facebook.com/voyager/v1/asr/duplex           str 410466  (dictation)
+   1 wss://shortwave.facebook.com/vllm_proxy                      str 413632  [off 14588784]  (Alo S2S)
+   1 wss://                                                       str 422030  (bare scheme prefix)
+
+### 1f. Telemetry / crash / diagnostics upload
+   1 https://www.facebook.com/mobile/ios_breakpad_crash_logs/     str 413850  (Crashpad --url target)
+   1 https://www.facebook.com/mobile/reliability_event_log_upload/  str 413843  [off 14603424]  NEW
+     Adjacent: "apple_diagnostic", "apple_diagnostic_ping_id", "[AppleDiagnostics] ",
+     "HatchAppleDiagnostics-", 'Content-Disposition: form-data; name="' (str 413844-413847),
+     class HatchAppleDiagnosticsReporter (str 425705, _TtC4Endo29HatchAppleDiagnosticsReporter str 407641).
+
+### 1g. Legal / help / account recovery (NEW category, login-flow links)
+   1 https://www.facebook.com/legal/ai-terms                      str 416623  NEW
+   1 https://www.facebook.com/privacy/genai/                      str 415858  NEW
+   1 https://www.facebook.com/one_click_agreements/2286954515383193/GbShBpvnRrpmnI4J/  str 416619  NEW
+   1 https://www.facebook.com/login/identify/                     str 417692  NEW
+   1 https://www.instagram.com/accounts/password/reset/           str 417693  NEW
+   1 https://www.facebook.com/                                    str 419486
+   1 https://www.meta.com/help/artificial-intelligence/31983416211257755/  str 417695  NEW
+   1 https://www.meta.com/help/quest/1178386633001549/            str 417694  NEW
+   1 https://www.internalfb.com/bug/                              str 415712  (internal bug tool link)
+
+### 1h. Benign / framework residue
+   1 https://scontent.xx.fbcdn.net/v/t1.0-9/example.jpg?...       str 423503  (example/fixture)
+   1 https://example.com/image.jpg?ctp=q65_s350x320               str 423475  (fixture)
+   1 https://helpx.adobe.com/after-effects/using/expression-language.html)  str 422495 (doc link in
+                                                                     expression-eval feature)
+   Apple code-signing PKI strings (embedded provisioning profile, not app traffic):
+     http://crl.apple.com/root.crl0, http://crl.apple.com/timestamp.crl0,
+     http://ocsp.apple.com/ocsp03-applerootca0., http://ocsp.apple.com/ocsp03-devidg2010,
+     http://certs.apple.com/devidg2.der02, https://www.apple.com/appleca/0,
+     https://www.apple.com/certificateauthority/0, http://www.apple.com/appleca0,
+     http://www.apple.com/DTDs/PropertyList-1.0.dtd
+
+EndoCrashpadHandler binary: only crashpad upstream doc URLs (crashpad.chromium.org) and the same
+Apple PKI strings; the facebook.com upload URL is NOT compiled in — it is passed via --url by the
+parent app, same design as 3.0.
+
+
+## 2. BARE HOSTNAMES — NATIVE BINARY (no scheme; classifier lists & config)
+
+### 2a. Meta domain classifier (str 405940-407212 region) — role: request tagging/pinning/OHTTP routing
+  facebook.com fb.gg lassovideos.com oculus.com workplace.com wk.pl fbwat.ch fb.watch fb.me
+  msngr.com meta.ai m.me graph.meta.com graph.facebook-hardware.com auth.meta.com
+  accountscenter.meta.com accounts.meta.com viewpointsfromfacebook.com fbsbx.com cdninstagram.com
+  oculuscdn.com fbcdn.net whatsapp.com whatsapp.net instagram.com facebookvirtualassistant.com
+  doh.facebook-dns.com graph.fbpigeon.com relay.fbpigeon.com meta.com ig.me wa.me meta.me
+  vm.muse.ai metaaivm.com api.muse.ai fb.com i.org connect.facebook.net facebook-hardware.com
+  *.fbcdn.net variants (xx/xy/xz/fna/snr), *-origincache-internal-services-all.fbcdn.net (4)
+  sb./od. sandbox prefixes (sb.facebook.com, od.facebook.com, od.fbinfra.net,
+  od.facebook-hardware.com, sb.instagram.com, od.instagram.com, od.graph.meta.com, od.whatsapp.com,
+  od.auth.meta.com elsewhere), internalfb.com, thefacebook.com, m.facebook.com, graph.facebook.com,
+  secure.facebook.com, x.com(?)  — subdomain prefixes: b-api. b-graph. api. graph. secure. meta.
+  rupload. shortwave. lithium. gateway. our. ; "graph.rendeer-debug", "devvm", "www.devvm" (internal
+  dev tiers), "our.intern", "graph.intern", "graph.secure".
+  Test/fixture entries: zbsim.i.org, 54.183.121.79 (folly IPAddress test constant, str 407098),
+  acme.com (in email-tool doc text), non-meta.com (in WebSession refusal log lines, str 417535/417552).
+
+### 2b. OHTTP / privacy relay (str 421665-421672 region)
+  vm.meta.ai, ohttp-gateway.atmeta.com  [off 14981239]  NEW HOST for macOS inventory
+  (atmeta.com was not in the 3.0 macOS host inventory; appears beside JestProxyInterceptor and the
+  Noise connect code — resolver for the Ohai/OHTTP gateway).
+  Also in classifier: meta-ohttp-relay-prod.fastly-edge.com, meta-ohttp-relay-dev.fastly-edge.com,
+  meta-ohttp-config-prod.fastly-edge.com, meta.privacy-gateway.cloudflare.com,
+  meta.hpke-keys.privacy-gateway.cloudflare.com, privacy-gateway.cloudflare.com, giphy.com.
+
+### 2c. Gateway / VM
+  hatch.metaaivm.com (str 421661, 434847), .metaaivm.com (str 422345, 434849), metaaivm.com,
+  vm.muse.ai, vm.meta.ai, api.muse.ai, auth.muse.ai (NEW).
+
+### 2d. Chrome native messaging (NEW shape — no bundled extension, see section 10)
+  "Google/Chrome Canary", "Library/Application Support/", "/NativeMessagingHosts/",
+  /tmp/endo-native-messaging.sock (str 413842) — the app now installs a native-messaging host
+  manifest into the user's own Chrome/Canary profile instead of shipping Resources/chrome/.
+
+### 2e. Misc
+  helpx.adobe.com (doc link), scontent.cdninstagram.com, accountscenter.facebook.com,
+  accountscenter.instagram.com, privacycenter.instagram.com, help.instagram.com, www.meta.com,
+  www.instagram.com, www.facebook.com, www.internalfb.com, www.multimango.com (1d).
+  Bundle IDs as pseudo-hosts: com.meta.endo.*, group.com.burbn.family, group.net.whatsapp.family,
+  group.com.metaplatforms.family, group.com.facebook.msysstorage, group.com.facebookwork.family,
+  com.burbn.basel.mac, com.mapillary.app, com.microsoft.edgemac.dev, com.google.chrome.dev/.app,
+  com.facebook.atwork.dev, com.meta.app, computer.control.app, computer.observe.app,
+  permission.computer.control.app, public.app.
+
+
+## 3. RELATIVE API PATHS — NATIVE BINARY (94 distinct, grouped by subsystem)
+
+### 3a. Meta-API auth / account lifecycle (host: api.meta.ai / auth.meta.com family) — NEW SUBSYSTEM
+  /hatch/auth/start                                  str 416798
+  /hatch/auth/dbl_provision                          str 416782  [off 14746752]  (DBL = device-based login)
+  /hatch/auth/dbl_login                              str 416784
+  /hatch/auth/save_account  /hatch/auth/saved_accounts  /hatch/auth/remove_saved_account
+  /hatch/auth/send_saved_account_otp                 str 416783/416786/416781/416785
+  /hatch/auth/register_completion  /hatch/auth/register_completion_linked   str 416788/416787
+  /hatch/auth/sso_exchange  /hatch/auth/sso_account_info                    str 416789/416797
+  /hatch/auth/select_account  /hatch/auth/confirm_password                  str 416793/416794
+  /hatch/auth/send_otp  /hatch/auth/confirm_otp                             str 416796/416795
+  /hatch/auth/two_factor  /hatch/auth/two_factor/send_code                  str 416791/416792
+  /hatch/auth/password_recovery/{start,send_code,confirm_code,complete}     str 416780/416779/416778/416777
+  /hatch/auth/cancel_deletion                        str 416790
+  Context strings: "abra", "AuthDblProvisionResult(<redacted>)", "AuthStartResult(<redacted>)",
+  "<hatch auth credentials redacted>", TOTP / RECOVERY_CODES / ADMIN_CODES (str 416760-416775).
+
+### 3b. Activation / gating / legal acceptance — NEW SUBSYSTEM
+  /hatch/waitlist/join  /hatch/waitlist/leave        str 416801/416803
+  /hatch/invite_code/redeem                          str 416804
+  /hatch/accept_tos  /hatch/accept_nda               str 416813/416816
+  /hatch/tos_status                                  str 417774
+  /hatch/age_confirmation/linking_options            str 416817
+  /hatch/age_confirmation/linking_web_auth           str 416818
+  /hatch/age_confirmation/linking_web_auth_completion  str 416820
+  /hatch/onboarding_statuses                         str 412332  NEW
+  /hatch/checkpoint/status                           str 412346
+  Context: "inviteCodeInvalid/UsedUp/Revoked/AlreadyRedeemed/WindowExpired", "use_credit_card",
+  "restart_linking", "waitlist_limited" (age-assurance linking flow).
+
+### 3c. Meta-API session / VM lease / commerce
+  /hatch/session/bootstrap                           str 413489  (verbatim; pairs with auth.meta.com, 1b)
+  /hatch/fetch_leased_vm                             str 412312
+  /hatch/destroy_and_release_vm                      str 412320
+  /hatch/verify_oauth_token                          str 412339
+  /hatch/subscription                                str 412340
+  /hatch/accounts_center_link                        str 412353
+  /hatch/accounts_center_entrypoint                  str 412355
+  /proton/heisenberg                                 str 412345
+  /api/hatch/oauth/callback                          str 412763
+  /api/hatch/ac_oauth                                str 412819
+  /connectors/connect/                               str 412820
+
+### 3d. Gateway (VM) noise channel + node protocol
+  /v1/noise                                          str 422248
+  /chat/subscribe /chat/stream /chat/send /chat/cancel /chat/resume /chat/stream-events /chat/search
+                                                     str 422136-422149
+  /chat/history?limit=                               str 412303
+  /voice/calls/join                                  str 422151
+  /client/register-capabilities                      str 422156
+  /client/invoke-result                              str 422159
+  /client/data-source-publish                        str 422161
+  /fs/subscribe                                      str 422184
+  /fs/upload/status                                  str 412197  (MediaSync photos upload status)
+  /nodes/register /nodes/invoke-result /nodes/heartbeat /nodes/list /nodes/unpair  str 422167-422175
+  /api/nodes/recipient-approval                      str 412292  NEW (approval for sending to a recipient?)
+
+### 3e. authd / credentials (VM services)
+  /v1/credentials/capture                            str 422315
+  /v1/credentials/query                              str 422316  NEW (3.0 web table had no query)
+  /v1/credentials/catalog  /v1/credentials/catalog/details  /v1/credentials/catalog/update
+  /v1/credentials/catalog/delete                     str 422317-422320
+  /v1/credentials/delete  /v1/credentials/list  /v1/credentials/register  str 422322/422323/422321
+  /v1/custom-connectors/register  /v1/custom-connectors/list  /v1/custom-connectors/delete
+                                                     str 422324-422326
+  /v1/api-key-auth/callback  /api_key_auth/callback  /api/api_key_auth/callback   str 422329/422330/422331
+  /v1/username-password-auth/callback  /username_password_auth/callback
+  /api/username_password_auth/callback               str 422332/422330s/422334
+  /v1/foa-auth/callback  /foa_auth/callback  /api/foa_auth/callback  str 422335/422336/422337
+  /v1/oauth/callback  /oauth/callback                str 422327/422328
+  /ac_oauth/callback                                 str 412183
+
+### 3f. VM SSH operator control — NEW
+  /v1/ssh/operator/enable                            str 422338  [off 14995523]
+  /v1/ssh/operator/disable                           str 422339
+  /v1/ssh/operator/status                            str 422340
+  (3.0 iOS paired api.muse.ai with /ssh-access/tokens; macOS 6.0 now carries VM-side operator routes.)
+
+### 3g. VM egress policy (sentinel)
+  /api/permissions  /api/approvals  /permissions  /approvals   str 422341-422344 + .metaaivm.com suffix
+  Verified-identity headers (str 422346-422355): x-hatch-verified-uid, x-hatch-verified-media-path,
+  x-hatch-verified-media-version, x-hatch-verified-media-variant, x-hatch-verified-notary-spaces,
+  x-hatch-noise-active, x-hatch-shared-space-id (NEW), x-hatch-auth-request-allowlist (NEW),
+  x-noise-connection-id.
+
+### 3h. Analytics upload paths (host built at runtime; iOS pairs with graph.facebook.com)
+  /logging_client_events                             str 405799
+  /pigeon_health_metrics                             str 405800
+
+
+## 4. GATEWAY ROUTE TABLE — WEB BUNDLE (HATCH_HTTP_ROUTE_SPECS @3410633)
+313 entries (3.0: 282). Schema field renamed: `stream` -> `streamMode`; new optional fields
+maxSubscriptionRecordBytes, requestTimeoutMs (seen on chat.subscribe / chat.stream_events).
+Services: agent 248, daemon 28, sentinel 21, authd 15, vault 1. noise-only: 74. streamMode: 14.
+Full machine-readable dump: extracted/v9/work/routes-6.0.json.
+
+### 4a. NEW routes vs 3.0 (34)
+  home_link_bug_reports.collect   POST   /api/debug/home-link-bug-reports            agent  noise-only
+  email.mailbox.setup             GET    /api/email/mailbox/setup                    daemon noise-only
+  email.mailbox.delete            DELETE /api/email/mailbox                          daemon noise-only
+  email.messages.get              GET    /api/email/messages/{message_id}            daemon noise-only
+  email.threads.list              GET    /api/email/threads                          daemon noise-only
+  email.threads.get               GET    /api/email/threads/{thread_id}              daemon noise-only
+  peers.disconnect                DELETE /peers/{muse_id}?relationship_generation_id=…&relationship_revision=…&relationship_started_at_ms=…&request_expires_at_ms=…  daemon noise-only
+  peers.requests.list             GET    /peers/requests                             daemon noise-only
+  peers.invites.create            POST   /peers/invites                              daemon noise-only
+  peers.invites.accept            POST   /peers/invites/accept                       daemon noise-only
+  peers.invites.revoke            DELETE /peers/invites/{invite_id}                  daemon noise-only
+  peers.requests.sas              GET    /peers/requests/{relationship_generation_id}/sas          daemon noise-only
+  peers.requests.sas.confirm      POST   /peers/requests/{relationship_generation_id}/sas/confirm daemon noise-only
+  voice.calls.media_endpoint      GET    /api/voice/calls/media-endpoint             agent
+  voice.catalog                   GET    /api/voice/catalog                          agent
+  voice.catalog_filters           GET    /api/voice/catalog/filters                  agent
+  voice.custom_voices.list        GET    /api/voice/custom-voices                    agent
+  voice.custom_voices.rename      PATCH  /api/voice/custom-voices/{saved_voice_id}   agent
+  voice.custom_voices.delete      DELETE /api/voice/custom-voices/{saved_voice_id}   agent
+  subscription.redeem_complimentary POST /subscription/redeem-complimentary          agent
+  connectors.connect              POST   /connectors/{id}/connect                    agent
+  browser_task.clipboard.readiness POST  /api/browser-task/{task_id}/clipboard/readiness  agent noise-only
+  browser_task.clipboard.copy     POST   /api/browser-task/{task_id}/clipboard/copy   agent noise-only
+  browser_task.clipboard.paste    POST   /api/browser-task/{task_id}/clipboard/paste  agent noise-only
+  browser_task.viewer             PATCH  /api/browser-task/{task_id}/viewer           daemon noise-only
+  browser.lease                   POST   /api/browser/lease                          agent
+  computer.context                GET    /api/computer/context                       agent
+  computer.preview                GET    /api/computer/previews/{task_id}/{sha256}    agent
+  computer.subscribe              POST   /api/computer/subscribe                     agent  noise-only stream:subscription
+  goals.reorder                   PATCH  /goals/{id}/order                           agent
+  api.idea-cards.share            POST   /api/idea-cards/{ideaCardId}/share          agent
+  shopping.cart                   GET    /api/shopping/cart                          agent
+  ads.details                     GET    /api/ads/details                            agent
+### 4b. REMOVED vs 3.0 (2)
+  email.messages.list  (replaced by email.threads.* / email.messages.get)
+  "?" POST /share/callback  (the unnamed share callback)
+### 4c. Peer-control method families referenced in telemetry-redaction code (@3406822)
+  PEER_CONTROL_METHOD_PREFIXES = ["peers.", "grants.", "circles."]  — "circles." has NO routes in
+  the 313-entry table; an unshipped/undocumented method family.
+  PEER_EVENT_PREFIX = "peer."; BROWSER_CLIPBOARD_METHOD_PREFIX = "browser_task.clipboard."
+
+
+## 5. NATIVE RPC / WEBSOCKET METHODS (Contents/MacOS/Muse str 422135-422197)
+Direction D->M = Mac to VM gateway; M->D = pushed events. Carried over from 3.0 unless noted.
+  chat.subscribe chat.stream chat.send chat.cancel chat.resume chat.stream-events chat.stream_events
+  chat.search voice.calls.join connection.ping client.register_capabilities client.invoke.result
+  client.data_source.publish widgets.state.patch activity.log node.register node.invoke.result
+  node.heartbeat node.list node.unpair navigation.recents.touch navigation.pinned.set
+  activity.subscribe fs.subscribe skills.subscribe theme.subscribe reset.subscribe
+  navigation.subscribe model.get model.set client.invoke (str 437226, M->D command dispatch)
+  connection.health connection.repair  (str 408299/408300 — near permission.browser.proxy migration
+  note; NEW, roles undetermined)
+Pushed events (M->D), delta/message/widget/tool_call families:
+  delta.message_start delta.text_append delta.thinking_append delta.tool_start delta.block_done
+  delta.message_done delta.turn_start delta.agent_start delta.agent_done delta.agent_status
+  delta.status_narration delta.placeholder delta.presentation delta.compaction message.assistant
+  message.is_read (NEW)  chat.background_done identity.updated node.disconnected reactions.updated
+  widget.state_updated tool_call.started tool_call.completed response.created
+Realtime (Alo S2S over wss://shortwave.facebook.com/vllm_proxy): response.output_audio,
+  response.output_audio_transcript, response.output_item, response.function_call_arguments,
+  "aloBidirectional" (str 408368), "[AloS2S] session ready", "[AloS2S] speech_started (server VAD)",
+  "[AloS2S] function_call: ".
+Web bundle confirms same delta.* set (@1014564 handler switch).
+
+
+## 6. LOCAL COMMAND SURFACE (results leave the Mac via client.invoke.result / data_source.publish)
+Registered capabilities (verbatim command names, native binary):
+  imessage.threads imessage.get imessage.search imessage.send imessage.attachment
+    imessage.save_attachment imessage.enabled
+  email.search email.read email.send email.delete email.delete_status
+  calendar.list calendar.search calendar.events.create calendar.events.update calendar.events.delete
+  notes.list notes.read notes.search notes.create notes.folders
+  reminders.list reminders.create reminders.update reminders.complete reminders.delete
+  contacts.search
+  files.read files.write files.edit files.list files.search files.copy files.rename files.trash
+    files.mkdir files.upload files.subscribe files.get_tags files.update_tags
+  data_source.backfill data_source.refresh data_source.search data_source.publish
+  computer.observe computer.control computer.session  (+ .chord/.keys/.mode/.target/.view params)
+  screen.snap screen.snap.window_id
+  system.run system.run.read system.run.write system.which system.privilege.admin
+  camera.session ("Capture a photo using the front camera.", str 410633/411468)
+  environment.describe
+  media.mosaic media.documentpreview
+  photos.enabled browser.proxy (permission.browser.proxy migration str 408296)
+  "Show a local notification" (notification command, str 410627 area)
+Doc text notes: files.copy "Refuses copies over 2 GiB or 50,000 items, or folders containing
+credentials or Trash" (str 410608); approval cards limited to 4 KiB of path text.
+
+
+## 7. ABSOLUTE URLS — WEB BUNDLE (Resources/hatch/index.html)
+345 distinct URL literals; 125 distinct hosts. By role (count = literal occurrences):
+
+### 7a. Meta product/config
+  agent.meta.ai (3): incl. https://agent.meta.ai/connectors/gmail/disconnect?token=... (@36795459,
+      inside a mock/fixture) and https://agent.meta.ai/connect/consent?service=meta_business
+      (@32044818, META_BUSINESS_CONNECT_URL) NEW
+  api.muse.ai (1): PATRIQUE_VIDEO_PRODUCTION_ORIGIN=`https://api.muse.ai` (@33522540) NEW —
+      getPatriqueVideosUrl builds https://api.muse.ai/patrique/videos/{id} and
+      /patrique/pages/business/videos/{id}; devserver override https://api.${alias}.muse.ai with
+      alias pattern like "devvm21673.pnb0" (@33519688-33519914)
+  muse.ai (3): HATCH_TERMS muse.ai/terms, HATCH_PRIVACY_POLICY muse.ai/privacy,
+      HATCH_CONNECTOR_TERMS `https://muse.ai/platform/terms` (@3872195) NEW
+  auth.meta.com (2), accountscenter.meta.com (2), www.facebook.com (20), www.instagram.com (4),
+  www.meta.com (11), www.internalfb.com (6), fb.me, wa.me, t.me, x.com, web.whatsapp.com,
+  www.whatsapp.com, www.messenger.com (2): incl. MESSENGER_WEB_PIN_CREATE_URL
+      `https://www.messenger.com/secure_storage/hatch_pin/` (@8097368) NEW
+  rupload.meta.ai: https://rupload.meta.ai/gen_ai_document_gen_ai_tenant/${uuid} (@3348321)
+  hatch.metaaivm.com (@29747434 — shared-agent remote gateway URL)
+  secure.facebook.com, www.at-od.facebook.com (checkout callback origins @34156822)
+  *.fbcdn.net, external.xx.fbcdn.net (7), nest-static.fbcdn.net
+
+### 7b. Internal-only Meta hosts — NEW, shipped in production bundle
+  https://www.internalfb.com/intern/oidc/hatch_metacli/callback/  (@37627186, OIDC_CALLBACK_URL,
+      OIDC_CLIENT_ID adjacent) — "hatch_metacli" = internal Meta CLI tool
+  https://www.internalfb.com/foa-redteaming/submit-feedback/hatch (@32332884, REDTEAMING_TOOL_URL)
+  https://admin.internalfb.com  (@366237, HATCH_SHARE_REVIEW_FRAME_ANCESTOR_ORIGINS)
+  https://review.internmc.facebook.com  (@366161, same list)
+  https://review.intern.facebook.com    (@366161, same list)
+
+### 7c. pariscope.dev (unchanged anomaly; ownership unestablished)
+  HATCHERY_BASE_URL `https://www.pariscope.dev/hatchery` (@3465124)
+  HATCHERY_ALLOWED_ORIGINS incl. `https://hatch.pariscope.dev`
+  PARISCOPE_VOICE_CALL_BASE_URL `https://www.pariscope.dev/voice` (@3465317)
+
+### 7d. Third party
+  Stripe: ORIGIN `https://js.stripe.com`, RELEASE_TRAIN=`clover`, STRIPE_JS_URL
+      `${ORIGIN}/clover/stripe.js` (@34316616-34316730); pay.stripe.com/receipts/, docs.stripe.com,
+      stripe.com docs links, support.link.com
+  Maps: t0-t3.tiles.virtualearth.net (Bing), clarity.maptiles.arcgis.com (Esri), gis.apfo.usda.gov
+      (NAIP), www.openstreetmap.org, maplibre.org
+  dash.js: time.akamai.com, conformance.dashif.org, dashif.org
+  Fonts/docs: fonts.googleapis.com, fonts.gstatic.com, cdnjs.cloudflare.com (pdfobject), unpkg.com
+  Fixtures/mock data only: api.calendly.com, api.notion.com, api.weather.gov, www.googleapis.com,
+      www.allbirds.com, www.luckybrand.com, www.jbl.com, www.delta.com, www.eventbrite.com,
+      members.onepeloton.com, images.printify.com, coloradowinefest.com, open.spotify.com,
+      player.vimeo.com, www.youtube.com, www.youtube-nocookie.com, outlook.office365.com,
+      calendar.google.com, docs.google.com, drive.google.com, app.todoist.com, www.notion.so,
+      www.threads.com/.net, en.wikipedia.org, www.ibm.com, shop/support.example.com
+  Dev-doc/schema noise: schemas.openxmlformats.org (50), github.com (25), schemas.microsoft.com (20),
+      chevrotain.io (18), www.w3.org (13), nextjs.org, react.dev, lexical.dev, langium.org,
+      rolldown.rs, emscripten.org, aomedia.org, purl.org, feross.org, tailwindcss.com, stuk/github.io,
+      purecatamphetamine.github.io, gitbrent.github.io, raw.github.com, stuartk.com, www.smpte-ra.org
+  Placeholder/invalid hosts (URL-building sentinels): hatch.invalid (11), hatch-cvm.invalid,
+      local.invalid, invalid.local, example.invalid, placeholder.invalid, shell.invalid,
+      browser-snapshot.invalid, feed-media-base/feed-icon-base/feed-clip-base.invalid,
+      video-url-base.invalid, library.invalid, external-url-base.invalid, foo.bar, http://hatch.local
+  Local dev origins: LOCAL_DEV_BASE_PORT=3000, LOCAL_DEV_ORIGINS = http://localhost:3000..3005 (6)
+
+### 7e. Telemetry/sentry
+  ANALYTICS_ENDPOINT=`/api/analytics` (@3078452 — relative, non-embedded mode)
+  parmsl.sentry.io — still ONLY in buildSentryUserUrl() dashboard link, project 4510947969728512
+      (@3939855). No DSN/ingest host. Sentry SDK still compiled in.
+
+
+## 8. HARDCODED TOKENS / KEYS / APP IDS
+  Info.plist:
+    FacebookAppID / FacebookLoggingAppID   988919250660868
+    NativeLoginAppID                       1181158755084833 (= HATCH_MAC telemetry app id; 3.0 knew it
+                                           only as the interaction_logger/Chandra id)
+    AnalyticsClientToken                   5ef73ce6… (32 hex chars)
+    NativeLoginClientToken                 69afabc1… (32 hex chars)
+    SUPublicEDKey                          disxTjH… (44 chars, base64 EdDSA public key; Sparkle)
+    ApplicationIdentifier / keychain group V9WTTPBFK9.com.meta.endo
+    SUFeedURL  https://www.facebook.com/endo/release/appcast.xml?channel=production (unchanged)
+  Web bundle:
+    EctoAppIDs: ABRA_WEB=1358015658191005, HATCH_WEB=1302642031697155, HATCH_MAC=1181158755084833
+        (@3052109)
+    Sentry project id 4510947969728512 (dashboard link only)
+  Native binary:
+    1181158755084833 at str 412179 (telemetry relay); 1302642031697155 at str 409289
+    48 x 64-hex sha256 digests (str 408597-408644): expected-integrity digests for bundled hatch
+    web assets ("no expected digest for ", "[MetaConfig] Dev registry unavailable; using bundled
+    web assets"). The last two equal the sha256 of index.html and metaconfig.json respectively
+    (verified against section-0 hashes) — NEW bundle self-integrity mechanism.
+    No private keys, bearer tokens, or DSNs found as literals. USDID: ES256 keypair is generated,
+    keychain item com.meta.usdid / com.facebook.usdid.tokenmanager, headers x-meta-usdid /
+    X-Meta-USDID-UUID (str 406350, 406625-406653) — unchanged design.
+
+
+## 9. METACONFIG.JSON — BUNDLED PARAMETER KEYS (42 keys; NEW unless noted)
+  hatch_gtm:redeem_invite_enabled, hatch_gtm:invite_enabled, hatch_gtm:hatch_us_pjs
+  hatch_web:ios_app_store_uri, hatch_web:ecto1_redteaming, hatch_web:hatch_reset_vm,
+  hatch_web:hatch_macos_download_link_gating, hatch_web:map_vector_style_light/_dark (prev),
+  hatch_web:hatch_whitehat_cohort, hatch_web:hatch_acs_ohai_enabled (prev),
+  hatch_web:enable_dictation_asr_streaming, hatch_web:muse_mail, hatch_web:hatch_voice_feat,
+  hatch_web:ecto1_is_employee (prev), hatch_web:hatch_channel_whatsapp_enabled,
+  hatch_web:attestation_enforce_mode (prev), hatch_web:hatch_link_enabled,
+  hatch_web:subs_employee_hatch_lower_price, hatch_web:enable_surveys,
+  hatch_web:hatch_voice_design_enabled, hatch_web:hatch_use_ccv_redirect,
+  hatch_web:is_tool_mocking_enabled_for_hatch, hatch_web:ptt_skip_certs_verification_by_payment_env,
+  hatch_web:hatch_voice_id, mwa_help_and_support:hatch_support_web_april_launch,
+  hatch_web:is_debug_build, hatch_web:whatsapp_settings_learn_more_url,
+  hatch_web:hatch_channel_telegram_enabled (NEW — Telegram channel, unreleased),
+  hatch_config:hatch_big_boy_models, hatch_web:enable_idea_color_icons,
+  hatch_web:hatch_feed_infinite_scroll_enabled_gk, hatch_web:hatch_channel_messenger_enabled,
+  hatch_web:hatch_web_cvm, hatch_web:hatch_subscription_enabled,
+  hatch_web:hatch_phone_live_transcript_enabled (NEW — phone-call live transcript),
+  hatch_web:map_political_view, hatch_web:skip_nux_to_pux_transition,
+  hatch_web:hatch_work_oidc_authentication (NEW — pairs with auth.muse.ai/oidc/muse/),
+  hatch_web:hatch_activation (native str 416800 area), plus native-side keys endo_alo_s2s_model_id,
+  endo_alo_dictation_model_id, endo_alo_dictation_av_model_id, endo_alo_s2s_voice,
+  endo_alo_s2s_voice_sample_path (str 410472-410486).
+
+
+## 10. REMOVALS / SHAPE CHANGES vs macOS 3.0
+  - Resources/chrome/ bundled Chrome extension is GONE from the .app; replaced by native-messaging
+    host install into the user's own Chrome/Canary (section 2d). Extension-only hosts from 3.0
+    (node.hatch.one wss fallback, *.customer.prod.willow606.com) not present in 6.0 native/web.
+  - "SEV-SNP" literal gone from both binary and web bundle (attestation framework remains:
+    privateAuthVerified, vm_notary_tokens, "Refusing a confidential VM that did not prove itself",
+    NoiseAlwaysAcceptAttestationVerifier str 434847, hatch_web:attestation_enforce_mode web @3361846).
+  - Web telemetry channels: "hatch-traces" and "one-trace-events" names no longer present; channels
+    are pel-events + checkout-upl (@3078554). "Chandra" and hatch_web:falco_qpl_transport strings
+    gone from web; native still relays telemetryBatch via postToNative (@3079199).
+  - POST /api/hatch/extension-pairing gone (extension pairing moved out of bundle).
+  - multimango.com remains native-only (no web-bundle reference), still fetched by AloModels client.
+
+
+## 11. FLAGGED LEADS (ranked; see companion summary)
+  L1 peers.* + SAS + "circles."   — new user-to-user pairing subsystem, sections 4a/4c.
+  L2 hatch_metacli OIDC + internalfb redteam/admin/review hosts in prod bundle — section 7b.
+  L3 Patrique video API on api.muse.ai (muse + business catalogs, devserver aliases) — section 7a.
+  L4 HatchAppleDiagnosticsReporter -> facebook.com/mobile/reliability_event_log_upload/ — section 1f.
+  L5 /v1/ssh/operator/{enable,disable,status} + NEW headers x-hatch-shared-space-id (str 422354)
+     and x-hatch-auth-request-allowlist (str 422355), beside the x-hatch-verified-uid family —
+     sections 3f/3g.
+  L6 multimango.com Alo default-models fetch persists in 6.0 — section 1d.
+  L7 Muse-for-Work OIDC: auth.muse.ai/oidc/muse/ + muse.ai/oidc/callback +
+     meta.graph.meta.com/oidc_callback_uri/ + hatch_work_oidc_authentication — sections 1b/1c/9.
+  L8 ohttp-gateway.atmeta.com — section 2b.
+  L9 hatch_web:ptt_skip_certs_verification_by_payment_env — section 9.
+  L10 hatch_channel_telegram_enabled + hatch_phone_live_transcript_enabled — section 9.
+  L11 /api/nodes/recipient-approval — section 3d.
+  L12 Voice pipeline codenames: kepler_passthru, alo_native_audio, cosmos_hdx, friday_realtime;
+     cosmos_wearables_voice_config_enabled; wearable release channels aloha_ota_staging,
+     aloha_exec_dogfood, aloha_dogfood, aloha_ota_soak, aloha_qa (native str 418848-418852).
+  L13 Chrome Canary native-messaging install (extension escapes the bundle) — section 2d.
+  L14 48-asset web-bundle integrity digests (self-verifying bundle) — section 8.

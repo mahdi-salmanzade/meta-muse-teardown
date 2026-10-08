@@ -1,0 +1,179 @@
+07 - VERIFICATION: hatch_web:ptt_skip_certs_verification_by_payment_env (MetaConfig cert-skip flag)
+Date:    2026-10-08
+Method:  Static analysis only. No app code executed. grep/strings on extracted bundles and binaries;
+         decompiled Android (jadx) and pretty-printed web bundles read in context.
+Samples: macOS 6.0 (extracted/v9/Muse.app; web bundle Resources/hatch/index.html, pretty-printed copy
+         extracted/v9/prep/index60.main.pretty.js), macOS 3.0 (extracted/Muse.app) and the
+         2026-09-27 audited release (extracted/release-audit-2026-09-27/Muse.app) for flag history,
+         Android APK v9 (extracted/v9/android-jadx), iOS 9.1 (extracted/v9/ipa/Payload/HatchApp.app/HatchApp),
+         iOS 8.1 prior audit notes (evidence-ios/16-network-ios.txt §3d).
+Caveat:  Static analysis cannot observe the flag's production value, the server's per-user/per-env
+         targeting, or runtime behavior. "Deliverable" below is inferred from the client-side
+         registered-key whitelist, matching the methodology of README.md §4 and
+         evidence-updates/2026-09-27/08-spyware-audit-findings.json.
+
+CLAIM UNDER TEST (from endpoint sweep):
+  "macOS 6.0 ships a server-flippable MetaConfig flag named
+   hatch_web:ptt_skip_certs_verification_by_payment_env, which appears to skip TLS certificate
+   verification in a payment context."
+
+VERDICT PER LEVEL
+  Declared:    YES — in the bundled metaconfig and the web bundle's registered key list. Default false.
+  Deliverable: YES (web surface) — the key IS in the registered client_mappings_default whitelist
+               (hash 9cb0727d, unitType 2), so server/host-delivered values for it are admitted.
+               This is the opposite of the README §4 autosync flag, which was NOT registered.
+  Consumer:    YES — exactly one consumer, in the WEB bundle only (useGeneratePTT). The macOS native
+               binary contains ZERO occurrences of the flag name and no PTT trust-chain code.
+  Reachable:   YES in production code — the consumer sits on the live Meta Pay / FBPay checkout path
+               (save-card and agent-checkout container creation, container_mode default "LIVE").
+               It is NOT reachable from the Stripe subscription path.
+  Exploitable / what it disables: CLAIM AS PHRASED IS WRONG. The flag does NOT touch TLS, WKWebView
+               challenge handlers, or any Tigon/OkHttp trust evaluator. When true it skips
+               client-side validation of the Meta Pay PTT *encryption-key certificate chain*
+               (an application-layer E2EE key-authenticity check against the embedded
+               "Facebook Payments Root CA"), and a second server-controlled field (devExternal)
+               bypasses the same check. Skipping removes defense-in-depth against substitution of
+               the key that encrypts card PAN/CVV; it does not put any traffic in plaintext and
+               does not disable TLS. There is NO client-side production/staging guard: the boolean
+               is used directly; "by_payment_env" is enforced (if at all) by server-side targeting.
+
+1. DECLARATION AND DEFAULT
+  - extracted/v9/Muse.app/Contents/Resources/hatch/metaconfig.json, byte offset 1872:
+        "9cb0727d":{"key":"hatch_web:ptt_skip_certs_verification_by_payment_env","type":"boolean","unitType":2}
+    The file declares keys/types only; it ships no values (per prior audit:
+    evidence-updates/2026-09-27/08-spyware-audit-findings.json: "Values come from the server, and
+    compiled defaults sit in the web bundle").
+  - Registered key list in the web bundle (index60.main.pretty.js:360357, client_mappings_default):
+        "9cb0727d": { key: `hatch_web:ptt_skip_certs_verification_by_payment_env`, type: `boolean`, unitType: 2 }
+  - Compiled default: consumer call passes `false`:
+        useMcBool(`hatch_web:ptt_skip_certs_verification_by_payment_env`, false)   (index60:107001)
+    useMcBool returns the compiled default whenever the context has no value for the key
+    (index60:35013-35022).
+  - Flag history: identical declaration present in macOS 3.0 (extracted/Muse.app/.../metaconfig.json)
+    and the 2026-09-27 audited release. NOT new in 6.0. Also present in the 4.1 web bundle
+    (extracted/v9/prep/index41.main.pretty.js:106022).
+
+2. CONSUMER — WHAT "SKIP CERTS VERIFICATION" ACTUALLY CONTROLS
+  Sole consumer (index60.main.pretty.js:107000-107020, function useGeneratePTT):
+        let { commitGetServerEncryptionKey: e } = useGetServerEncryptionKeyMutation(),
+            t = useMcBool(`hatch_web:ptt_skip_certs_verification_by_payment_env`, false);
+        ...
+        let r2 = await e({ deviceId: `device_id`, paymentType: n, uplSessionId: o, ... });
+        if (r2 || zi(`getServerEncryptionKey returned null result`), r2?.trustChain && r2.trustChain[0]) {
+          !t && !r2.devExternal && (await verifyTrustChain(r2.trustChain) || zi(`Invalid trust chain`));
+          ...
+          Bi = { secretPayload: l, serverKeyObject: await getCryptoKeyObjectFromCert(r2.trustChain[0]) };
+  verifyTrustChain (index60:106922) is a pkijs CertificateChainValidationEngine check of the
+  server-supplied chain against a hard-coded root (index60:106967, RootCertificate =
+  "Facebook Payments Root CA", Facebook Payments Inc., base64 MIIC/TCCAqSgAwIBAgIU...).
+  The fetch is same-origin: POST /api/ptt/encryption-key (index60:106984).
+  => PTT = Platform Trust Token (the produced token is literally named `platformTrustToken` in the
+     /api/wallet/cards POST, index60:107054). "ptt" is NOT "pay-through/throughput".
+  => The skipped check is the authenticity of the ECDH P-256 public key to which the card secret
+     (PAN/CVV) is E2EE-encrypted (ECDH-ES + A256GCM, generatePTTPayloadWithEncryption index60:106905).
+     With the check skipped, a substituted/attacker key in the /api/ptt/encryption-key response
+     would be accepted and the card payload encrypted to it. Exploiting that requires the attacker
+     to already control or MITM the app's own API backend response; TLS to that backend is
+     unaffected by the flag.
+  => Second, independent bypass: `r2.devExternal` — a field in the SERVER's encryption-key response —
+     also disables verification (`!t && !r2.devExternal && ...`). So the server can always turn the
+     check off unilaterally for any response, flag or no flag.
+  macOS native binary (Contents/MacOS/Muse): 0 occurrences of the flag name; no verifyTrustChain/
+  trustChain PTT code; only generic URLSession challenge symbols (URLSession:didReceiveChallenge,
+  serverTrust, 1 hit each — unrelated). No WKWebView allowsAnyHTTPSCertificate-type hook.
+
+3. WHAT IS "payment_env"? IS THE SKIP GATED TO NON-PRODUCTION?
+  - No client-side environment enum or comparison exists anywhere near the consumer. The flag name
+    string is read once, as a plain boolean. Grep for payment_env/paymentEnv/PAYMENT_ENV in the
+    entire web bundle returns ONLY the flag name itself.
+  - The only "environment" concepts nearby: (a) `devExternal` in the encryption-key response
+    (server-set, see §2); (b) `payment_container_mode ?? "LIVE"` in checkout container creation
+    (index60:107042, 300916) — and the default is LIVE, i.e. production.
+  - Conclusion: "by_payment_env" describes how Meta's server is intended to TARGET the flag value
+    (e.g. true for sandbox/staging payments), not anything the client enforces. If the server
+    delivers true to a production user, verification is skipped in production. No client-side
+    production guard exists.
+
+4. REGISTERED-LIST / DELIVERABILITY CHECK (README §4 methodology)
+  Prior standard: a server-delivered value only reaches a consumer if the key is in the registered
+  MetaConfig key list; unregistered keys are undeliverable (README.md:215 re: the autosync flag).
+  Web-side enforcement is buildEmbedMetaConfig (index60:360358-360368):
+        for (let [e3, { key: r, type: i, unitType: o }] of Object.entries(client_mappings_default)) {
+          if ((o ?? 2) !== 2) continue;
+          let l = n[r];
+          l === void 0 || typeof l !== i || ... || (t[r] = l, t[e3] = l);
+        }
+  Only keys present in client_mappings_default are admitted into MetaConfigContext. Hash 9cb0727d /
+  hatch_web:ptt_skip_certs_verification_by_payment_env IS in that list (§1) with type boolean and
+  unitType 2 => server/host delivery of this flag WILL reach the consumer. Values arrive via
+  t4.metaConfig / t4.hostFlags from the native host or web bootstrap (index60:360992).
+  => DELIVERABLE: YES. (Contrast README §4's autosync flag, which failed this test.)
+
+5. CROSS-PLATFORM
+  Android (v9 APK, jadx): the literal hatch_web flag name is ABSENT, but an exact analog exists:
+    - com/facebookpay/gating/aura/AuraFBPayGatingProvider.java:11 — an Aura MobileConfig boolean
+      property literally named `skipCertsVerification`
+      (C5ye.A1b(AuraFBPayGatingProvider.class, "skipCertsVerification", "getSkipCertsVerification()Z")).
+    - Sole consumer: X/C7zS.java (ModularGeneratePttHelper), lines 200 and 451:
+          boolean zA00 = C1r6.A00(AuraFBPayGatingProvider.A00, AuraFBPayGatingProvider.A01,
+                                  AuraFBPayGatingProvider.A02, 0);
+          mapA0y2.put("ptt_encryption_key_validation_in_skipped", String.valueOf(zA00));
+          ...
+          if (!zA00) { C18607yy ... = new C18607yy("MIIC/TCCAqSgAwIBAgIU...");  // SAME FB Payments Root CA
+                       ... PKIX CertPathBuilder/CertPathValidator ("BC") against TrustAnchor(root) ... }
+    Same semantics: skips PKIX validation of the PTT encryption-key chain, not TLS. Telemetry field
+    name "ptt_encryption_key_validation_in_skipped" corroborates. Android default not statically
+    determinable (MobileConfig-backed); the decompiled fail-path is flagged "Code decompiled
+    incorrectly", so whether Android hard-fails on invalid chains cannot be confirmed statically.
+  iOS (v9 = 9.1, Payload/HatchApp.app/HatchApp):
+    - Contains the analogous code: strings `skipCertVerification` (x4), `shouldSkipCertVerification`,
+      `initWithDataSource:...:skipCertVerification:` selectors (byte offsets 63858961-64459292), and
+      trustChain references. 
+    - The literal flag names are ABSENT from the 9.1 binary: 0 hits for both
+      hatch_web:ptt_skip_certs... and hatch_ios:skip_fbpay_cert_verification (the name the 8.1 audit
+      recorded; iOS MC param names are typically compiled to hashes, so absence of the literal does
+      not prove unwiring — only that the name string is gone).
+    - Prior iOS audit already reached the same conclusion about scope (evidence-ios/16-network-ios.txt
+      §3d, iOS 8.1): "hatch_ios:skip_fbpay_cert_verification + \"shouldSkipCertVerification\" belong
+      to the Meta Pay payment-token (PTT) encryption-key trust chain, not TLS."
+
+6. DOES THE PAYMENT FLOW TOUCH THIS CODE PATH?
+  YES for Meta Pay agent checkout, NO for Stripe:
+  - This PTT path: useCheckoutPTT (index60:107028) — PAYMENT_TYPE `ECP`, FBPAY_APP_ID 2805739562851096;
+    saveCard -> POST /api/wallet/cards with { platformTrustToken } (index60:107054);
+    generateContainerPTT for agent checkout with container_mode default "LIVE" (index60:107042).
+    Server key from POST /api/ptt/encryption-key (iOS inventory:
+    evidence-updates/2026-10-08/05-api-inventory-ios.txt:275 "/hatch/ptt/encryption-key [UNDOC]
+    Meta Pay payment-token key"; Android inventory line 207 same endpoint).
+  - Stripe subscription path is separate: js.stripe.com clover/stripe.js, pay.stripe.com/receipts/
+    (05-api-inventory-macos.txt:381-383) and does not call useGeneratePTT.
+  - /patrique routes are the video API (L3 in 05-api-inventory-macos.txt) — unrelated to PTT.
+
+WHAT A RUNTIME TEST WOULD NEED TO CHECK
+  1. Read the delivered value: intercept the metaconfig/host bootstrap (t4.metaConfig / hostFlags)
+     or the web MetaConfigContext and record values["hatch_web:ptt_skip_certs_verification_by_payment_env"]
+     for a production account and a sandbox/test-payments account. This settles whether the server
+     ever ships true and whether targeting is env-scoped.
+  2. With the flag forced true, complete save-card/agent-checkout and confirm the client accepts a
+     trustChain that fails pkijs validation against the Facebook Payments Root CA (e.g. by stubbing
+     /api/ptt/encryption-key with a self-signed chain) and still emits a platformTrustToken.
+  3. Confirm the same acceptance occurs when the server response sets devExternal:true with the
+     flag false (the second, server-only bypass).
+  4. Confirm no TLS effect: with the flag true, present an invalid TLS cert for the API host and
+     verify the connection still fails (flag should be irrelevant to transport security).
+  5. Android: read the Aura MobileConfig boolean behind AuraFBPayGatingProvider.skipCertsVerification
+     and its default; iOS: find which MobileConfig param drives shouldSkipCertVerification in 9.1
+     (name string no longer present).
+
+CORRECTED ONE-PARAGRAPH PUBLISHABLE CLAIM
+  macOS 6.0 (like 3.0 before it) ships a server-deliverable MetaConfig boolean,
+  hatch_web:ptt_skip_certs_verification_by_payment_env (default false), whose only consumer is in the
+  web bundle's Meta Pay checkout code — not the native binary, and not any TLS stack. When true (or
+  when the server's key response sets devExternal), the app skips validating the certificate chain of
+  the E2EE key it fetches from /api/ptt/encryption-key before encrypting card numbers to it, a
+  defense-in-depth check against key substitution anchored to a hard-coded "Facebook Payments Root CA";
+  an Android analog (Aura MobileConfig "skipCertsVerification", consumed in ModularGeneratePttHelper
+  against the identical root CA) and iOS selectors (shouldSkipCertVerification) show the same design
+  on all three platforms. TLS certificate verification is never touched, the checkout path runs in
+  LIVE container mode by default, and whether production users ever receive `true` — the flag name's
+  "by_payment_env" implies server-side environment targeting — cannot be determined statically.

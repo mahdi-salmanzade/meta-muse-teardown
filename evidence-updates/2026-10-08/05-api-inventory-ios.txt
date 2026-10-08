@@ -1,0 +1,597 @@
+05 - NETWORK API INVENTORY: iOS 9.1.0 (com.facebook.hatch, "Muse")  [static analysis only]
+=======================================================================================
+Date: 2026-10-08
+Sample: extracted/v9/ipa/Payload/HatchApp.app/HatchApp (86,146,016 bytes, Mach-O arm64,
+        third-party FairPlay-decrypted; CFBundleShortVersionString 9.1.0, FBAppVersion 9.1.0.17.156,
+        build 1080826056, built 2026-09-30, FBBuildRevision e3318443e6b674d228f664a6ee60e37dd00e8deb)
+        plus PlugIns/{HatchNotificationServiceExtension,HatchShareExtension,WidgetExtension}.appex,
+        Info.plists, abra-ios_client-persist.json, companion-ar-ios_client-persist.json,
+        params_maps/params_map.txt, PlugIns/HatchShareExtension.appex/GetPageContent.js.
+Baseline: 8.1.0 binary re-extracted 2026-10-08 from com.facebook.hatch_8.1_und3fined.ipa
+        (84,508,736 bytes) for direct 8.1-vs-9.1 string counts.
+Method: `strings - -t x` on all four 9.1 Mach-O binaries; fixed-string and regex greps for
+        https?://, wss?://, host-like tokens, /hatch|/api|/v1|/muse paths, gateway RPC method
+        names, doc_ids, app IDs, and key material. Offsets below are hex file offsets into
+        HatchApp (or the named extension binary). Nothing was executed; no host was contacted.
+
+LIMITATIONS
+- Static strings are NOT observed traffic. A string proves a reference exists in the binary,
+  not that the app connects, when, or with what payload. Many strings come from shared Meta
+  libraries (Tigon/MNS/Fizz, WebRTC, Bloks, Meta Pay) that ship in many apps.
+- The 9.1 sample is a third-party decrypted build; decrypted bytes are unauthenticated
+  (see evidence-ios/01-authenticity.txt and V9-AUDIT-2026-10-06.md).
+- Markers: [NEW-9.1] = verified 0 occurrences in the 8.1 binary (direct count, this audit).
+           [UNDOC]  = present in 8.1 too, but absent from prior repo evidence
+                      (evidence-ios/09-endpoints.txt, evidence-ios/16-network-ios.txt,
+                      evidence/16-network-cross-platform.txt).
+           no marker = documented in the 8.1 inventories already.
+- Prior iOS network inventory: evidence-ios/16-network-ios.txt (8.1). Alo/multimango specifics
+  are already covered by evidence-updates/2026-10-08/04-binary-verification-alo-wearable.txt;
+  they are repeated here only for inventory completeness.
+
+
+=======================================================================================
+## 1. ABSOLUTE URLs (verbatim, with file offset) — main binary unless noted
+=======================================================================================
+
+### 1a. Muse/Hatch agent API
+  https://agent.meta.ai                                            3a82e00
+  https://agent.meta.ai/                                           3bcfb80
+  https://agent.meta.ai/terms                                      3b01720
+  https://agent.meta.ai/invite/A8K612                              3b63bd0   [UNDOC] hardcoded EXAMPLE invite
+                                                                   code inside share copy: "Join me on Muse and
+                                                                   get some additional AI usage: https://agent.meta.ai/invite/A8K612" (3b63c00)
+  https://hatch-api.meta.ai                                        3a70310   ("Stefi" REST host)
+  https://hatch-api.meta.ai/hatch/feedback                         3b51230
+  https://api.meta.ai/hatch/bug_report                             3c62a80
+  https://api.meta.ai/hatch/onboarding/assets/cdn-urls             3c80820
+  https://api.meta.ai/proton/login                                 3a09450
+  https://api.meta.ai/proton/hatch/voice/tts/stream                3a72fe0
+  https://api.muse.ai/muse/prompts/                                3a75ef0
+  https://api.muse.ai/ssh-access/tokens                            3a7a270
+  https://graph.meta.ai/graphql                                    3ac4650
+  https://muse.ai/privacy                                          3b01740
+  https://rupload.meta.ai/gen_ai_document_gen_ai_tenant            3ac2890
+  https://www.multimango.com/api/alo/default-models                3cb6650   [NEW-9.1] see LEAD L1
+
+### 1b. Agent VM gateway / voice-realtime / speech
+  hatch.metaaivm.com (bare host)                                   36947d8, 3981d60
+  vm.meta.ai                                                       3a7c47e   [NEW-9.1] next to auth_token= /
+                                                                   notary_token= (3a7c489/3a7c4a2) — VM URL auth
+  vm.muse.ai                                                       3981d4c   [NEW-9.1] in VM/host list block
+  wss://shortwave.facebook.com/voyager/v1/asr/duplex               3b726b0   (dictation ASR)
+  wss://shortwave.facebook.com/v2/transcription                    3b726f0
+  wss://shortwave.facebook.com/vllm_proxy                          3cb7030   [NEW-9.1] Alo speech-to-speech,
+                                                                   see LEAD L1 and 04-binary-verification
+  genai-hatch-realtime.facebook.com                                3bde6bf
+  genai-kepler-realtime.facebook.com                               3bde6e1
+  genai-waveform-realtime.facebook.com                             3bde704
+  meta-ai-realtime.facebook.com                                    3bde729
+  wearable-ai-realtime.facebook.com                                3bde614
+  mo-realtime.facebook.com                                         3bde79e
+  stun:edge-stun.facebook.com:3478                                 3c2b0bd
+  https://gateway-edge.meta.com/                                   3bd42d1   [UNDOC] inside HCHSignalingTransport /
+                                                                   HCHRpSdkHolder block — voice-call signaling
+  chat-e2ee-mini.facebook.com                                      3a03b44   [UNDOC] target of "tcp_probe"
+                                                                   connectivity/latency probes
+  gateway.facebook.com/proxygen/health                             39a3fab
+  www.facebook.com/status.php                                      3bd87bf
+  gateway-fallback.facebook.com                                    39a44a0   [UNDOC]
+  sb.facebook.com                                                  3981de0   [UNDOC]
+
+### 1c. Auth / accounts / payments
+  https://auth.meta.com/                                           3c7c210
+  https://auth.meta.com/oidc/callback/                             3b6fed0
+  https://accountscenter.meta.com                                  3b6346c
+  https://accountscenter.meta.com/connected_experiences/single_sign_on_dialog  3b63587
+  https://accountscenter.facebook.com/                             3b01540
+  my-od.accountscenter.meta.com (bare)                             39c79a0
+  https://meta.graph.meta.com  (+ /graphql, /oidc_callback_uri/)   39f8850, 3971810, 3b631b0
+  https://graph.facebook.com/graphql                               39d2ffd
+  https://facebook.com/oauth_account_linking/login_redirect        39c7a70
+  https://www.meta.com/login/?next=                                3b6ff40
+  api.accounts.meta.com (bare)                                     3981d10
+  api.meta.com (bare)                                              3a821d9   [UNDOC]
+  od.graph.meta.com (bare)                                         3981e61
+  https://secure.facebook.com/payments/generate_token              39f1f56
+  https://payments-graph.graph.meta.com/graphql                    39f7350
+  https://payments-graph.facebook.com/graphql                      39f73c0
+  https://payments-graph.instagram.com/graphql_www                 39f7380
+  https://payments-graph.oculus.com/graphql                        39f7320
+  https://payments-graph.whatsapp.com/graphql                      39f72f0
+  https://www.meta.com/legal/pay/terms/                            3ac74f0
+  https://stripe.com/legal/consumer                                3ac7540
+  https://link.com/terms                                           3ac7520
+
+### 1d. Analytics / crash / attribution / surveys
+  https://graph.facebook.com/pigeon_nest                           3cb2f99
+  https://graph.facebook.com/pigeon_health_metrics                 3c85d66
+  https://graph.facebook.com/rl_push_send                          3b65ad0
+  /logging_client_events (path)                                    3c85d4f
+  https://www.facebook.com/mobile/ios_breakpad_crash_logs/         3c6e978
+  https://www.facebook.com/mobile/reliability_event_log_upload/    3c6f15d
+  https://b-www.facebook.com/mobile/extra_data_collector/          3c8ccfc
+  https://www.facebook.com/frl/privacy/collection-schema?schema_ids=%@&capabilities=hash  3caaec0
+  viewpointsfromfacebook.com (bare)                                394e607   [UNDOC] Meta survey domain
+  adsmanager.facebook.com                                          3a62a60   [UNDOC] ads upsell telemetry links
+  https://graph.facebook.com/logging_client_events                 HatchNotificationServiceExtension bdd3f
+  https://www.facebook.com/mobile/ios_breakpad_crash_logs/         HatchNotificationServiceExtension be512
+
+### 1e. AR / bug-report graph hosts
+  ar.graph.meta.com (bare)                                         394d550
+  ar-genai.graph.meta.com (bare)                                   394e622   [UNDOC]
+  api2.ar.meta.com (bare)                                          394e650   [UNDOC]
+  lookaside.ar.meta.com (bare)                                     394e63a
+
+### 1f. Privacy relay / OHTTP ("Ohai")
+  https://meta-ohttp-relay-prod.fastly-edge.com/                   39b7e4e
+  https://meta-ohttp-relay-prod.fastly-edge.com/chunked/           39b7e7d
+  https://meta-ohttp-relay-dev.fastly-edge.com/                    39b7e20
+  https://meta-ohttp-relay-dev.fastly-edge.com/chunked/            39b7dea
+  https://meta.privacy-gateway.cloudflare.com/relay                39b7eb4
+  https://meta-ohttp-config-prod.fastly-edge.com/ohai_acs_config.json  39b7ba0
+  meta.hpke-keys.privacy-gateway.cloudflare.com (bare)             3981f37
+
+### 1g. CDN / media / maps / firmware
+  https://scontent.xx.fbcdn.net/mci_ab/uap/?ab_b=m&ab_page=HatchFirmware&ab_entry=AQOtF78zjT0HiHS5gUAYQ3_2irYQwl7rwtpbkGCsNgRSay7nsgc9OFgUYppjXEpI
+                                                                   3cba030   [UNDOC] next to "Check for Update",
+                                                                   "OTA: SMP characteristic not found on device" —
+                                                                   wearable OTA firmware download page (LEAD L6)
+  https://scontent.xx.fbcdn.net/mci_ab/uap/asset_manager/?ab_b=e&ab_page=ras&ab_entry=  3a1be6a
+  https://scontent.xx.fbcdn.net/v/t1.0-9/example.jpg?...           39feb80   (example)
+  https://s-external.ak.fbcdn.net/safe_image.php                   3a1cfd5
+  static.xx / video.xx / external.xx .fbcdn.net, xy/xz/fna/snr.fbcdn.net,
+  external-origincache-internal-services-all.fbcdn.net, wacdn-origincache-internal-services-all.fbcdn.net (bare)
+  https://www.facebook.com/maps/vt/style/dark/                     3b74500
+  https://www.facebook.com/maps/vt/style/canterbury_1_0/           3b74530
+  https://www.facebook.com/maps/attribution_terms/                 3b74810
+  https://api.mapbox.com  https://api.maptiler.com  https://demotiles.maplibre.org
+                                                                   3b3a68a, 3b8a0f4, 3b89e4c (MapLibre defaults)
+  https://www.openstreetmap.org/copyright                          3954690
+
+### 1h. Push
+  https://api.push.apple.com (+ /liveactivity)                     3b65060, 3b65bb0
+  https://api.development.push.apple.com                           3b65080
+  https://gateway.push.apple.com                                   3b65d00
+  http://push.apple.com/pushkit/voip                               3b65b80
+  Generic cross-platform push library junk (documented in 8.1; not evidence of contact):
+  fcm.googleapis.com, chrome.googleapis.com, android.googleapis.com/gcm/send,
+  updates.push.services.mozilla.com, cloud/dm3p.notify.windows.com, api.amazon.com/messaging,
+  nnapi.ovi.com, mqtt.parse.com, {0}.push.samsungosp.com:8088
+
+### 1i. Third party
+  https://www.google.com/s2/favicons?domain=                       3ac77a0
+  https://www.youtube.com/watch?v=dQw4w9WgXcQ                      3a4b260   (example/test)
+  auth.onepeloton.com (bare)                                       3a69cf0   [UNDOC] connector OAuth host on iOS
+  https://www.threads.com  https://www.threads.net                 39c8a30, 39c8a50
+  https://www.instagram.com (bare)                                 39ab1e0
+  https://wa.me/hatch/link  https://wa.me/settings/linked_devices  3b12dd0, 3b58770
+  https://t.me/BotFather                                           3b12fd0
+  https://apps.apple.com/app/id6760173601                          3c6ddd0   (Muse App Store id)
+  https://apps.apple.com/app/testflight/id899247664                3c6dd90
+  https://apps.apple.com/app/messenger/id454638411                 3b55250
+  https://apps.apple.com/app/whatsapp-messenger/id310633997        3b587a0
+
+### 1j. Internal / dev-only
+  https://www.internalfb.com/bug/                                  3c61810
+  https://www.internalfb.com/intern/bug/1263614861404373/          3c8abfe
+  https://www.internalfb.com/intern/orchard/install/hatch_for_ios/latest/?build_variant=DISTRIBUTION_IN_HOUSE  3c6dca0
+  https://internalfb.com/intern/mobile_builds/hatch_for_ios        3c6dd10
+  https://www.internalfb.com/intern/rl/auth_tokens_to_od           3b125f0
+  https://interngraph.intern.facebook.com/health                   39ef710
+  https://www.pariscope.dev/hatchery?hatch=                        3c61ec0/3c61f00/3c622b1/3c62301
+  https://fburl.com/code/g5l67ksv  /decode_mc_ids  /rc-identity  /wiki/o9mszfqf
+                                                                   3954160, 3973878, 39d18d8, 3973992
+  https://hatch-chat-widget.local/                                 3b71140   [UNDOC] fake local origin for the
+                                                                   embedded chat-widget HTML (postMessage bridge
+                                                                   'chat-widget-frame'); no real host (LEAD L7)
+
+### 1k. Help/legal/privacy links (non-exhaustive)
+  www.facebook.com/privacy/genai, /privacy/guide/genai/, /privacy/policies/health/, /privacy/policy/,
+  /legal/ai-terms, /legal/meta_subs_terms, /help/1156544111079919, /one_click_agreements/2286954515383193/...,
+  www.meta.com/help/artificial-intelligence/{1047255454427887,2225571704857152,31983416211257755}/,
+  help.meta.com/requests/1709596056941733/, m.facebook.com/legal/terms, www.meta.com/help/
+
+### 1l. Noise floor (library constants, not app endpoints)
+  webrtc.org/experiments/rtp-hdrext/* (16), ietf.org draft URI, aomediacodec.github.io,
+  ns.adobe.com / ns.google.com XMP namespaces, crl.apple.com, ocsp.digicert.com,
+  github.com/mapbox/* doc links, swiftpackageindex.com doc link, crbug.com/1053756,
+  example.com/image.jpg, http://%@ and https://%@ generic templates.
+
+
+=======================================================================================
+## 2. RELATIVE API PATHS BY SUBSYSTEM
+=======================================================================================
+
+### 2a. Stefi REST (hatch-api.meta.ai) — auth & account
+  /hatch/auth/start                          3a736e0
+  /hatch/auth/login_options                  3a73720
+  /hatch/auth/send_otp                       3a73700
+  /hatch/auth/confirm_otp                    3a73790
+  /hatch/auth/confirm_password               3a737b0
+  /hatch/auth/confirm_passkey                3a737f0   [UNDOC]
+  /hatch/auth/sso_exchange                   3a73810
+  /hatch/auth/sso_account_info               3a0e240
+  /hatch/auth/select_account                 3a73830
+  /hatch/auth/zari_exchange                  3a73850   [UNDOC] "zari" token exchange (LEAD L8)
+  /hatch/auth/two_factor (+ /send_code)      3a738a0, 3a73870
+  /hatch/auth/register_completion (+ _linked) 3a738c0, 3a738e0
+  /hatch/auth/cancel_deletion                3a171c0   [UNDOC]
+  /hatch/vesta-auth/user-info                3b35d18   [UNDOC] "vesta" WebAuthn-style
+  /hatch/vesta-auth/begin-register           3b35d34   begin/finish register/login (LEAD L8)
+  /hatch/vesta-auth/finish-register          3b35d55
+  /hatch/vesta-auth/begin-login              3b35d77
+  /hatch/vesta-auth/finish-login             3b35d95
+  /hatch/device_token/mint                   3a72be0
+  /hatch/device_token/revoke                 3a72c00
+  /hatch/accept_tos                          3a72920   [UNDOC]
+  /hatch/tos_status                          3a72370   [UNDOC]
+  /hatch/age_confirmation/linking_options            3a70d50  [UNDOC]
+  /hatch/age_confirmation/linking_web_auth?          3a70c40  [UNDOC]
+  /hatch/age_confirmation/linking_web_auth_completion 3a70ce0 [UNDOC]
+  /hatch/checkpoint/status                   3a72170   [UNDOC]
+  /hatch/viewer/name                         3a72530
+  /hatch/viewer/profile                      3a735f0
+  /hatch/professional-consent/context?       3a72da0   [NEW-9.1] (8.1: 0 hits)
+  /api/hatch/ac_oauth                        3b52150   [UNDOC] Accounts-Center OAuth
+                                             (near "login_redirect_any%2Fhatch_ac")
+  /api/hatch/oauth/callback                  3b461e0
+
+### 2b. Stefi REST — VM lifecycle, recovery, "graduation"
+  /hatch/fetch_vms                           3a7af50
+  /hatch/destroy_and_release_vm              3a71080
+  /hatch/v1/acs/issue_token                  3c7f120   (ACS anonymous-credential lease)
+  /hatch/acs/lease_vm                        3c7f140
+  /hatch/cvm-chip-selection                  3a70e10
+  /hatch/cvm-replace-state                   3a7b020
+  /hatch/chip-allowlist?namespace=staging.hatch.chip_allowlist   3a3ade0
+  /hatch/mint_vm_recovery_token              3a75dd0   [UNDOC]
+  /api/recovery/storage/{status,list,download,delete}            3a75e30, 3a733d0, 3a733f0, 3a73470
+  /muse/graduation/start?vm_id=              3a721e0   [UNDOC] HCHHatchGraduationRepository.swift —
+  /muse/graduation/download?vm_id=           3a72250   export/download/store/reset of a VM
+  /muse/graduation/store                     3a72290   "experience" (store(vmID:experienceID:))
+  /muse/graduation/reset                     3a722d0   (LEAD L2)
+
+### 2c. Stefi REST — commerce / wallet / subscription / credits
+  /hatch/checkout/init                       3a70ff0
+  /hatch/checkout/credential                 3a71010
+  /hatch/checkout/finalize                   3a71030
+  /hatch/checkout/save-and-finalize          3a71050
+  /hatch/wallet/cards                        3a72ed0   [UNDOC]
+  /hatch/wallet/account-info?include=addresses         3a72ef0  [UNDOC]
+  /hatch/wallet/account-info?include=payment_methods   3a72f20  [UNDOC]
+  /api/wallet/add-card/arm                   3bcd420   [UNDOC]
+  /api/wallet/add-card/completed             3bcd3c0   [UNDOC]
+  /api/wallet/step-up/callback               3bcd3e0   [UNDOC]
+  /wallet/add_credit_card  /wallet/add_payment_method  3bcccb0, 3bcccd0  [UNDOC]
+  /hatch/v2/customers/                       3a72040   [UNDOC]
+  /hatch/credit/check                        3a725f0
+  /hatch/credit/drain                        3a72fa0
+  /hatch/subscription/catalog (+ ?)          3a76e90, 3a76eb0  [UNDOC]
+  /hatch/subscription?                       3a76f60   [UNDOC]
+  /hatch/subscription/change?payment_type=   3a76810   [UNDOC]
+  /hatch/subscription/payment-portal         3a724d0   [UNDOC]
+  api/subscription/redeem-complimentary      3a721b0   [NEW-9.1]
+  /hatch/ptt/encryption-key                  3a72eb0   [UNDOC] Meta Pay payment-token key
+  api/shopping/events                        3a72470   [UNDOC] commerce telemetry
+  /hatch/post_enrich                         3a731a0   [NEW-9.1] (8.1: 0 hits; next to
+                                             STARTING/STORAGE_FULL/download.partial states)
+
+### 2d. Stefi REST — growth / support / misc
+  /hatch/invite_code/generate                3a72aa0   [UNDOC]
+  /hatch/invite_code/redeem                  3a72ae0   [UNDOC]
+  /api/invite/badge (+ /seen)                3a72a10, 3a72a50  [UNDOC]
+  /hatch/waitlist/join                       3a72880   [UNDOC]
+  /hatch/waitlist/leave                      39e4750   [UNDOC]
+  /hatch/debug/reset_activation              3a72b40   [UNDOC] debug-only routes in prod binary
+  /hatch/debug/reset_invite_code_redemption  3a72b80   [UNDOC]
+  /hatch/onboarding_statuses                 3a76540
+  /api/onboarding/{pages,variants,tasks,identity,reset,complete} 3aeb510..3aeb670  [UNDOC]
+  /hatch/help_ticket (+ /topics)             3a72650, 39e1eb0
+  /hatch/feedback/config                     3a76ab0
+  /hatch/survey/{start,next,dismiss}         3a726f0, 3a72750, 3a72790
+  /hatch/latest_app_version/                 3a72fc0
+  /hatch/attribution/report_events           3cace10
+  /hatch/attribution/skadnetwork_conversion  3cace40
+  /hatch/attribution/compliance_action       3cacde0
+  /hatch/places/typeahead?query=             3a72f60   [UNDOC] location search via Stefi
+  /hatch/wearables/link                      3a73180   [UNDOC] wearable account linking
+  /hatch/sharing/upload                      3b64900
+  /hatch/sharing/recipients                  3b64a90   [UNDOC]
+  /hatch/sharing/send                        3b648e0   [UNDOC]
+  /hatch/share/save/                         3a72e50   [UNDOC]
+  /hatch/fetch_shared_url/                   3a72dd0   [UNDOC]
+  api/sharing/attempt  api/sharing/eligibility         3bcfe70, 3bcfe90  [UNDOC]
+
+### 2e. Gateway RPC method table (WSS hatch.metaaivm.com/v1/noise; unchanged from 8.1)
+  Verbatim block 3a7e19f-3a7e5c3, method followed by HTTP-style route:
+    chat.subscribe /chat/subscribe | chat.stream /chat/stream | chat.send /chat/send |
+    chat.cancel /chat/cancel | chat.resume /chat/resume | chat.stream-events /
+    chat.stream_events /chat/stream-events | chat.search /chat/search |
+    voice.calls.join /voice/calls/join | connection.ping /connection/ping |
+    client.register_capabilities client.register-capabilities /client/register-capabilities |
+    client.invoke.result client.invoke-result /client/invoke-result |
+    client.data_source.publish client.data-source-publish /client/data-source-publish |
+    widgets.state.patch /widgets/state-patch | /activity/log |
+    node.register /nodes/register | node.invoke.result /nodes/invoke-result |
+    node.heartbeat /nodes/heartbeat | node.list /nodes/list | node.unpair /nodes/unpair |
+    navigation.recents.touch api/navigation/recents/touch |
+    navigation.pinned.set /navigation/pinned/set | /activity/subscribe |
+    files.subscribe /fs/subscribe | /identity/subscribe | skills.subscribe /skills/subscribe |
+    /spaces/subscribe | /themes/subscribe | reset.subscribe /reset/subscribe | model.get /model | model.set
+  Elsewhere: node.invoke.request (3a74c60, inbound), chat.message_get (3a718b0),
+  sessions.subscribe, navigation.subscribe, identity.subscribe, spaces.subscribe,
+  activity.subscribe, approvals.snapshot (3b02110), ssh.operator.updated (3b14bb0),
+  delta.* (message_start/text_append/thinking_append/tool_start/tool_progress/agent_start/
+  agent_status/agent_done/message_done/message_removed/status_narration/placeholder/
+  compaction/block_done/presentation), message.assistant, sessions.updated,
+  widget.state_updated, reactions.updated, identity.updated, activity.updated,
+  navigation.items.{updated,removed,snapshot}, navigation.tab_order.updated,
+  spaces.data_invalidated, heartbeat.notification (3b01b50), wallet.step_up_result (3bccc50),
+  media_sync.check_asset_exists (3b3c390), media_sync.upload_asset (3b3bde0),
+  data_source.backfill (3aff210), data_source.refresh (3aff230),
+  message.draft (3aff1d7), message.shortcut_setup (3aff1c0), device.find (3aff1b4),
+  device.capture (3becb98), album.create/album.add (3aff038/3aff045).
+  NOTE: still NO standalone "client.invoke" request string on iOS 9.1 (as in 8.1);
+  iOS receives node.invoke.request and answers with client.invoke.result /
+  node.invoke.result.
+
+### 2f. VM REST routes over the same channel (/api/*, /v1/*)
+  Sessions/chat:   api/session/start 3ac5070, api/session/list(/) 3b0c820, api/session/pin/unpin,
+                   api/session/archive/unarchive, api/session/rename, api/session/delete,
+                   api/session/has-unread-threads 3b0c7c0, api/chat/unread-count 3b0c7a0,
+                   api/chat/themes/set 3b0c800, api/chat/delete-turn 3b0da20
+  Computer use:    api/computer/context 3a71830, api/computer/subscribe 3a7a1a0 [NEW-9.1],
+                   api/computer/assets/ 3a7a210, api/computer/previews/ 3a7a230,
+                   api/browser-task/ 3a718f0/3a71970, api/browser/lease 3a7a250  [UNDOC cluster]
+  Voice:           api/voice/start-call 3ac50b0, end-call, user-speech-started, dictation 3a719b0,
+                   active-voice, available-voices, catalog, catalog/filters,
+                   pipeline-profile(s), onboarding/reset 3ac5110-3ac51d0  [UNDOC cluster]
+  Podcasts:        api/podcasts/feed 3a72350, api/podcasts/episodes 39817b0,
+                   workspace/podcasts/ 3a67260, HCHHatchPodcastRepository  [UNDOC] (LEAD L4)
+  Files/workspaces: workspace/user/files/ 3b4ebf0, workspace/avatars/ 3a71720,
+                   api/artifacts/pin 3a83070, api/artifacts/placement 3a83090,
+                   api/artifacts/subscribe 3a83a70, artifacts.snapshot 3a83a50,
+                   /fs/upload/status 3b3c3b0
+  Feed/ideas:      api/feed/templates 3b441d0, api/feed/units/seen 3b44180,
+                   api/idea-cards 3719620, api/idea-cards/media/ 3a79bd0/3a79bf0
+  Permissions:     /api/permissions 3cb238d, api/permissions/inventory 3b01f70, /api/approvals 3cb239e
+  Credential vault: /v1/credentials/{capture,query,register,list,delete} 3cb218f-3cb2263,
+                   /v1/credentials/catalog[/details|/update|/delete] 3cb21bd-3cb2214,
+                   /v1/custom-connectors/{register,list,delete} 3cb2278-3cb22b2,
+                   /vault 3cb2178, /sentinel 3cb217f, /authd 39fff12,
+                   /v1/oauth/callback 3cb22cf, /v1/api-key-auth/callback 3cb22e2,
+                   /v1/username-password-auth/callback 3cb2317, /v1/foa-auth/callback 3cb2360,
+                   /api/{api_key,username_password,foa}_auth/callback 3cb22fc/3cb233b/3cb2376
+  SSH operator:    /v1/ssh/operator/{enable,disable,status} 3b14bf0/3b14c10/3b14bd0
+  Connectors:      /connect/whatsapp 3a69870, /connect/facebook 3a69890,
+                   /connect/messenger_companion 3a698d0, /connect/instagram 3a69910,
+                   /connect/threads 3a69950, /connect/instagram_messages 3a69990,
+                   /connect/threads_messages 3a699d0, /connect/api-key 3a69d50,
+                   /connect/whatsapp_companion 3b45cc0, /connect/channel 3cade60,
+                   /connectors/connect/ 3a666e0, /connectors/connect/meta_business 3a699f0,
+                   /connectors/disconnect/ 3a66700, /connectors/disconnect/meta_business 3a69a20,
+                   api/messenger_companion/unlock 3a69a50, api/messenger_companion/pin-status 3a69a70,
+                   api/foa/accounts 3b01d20, /api/foa_auth/callback 3b01ca0
+                   (+ matching /disconnect/<service> set) — [UNDOC on iOS] connector
+                   surface previously documented Android-only (LEAD L5)
+  Misc:            api/navigation/tab-order 3a830b0, api/navigation/subscribe 3a77ba0,
+                   api/spaces/rename 3a82ed0, api/onboarding/* (2d),
+                   api/pin-reminder/update 3b32110, api/pin-reminder/confirm 3b32130  [UNDOC]
+                   (near encrypted_pin_verifier / replaces_update_id — LEAD L9),
+                   api/professional-consent/resume 3b0c9e0 [NEW-9.1],
+                   api/product-improvements 3b74010,
+                   api/debug/bug-report-logs(/) 3a7a3d0/3a7a3f0,
+                   api/debug/home-link-bug-reports 3a7a3a0  [UNDOC]
+
+
+=======================================================================================
+## 3. WEBSOCKET / REALTIME MESSAGE TYPES
+=======================================================================================
+- Gateway WSS: Noise_XX_25519_AESGCM_SHA256 over /v1/noise (unchanged); JSON
+  {type: req|res|event, id, method|event, params|payload} (see 2e/2f).
+  New-ish Noise error strings: noise.channel_poisoned (3a7e123),
+  noise.auth_token_loss_on_carrier_reject (3a7e13a), noise.mid_loop_send_failure_wire_desync
+  (3a7e162), noise.request_queue_full (3a7e5cb), noise.codec.malformed_proto (3a7e5e4),
+  stream_open_failed, unsupported_method, local_cancel.
+- Alo wearable speech-to-speech [NEW-9.1, fully covered in
+  evidence-updates/2026-10-08/04-binary-verification-alo-wearable.txt]:
+  wss://shortwave.facebook.com/vllm_proxy, OpenAI-Realtime-style events
+  input_audio_buffer.append / .speech_started / .speech_stopped, session.update
+  {"type":"realtime","template":"s2s"}, response.created, response.output_item.added,
+  response.output_audio.delta, response.output_audio_transcript.delta/.done,
+  conversation.item.input_audio_transcription.delta/.completed,
+  response.function_call_arguments.delta/.done, interrupt_response, silence_duration_ms,
+  output_modalities, input_audio_format, output_audio_format, enable_truncation,
+  tool_call_format; embedded neural audio-codec vocab <|audio_vq_*|> (3cb7060...);
+  dispatch queue com.meta.hatch.alo.ws (3cb6820); model defaults fetched from
+  https://www.multimango.com/api/alo/default-models (3cb6650) with MobileConfig fallback.
+- Voice call signaling: voice.calls.join (gateway), HCHSignalingTransport at
+  https://gateway-edge.meta.com/ (3bd42d1), RPXAiSdkRtc "redox_client_params"
+  (3bde3c4/3bde477, [UNDOC]), MobileConfig noise_ws_call_signaling_enabled;
+  media over WebRTC to *-realtime.facebook.com hosts + stun:edge-stun.facebook.com:3478.
+- Dictation ASR: wss://shortwave.facebook.com/voyager/v1/asr/duplex and /v2/transcription.
+- noVNC bridge: wss://bridge.invalid placeholder (bridged natively, unchanged).
+
+
+=======================================================================================
+## 4. GRAPHQL DOC IDs / PERSISTED QUERIES / APP IDs / KEYS
+=======================================================================================
+- abra-ios_client-persist.json (bundle):
+    ABRAPushTokenSwitchVM      client_doc_id 259404043817305571315751842690  (schema abra)
+    ABRARegisterPushToken      client_doc_id 25993794448523118496894094
+    ABRAUnregisterPushToken    client_doc_id 389553276311025284880844440298
+    FWAOnDemandSandboxesQuery  client_doc_id 864644125844052395791101522
+- companion-ar-ios_client-persist.json (schema ar; Bloks/AR surfaces): BKActionRootQuery,
+    BKAppRootQuery, BKComponentQuery, FWABloks{Action,App}RootQuery, FBCodeUsageSendTraceMutation,
+    FRLSetRlAppConsent, RLConsent{State,FlowStatus,PostPromptOutcome,EventMutation,...},
+    MetaPlaceDetails, RichPlacesDetails, RichPlacesBatchDetails (16 doc ids total).
+- mwa-fb-ios / mwa-frl-ios / mwa-ig-ios_client-persist.json also bundled (shared Meta apps).
+- FacebookAppID (Info.plist): 1408214714122653; same value at 3abed00.
+- Other numeric app/config IDs in binary (public app IDs, not secrets):
+    1187819425717021 (3b6ed70, FXOAuthAccountLinking), 1302642031697155 (3b63200, HatchWebSession
+    OIDC mint), 1329698345856571 (3c62e10, Flytrap submit), 1844382342890218 (3c62dd0, bug report),
+    1473033304177383 (3cad610, FWABugReportConfig), 156025504001094 (3c60b14, customBotID block),
+    1673899927103484 (3b64ee0, push token registration), 1787328921436665 (3a16620, MWA login),
+    3059491937573464 (3b63700), 2264115180554043 (3c8dad0), 1981880489088756 (3b64f00),
+    234162453451062 (39c0337), 21493640822936471 (3ca6c60), 27387421137557266 (3cac0e0),
+    25126427520318550/29195466160042651/28096308286706192/36805194462428540/38809156112033031/
+    38324511450527332 (3a702f0..3ac44e0 cluster, likely persisted-query or entity ids),
+    2995710662650796444 (3c99290).
+- ACS pinned public key (HATCH_CVMProvisioning signed config): hex 1011c96b… (visible length
+  62 chars, truncated by string boundary; full 64-hex ed25519 key implied) at 3c7f0d0. [REDACTED:
+  first 8 shown; same label as 8.1's redacted pinned key.]
+- No Stripe pk_live, Google AIza, AWS AKIA, Slack xox, GitHub ghp or OAuth client_secret
+  literals found (grepped explicitly).
+- Keychain item label: com.meta.hatchcvm.secret_key (3b32bd0) [UNDOC].
+- Hardcoded example invite code: A8K612 (inside share copy, 3b63bd0/3b63c00).
+
+
+=======================================================================================
+## 5. NETWORK-RELEVANT MOBILECONFIG GATES (params_maps/params_map.txt)
+=======================================================================================
+Families present: *hatch_ios, *hatch_ios_reliability, *hatch_ios_networking, *hatch_ios_shopping,
+*hatch_ios_subscriptions, *hatch_ios_goals, *hatch_ios_reviews, *hatch_ios_notifications,
+*hatch_ios_help_center_links, *hatch_login, *hatch_link, *hatch_sharing, *hatch_hitl,
+*hatch_age_confirmation, *hatch_device_node(_config), *hatch_gtm, *hatch_legal_urls_sessionless,
+*ios_hatch_force_upgrade, *wearables_hatch, *wearable_mcp, *wearable_mc_needlechecks(_sessionless),
+*wearables_mobile_accounts, *wearables_timers, *wearables_meta_ai_language_english, *fbios_ohai.
+Notable individual params (verbatim):
+  enable_noise, noise_enabled, noise_shared_ingress_host, noise_ws_call_signaling_enabled,
+  enable_snp_attestation_verifier, cvm_attestation_probe_enabled, cvm_hard_replacement_enabled,
+  cvm_filtered_bug_report_enabled, enable_hatch_agentic_runtime, enable_hatch_reset,
+  enable_subscription_experience_cvm, hatch_on_redox [UNDOC], hatch_podcast [UNDOC],
+  hatch_linking_enabled, hatch_devices_section_enabled, hatch_enable_biz_connector_in_settings,
+  open_hatch_ac_in_bloks, use_hatch_domain_for_3pl [UNDOC], use_hatch_skills_consent_entrypoint,
+  garmin_route_to_hatch_enabled [UNDOC] (LEAD L5), hatch_agreement_url, legal_muse_privacy_url,
+  live_ai_enabled_when_hatch_is_selected, ohai_relay_proxy_url,
+  is_wearables_consent_us_territories, is_wearables_disabled, wearables_link_learn_more_link,
+  wearable_early_forwarding_duration_ms, wearable_wait_for_sequence_number_gap,
+  paloma_en_in_enabled, paloma_en_in_min_soc_version [UNDOC],
+  halo_button_enabled / halo_controls_enabled / halo_drawer_entry_enabled /
+  raise_hand_halo_design_enabled [UNDOC — "halo" call/wearable UI family],
+  send_media_when_alone, sharing_when_alone_enabled, peer_consent_dialog_enabled.
+
+
+=======================================================================================
+## 6. EXTENSIONS (PlugIns)
+=======================================================================================
+- HatchNotificationServiceExtension.appex: only two absolute URLs (analytics batch +
+  breakpad crash upload, section 1d). Push-related config keys: hatch_notif_body_sanitizer,
+  hatch_notif_throttle, hatch_communication_notif, hatch_history_prefetch,
+  hatch_notif_logging, hatch_notif_payload_logging, hatch_hitl_notif_category,
+  hatch_notif_reply_category, is_silent_push, is_bannerless_push. App groups
+  group.com.metaplatforms.family, group.com.facebook.hatch.
+- HatchShareExtension.appex: no URLs. Local-only Safari preprocessing JS
+  (GetPageContent.js: page title/url/description/og:image/icon/first-paragraph text, handed
+  to the share sheet natively). Log label com.facebook.hatch.shareextension.log.
+- WidgetExtension.appex: no URLs. Reads shared-container state written by the app:
+  hatch_widget_authenticated_account_id, hatch_widget_identity_name, hatch_widget_side_chats,
+  avatar caches. NOTE: also contains hch_captured_emails.v1.json (63b80),
+  hch_captured_imessages.v1.json (63ba0) and Darwin-notification names
+  com.facebook.hatch.captured.imessage.appended (63bc0),
+  com.facebook.hatch.captured.email.appended (63bf0) — the same strings exist in the main
+  binary (3b32090-3b32110, next to HealthKit delta-fetch code and api/pin-reminder/*).
+  iOS apps cannot capture iMessage/email; this looks like shared xplat code naming the macOS
+  capture artifacts, present (and previously undocumented) on iOS [UNDOC] (LEAD L10).
+- All three extensions: no NSAppTransportSecurity key (default ATS), version 9.1.0 (1080826056).
+
+
+=======================================================================================
+## 7. REMOVED SINCE 8.1 (direct binary counts)
+=======================================================================================
+- Sigstore verification stack GONE: sigstore 155→0, rekor 67→0, fulcio 1→0, sigstage 5→0.
+  The embedded Sigstore STAGING trusted root (rekor.sigstage.dev + log20xx shards,
+  documented in evidence-ios/16-network-ios.txt §2c) no longer exists in the binary.
+  (Removal first noted in evidence-updates/2026-10-06/10-v9-audit-findings.json.)
+- Replacement/consolidation: the Cloudflare "Plexi" transparency-proof check already existed
+  in 8.1 alongside Sigstore, but 9.1 makes it the ONLY transparency path and expands it:
+  new strings "policy requires a Cloudflare transparency proof", structs TransparencyProof,
+  RevocationEvidence, revocation_evidence, report_data_input, serialized_rl,
+  "invalid Cloudflare proof JSON" (3a7d8e8),
+  "Cloudflare namespace %& is not trusted for the image manifest" (3a7dd36),
+  "Cloudflare proof expired" (3a7dd75); bridge signature gained transparencyPolicy:
+  -[HCHNoiseGatewayCarrierBridge initWithSevSnpVerifierEnabled:transparencyPolicy:...]
+  (36939dc), HCHNoiseSnpTransparencyPolicy, productionSnpVerifierFactory taking
+  SnpTransparencyPolicy. AMD SEV-SNP chain (Milan/Genoa/Turin VCEK/ASK/ARK, CRLs, chip
+  pinning) retained. (transparencyPolicy noted in passing in 10-v9-audit-findings.json;
+  the Sigstore-removal/Plexi-consolidation is documented nowhere — LEAD L3.)
+- Client string no longer present: none of lithium.facebook.com (0 already in 8.1 binary).
+
+
+=======================================================================================
+## 8. RANKED NEW LEADS
+=======================================================================================
+L1  multimango.com ships in the iOS 9.1 binary (0 hits in 8.1). Verbatim:
+      0x3cb6650 https://www.multimango.com/api/alo/default-models
+    inside the Alo wearable voice module, surrounded by "[AloModels] no token/url — using
+    MobileConfig tier", "[AloModels] fetch error:", "[AloModels] fetched defaults: s2s=".
+    Same release adds wss://shortwave.facebook.com/vllm_proxy (0x3cb7030, speech-to-speech,
+    previously macOS-only), OpenAI-Realtime event vocabulary, "Muse Gadget" BLE device name
+    (0x3cb630e), HCHMicroAloVoiceManager (0x357de50). Fully verified in
+    evidence-updates/2026-10-08/04-binary-verification-alo-wearable.txt — the open question
+    remains who owns multimango.com (see 01/02/03-multimango-*.txt from today).
+L2  Undocumented VM "graduation" flow (present since 8.1, documented nowhere):
+      /muse/graduation/start?vm_id= (3a721e0), /download?vm_id= (3a72250),
+      /store (3a72290, store(vmID:experienceID:)), /reset (3a722d0),
+      HCHGatewayService/HCHHatchGraduationRepository.swift (3a72200).
+    Reads like a VM export/migration ("graduate" a VM's experience to download/store). What
+    user data moves through /muse/graduation/download is unverified.
+L3  Attestation transparency path consolidated: Sigstore (staging) removed entirely; the
+    Cloudflare "Plexi" transparency-proof check that coexisted with it in 8.1 is now the
+    sole path, expanded with revocation-evidence plumbing and a new SnpTransparencyPolicy
+    knob on the Noise bridge (offsets in §7). Which Cloudflare keys are pinned and which
+    namespaces are trusted is server/bundle-driven — worth extracting the pinned key values
+    and checking whether any Cloudflare-operated log endpoint is contacted at runtime.
+L4  Podcast subsystem, gated by hatch_podcast, documented nowhere:
+      api/podcasts/feed (3a72350), api/podcasts/episodes (39817b0), workspace/podcasts/
+      (3a67260), HCHHatchPodcastRepository (3692920), HCHPodcastFeed/Episode/Artwork/
+      Presentation types, spotify_episode_uri (3a694b0) / spotify_show_url (3a694f0) fields.
+    Agent-generated (or Spotify-sourced) podcast feeds served from the VM workspace.
+L5  Third-party connector surface on iOS, documented here for the first time (the strings
+    already existed in 8.1 but appear in no prior repo evidence; cross-platform doc had
+    connectors as Android-only): /connect/{facebook,instagram,threads,
+    whatsapp,instagram_messages,threads_messages,messenger_companion,whatsapp_companion,
+    api-key,channel}, /connectors/connect/meta_business, auth.onepeloton.com (3a69cf0),
+    FWAIconSpotify/FWAIconGarminIcon/FWAIconStravaIcon (3a1f65c/3a1fc10/3a1fc30),
+    MobileConfig garmin_route_to_hatch_enabled. iOS previously had no connector OAuth hosts;
+    Garmin/Strava/Peloton imply fitness-data connectors beyond HealthKit.
+L6  Wearable OTA firmware pipeline: "Check for Update" (3cba0d0) next to
+      scontent.xx.fbcdn.net/mci_ab/uap/?ab_b=m&ab_page=HatchFirmware&ab_entry=AQOtF78z…
+      (3cba030, full ab_entry verbatim in §1g), "OTA: SMP characteristic not found on device",
+      "OTA: unsupported ZIP compression method", DeviceStatusCloudOTAInfo/OTAEvent types.
+    BLE firmware updates to a "Muse Gadget" wearable, assets hosted on fbcdn.
+L7  Fake local origin https://hatch-chat-widget.local/ (3b71140) hosting an embedded
+    chat-widget HTML page with a postMessage bridge ('chat-widget-frame', actions open/close).
+    Harmless-looking, but any WKWebView scheme-handler bug here is a local-content bridge to
+    native code; also present in 8.1, undocumented.
+L8  New auth machinery: /hatch/vesta-auth/{user-info,begin-register,finish-register,
+    begin-login,finish-login} (3b35d18-3b35d95 — WebAuthn-shaped) and /hatch/auth/zari_exchange
+    (3a73850). "Vesta" and "Zari" are undocumented internal names for token/passkey exchange.
+L9  PIN-reminder vault: api/pin-reminder/update (3b32110), api/pin-reminder/confirm (3b32130)
+    with fields encrypted_pin_verifier, replaces_update_id, last_successful_entry_at_ms —
+    a client-encrypted PIN verifier synced to the VM. Undocumented feature.
+L10 iOS binary + widget carry macOS capture-artifact names hch_captured_imessages.v1.json /
+    hch_captured_emails.v1.json and Darwin notifications com.facebook.hatch.captured.
+    {imessage,email}.appended (main: 3b32090-3b32110; widget: 63b80-63bf0). Most likely dead
+    xplat code, but worth confirming no iOS code path reads/writes these in the App Group.
+L11 Debug/growth surfaces in a production build: /hatch/debug/reset_activation,
+    /hatch/debug/reset_invite_code_redemption, "mock-recipient-ramos" (3b63ab0),
+    hardcoded example invite A8K612, internalfb.com orchard/bug links, pariscope.dev hatchery
+    links. Low severity; indicates dev tooling compiled in.
+L12 Redox voice stack: hatch_on_redox gate + RPXAiSdkRtc redox_client_params (3bde3c4) +
+    gateway-edge.meta.com HCHSignalingTransport — voice-call signaling is migrating onto a
+    "Redox" transport. Undocumented.
+
+
+=======================================================================================
+## 9. WHAT THIS INVENTORY CANNOT SHOW
+=======================================================================================
+  - Runtime host selection: VM gateway URLs (hatch.metaaivm.com vs per-VM hosts), Ohai relay
+    choice, and noise_shared_ingress_host are server-config driven; no per-VM wss:// template
+    beyond %@ patterns exists in strings.
+  - Payload contents of any method; whether Alo/vllm_proxy, graduation, podcast, connector
+    and pin-reminder paths are enabled for production accounts (all are gated).
+  - Whether the pinned Cloudflare transparency keys and the ACS pinned key changed vs 8.1
+    beyond the label check above (8.1's key value was redacted in evidence).
+  - Traffic actually observed: none. All entries are static references.
